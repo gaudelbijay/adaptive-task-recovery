@@ -33,7 +33,7 @@ Being explicit about *which* skills are learned vs. classical (and why) is one o
 - **Action**: same action space as the task policy (joint position/torque targets via the whole-body controller interface) — recovery skills output through the same low-level interface as the task policy so switching between them is seamless.
 - **Reward shaping** (per skill, tune independently):
   - Dense shaping term toward the skill's specific sub-goal (e.g., distance to a valid grasp pose for `re-approach`).
-  - Penalty for control effort / jerk (real-hardware-friendly, also usually improves sim2real).
+  - Penalty for control effort / jerk to encourage smooth, efficient behavior.
   - Large terminal bonus for reaching a state where the **task policy's own termination/success check would resume normally** — the actual objective is "hand control back to the task policy successfully," not just "look locally correct."
   - Safety penalty (e.g., large negative for falling, exceeding torque limits) applied globally regardless of skill.
 - **Algorithm**: start with **PPO** for stability/ease of debugging; consider **SAC** for skills needing more sample efficiency once the environment and reward are validated. Keep the same algorithm across skills initially to reduce the number of moving parts you're debugging at once.
@@ -46,7 +46,7 @@ Being explicit about *which* skills are learned vs. classical (and why) is one o
 
 ## 5. Handling repeated/failed recovery attempts
 
-Define an explicit **retry budget** per episode (e.g., at most 2 recovery attempts per failure event, at most 3 total per episode) after which the arbiter forces `abort-to-safe-pose`. Without this, a poorly-trained recovery skill can oscillate (detect failure → attempt recovery → fail again → detect failure → ...) indefinitely, which is both a bad real-robot outcome and a subtle bug that's easy to miss if you only look at aggregate success rate. Log retry counts explicitly as a metric ([10](10-evaluation-and-benchmarks.md)).
+Define an explicit **retry budget** per episode (e.g., at most 2 recovery attempts per failure event, at most 3 total per episode) after which the arbiter forces `abort-to-safe-pose`. Without this, a poorly-trained recovery skill can oscillate (detect failure → attempt recovery → fail again → detect failure → ...) indefinitely, a subtle bug that's easy to miss if you only look at aggregate success rate. Log retry counts explicitly as a metric ([10](10-evaluation-and-benchmarks.md)).
 
 ## 6. Interfaces recap
 

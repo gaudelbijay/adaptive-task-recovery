@@ -38,8 +38,8 @@ Stage 4: Integrated system evaluation
   → run full evaluation suite from 10-evaluation-and-benchmarks.md.
   → gate: end-to-end recovery success rate beats no-recovery and scripted-recovery baselines.
 
-Stage 5 (stretch): Sim-to-real
-  → see 09-sim-to-real-transfer.md.
+Stage 5 (stretch): Cross-task and cross-morphology generalization
+  → evaluate transfer entirely within simulation.
 ```
 
 Do not skip Stage 0's gate — a shaky baseline task policy makes every later measurement ambiguous (is the recovery policy bad, or was the task policy already unreliable?). Budget real time for this; it's the least glamorous stage but the one everything else's validity depends on.

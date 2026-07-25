@@ -39,7 +39,7 @@ Humanoids make this **harder than a fixed-base arm or a wheeled robot** because:
 
 1. **RQ1 (Detection):** Can a learned failure monitor (trained on proprioceptive + visual features) detect task-relevant failures earlier and with better precision/recall than fixed thresholds, and does it generalize to failure severities/types not seen in training?
 2. **RQ2 (Recovery policy structure):** Does a modular "detect → select recovery skill → execute → resume" architecture outperform (a) no recovery and (b) a monolithic policy trained under heavy domain randomization, on task success rate under injected failures?
-3. **RQ3 (Transfer):** How much of the sim-trained failure-detection and recovery behavior survives contact with a real Unitree humanoid, and what's the minimum real-world data/calibration needed to close the gap?
+3. **RQ3 (Generalization):** How well do failure-detection and recovery behaviors generalize to unseen failure types, task variations, and simulation parameters?
 4. **RQ4 (Generalization):** Does a recovery policy trained on a curriculum of failure types transfer to *held-out* failure types (e.g., trained on slip + push, tested on sensor dropout)?
 
 ## 5. Success criteria (v1)
@@ -48,10 +48,10 @@ Humanoids make this **harder than a fixed-base arm or a wheeled robot** because:
 - A failure detector with measured precision/recall/latency, beating a hand-tuned threshold baseline on at least 2 failure types.
 - A recovery policy that raises task success rate under injected failures by a clearly reported margin over a no-recovery baseline (target: **+30 percentage points or more**, task-dependent — treat this as a hypothesis to validate, not a promise).
 - A public repo, writeup, and demo video suitable for a portfolio (see [12](12-portfolio-and-job-strategy.md)).
-- **Stretch:** the same failure monitor + a subset of recovery skills demonstrated on a real Unitree G1 in a safety-gated setting.
+- **Stretch:** recovery skills that generalize across multiple simulated humanoid morphologies or task families.
 
 ## 6. Non-goals
 
 - Solving general-purpose autonomy or long-horizon LLM-based task planning (worth a "future work" mention, not core scope).
 - Achieving state-of-the-art benchmark numbers on an existing published benchmark — the contribution here is the **system + methodology + honest evaluation**, which is what portfolio reviewers and interviewers actually probe.
-- Building new hardware or a new simulator — reuse ManiSkill3 and Unitree's existing SDK/assets.
+- Building new hardware or a new simulator — reuse ManiSkill3 and existing robot-description assets.

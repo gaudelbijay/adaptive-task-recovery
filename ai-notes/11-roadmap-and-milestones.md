@@ -40,32 +40,26 @@ Assumes **part-time, single-contributor** effort. Treat durations as planning es
 - Full baseline/ablation suite from [10-evaluation-and-benchmarks.md](10-evaluation-and-benchmarks.md) run and reported.
 - **Exit criteria**: this is the core deliverable — end-to-end system beating no-recovery and scripted-recovery baselines, with honest numbers, is enough on its own for a strong portfolio piece even if nothing past this point happens.
 
-## Phase 5 — Sim-to-real prep and hardware bring-up (~3–4 weeks, contingent on hardware access)
+## Phase 5 — Generalization and benchmark packaging (~3–4 weeks)
 
-- Safety protocol dry-runs, system identification, domain-randomization widening, per [09-sim-to-real-transfer.md](09-sim-to-real-transfer.md).
-- **Exit criteria**: shadow-mode validated, Stage A (seated manipulation-recovery) hardware sessions logged.
+- Evaluate held-out failure types, severity ranges, task configurations, and simulated robot parameters.
+- Package the environments, failure-injection API, baselines, and evaluation scripts as a reproducible benchmark.
+- **Exit criteria**: generalization results are documented and the benchmark runs from clean setup instructions.
 
-## Phase 6 — Real robot experiments (~4 weeks, stretch)
-
-- Staged deployment through as many of Stages A–D as safety/access allow.
-- **Exit criteria**: at minimum, Stage A results reported honestly; anything further is bonus.
-
-## Phase 7 — Writeup, demo, polish (~2–3 weeks)
+## Phase 6 — Writeup, demo, polish (~2–3 weeks)
 
 - Public repo cleanup, README with GIFs/videos, blog-style writeup(s), demo video, optional workshop-paper draft.
 - Per [12-portfolio-and-job-strategy.md](12-portfolio-and-job-strategy.md).
 
 ## Total estimate
 
-~5–6 months part-time through Phase 4 (the sim-only, fully self-contained deliverable); +2–3 months if pursuing hardware phases. **Ship Phase 4's writeup even if hardware phases stall or never happen** — don't let a stretch goal block releasing a complete, valuable simulation result.
+~6–7 months part-time for the complete simulation-only project, including benchmark packaging and writeup.
 
 ## Risk register
 
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Humanoid asset import in ManiSkill is unstable/fiddly | Delays Phase 0–1 | Budget extra time explicitly (this is a known friction point, see [04](04-simulation-environment-maniskill.md) §2); fall back to a simpler/better-supported robot asset temporarily to validate the *pipeline* while asset issues are debugged in parallel |
-| No real hardware access materializes | Phases 5–6 don't happen | Explicitly scoped as stretch from day one ([05](05-robot-platform-unitree.md) §4); project is complete without them |
 | RL sample inefficiency / reward shaping struggles | Delays Phase 4 | Start with the simplest env (`PushRecoveryStand`) and classical control where possible ([07](07-recovery-policy-design.md) §2); don't over-invest in the hardest RL skill first |
-| Sim2real gap larger than expected | Weak/no hardware results | Frame stretch-goal success criteria realistically from the start ([09](09-sim-to-real-transfer.md) §6); simulation results stand alone |
 | Scope creep (adding tasks/skills indefinitely) | Timeline slips, nothing ships | Hold to the v1 scope in [01-problem-statement-and-motivation.md](01-problem-statement-and-motivation.md) §6; log new ideas as "future work," don't implement mid-stream |
 | Time/motivation drop-off on a long solo project | Project stalls | Ship incrementally — each phase's exit criteria is independently postable/shareable (blog post per phase), so partial progress still produces visible portfolio artifacts |

@@ -13,11 +13,10 @@ last_updated: 2026-07-24
 | Task success rate (nominal) | % episodes reaching task goal with no injected failure | Sanity check — should stay high across all system versions |
 | Task success rate (under failure) | % episodes reaching task goal when a failure is injected mid-episode | Primary comparison metric across baselines |
 | Recovery success rate | % of injected-failure episodes where the recovery layer restored task feasibility (task later succeeded) | Isolates recovery-layer contribution specifically |
-| Time-to-recovery | Steps/seconds from failure onset to arbiter handing control back to the task policy | Reported as a distribution, not just mean — tails matter for real-world usability |
+| Time-to-recovery | Steps/seconds from failure onset to arbiter handing control back to the task policy | Reported as a distribution, not just mean |
 | Detection precision/recall/latency | Per [06-failure-taxonomy-and-detection.md](06-failure-taxonomy-and-detection.md) §4 | Failure monitor evaluated in isolation |
 | Retry count | Number of recovery attempts per failure event before success/abort | Flags oscillation/thrashing, per [07](07-recovery-policy-design.md) §5 |
-| Fall rate (real robot only) | % sessions/episodes ending in an uncontrolled fall | Hardware phase safety metric, tracked from session 1 |
-| Sim2real gap | Metric delta (e.g., recovery success rate) between sim and hardware, same task/failure config | Hardware phase only |
+| Fall rate | % simulated episodes ending in an uncontrolled fall | Balance-recovery robustness metric |
 
 Report every headline metric **broken down by failure type and severity**, not only aggregated — aggregate numbers are easy to game (e.g., doing great on easy failures, ignoring hard ones) and reviewers who've done robotics work will ask for the breakdown anyway.
 
@@ -41,7 +40,6 @@ Report every headline metric **broken down by failure type and severity**, not o
 
 - Run every reported number across **multiple seeds** (minimum 3, more if compute allows) and report mean ± std or confidence intervals, not a single run's number — RL results are notoriously seed-sensitive, and reporting a single lucky run is one of the most common credibility gaps reviewers look for.
 - Use a **fixed, held-out set of evaluation episodes/seeds** (not sampled fresh every eval) so comparisons across checkpoints/baselines are apples-to-apples.
-- For hardware results, be explicit about small sample sizes (likely true given safety/time constraints) — report raw counts ("6/8 successful recoveries across 3 sessions"), don't dress up small-N hardware results as statistically rigorous.
 
 ## 5. Proposed open contribution (stretch)
 

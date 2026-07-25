@@ -8,7 +8,7 @@ last_updated: 2026-07-24
 
 ## One-liner
 
-A learning-based framework that lets a humanoid robot **notice when a task is going wrong and recover on its own** — instead of freezing, falling, or silently failing — trained at scale in the **ManiSkill3** simulator and (stretch goal) deployed on a **Unitree** humanoid (G1 primary target, H1 as a stretch/alternative).
+A learning-based framework that lets a simulated humanoid robot **notice when a task is going wrong and recover on its own** — instead of freezing, falling, or silently failing — trained and evaluated at scale in the **ManiSkill3** simulator.
 
 ## Why this project
 
@@ -27,8 +27,8 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 
 ## Scope (v1)
 
-- **In scope:** tabletop / near-tabletop bimanual manipulation tasks and a small set of standing-balance recovery behaviors; simulation-first development; sim-to-real as a staged, safety-gated stretch goal.
-- **Out of scope (v1):** full dynamic locomotion recovery (running, jumping), multi-robot, long-horizon task-and-motion planning with an LLM planner (noted as future work), fully autonomous unattended real-robot operation.
+- **In scope:** tabletop / near-tabletop bimanual manipulation tasks and a small set of standing-balance recovery behaviors, developed and evaluated entirely in simulation.
+- **Out of scope (v1):** physical-robot experiments, sim-to-real transfer, full dynamic locomotion recovery (running, jumping), multi-robot systems, and long-horizon task-and-motion planning with an LLM planner.
 
 ## High-level pipeline
 
@@ -55,8 +55,7 @@ This sits squarely in the "robot learning for real-world robustness" space that 
                           └─────────────┬──────────────────────┘            │
                                         ▼                                   │
                              Whole-Body Controller                          │
-                             (sim: ManiSkill agent API                      │
-                              real: Unitree SDK)                            │
+                             (ManiSkill agent API)                          │
                                         │                                   │
                                         ▼                                   │
                               Robot / Simulated Robot                       │
@@ -69,7 +68,7 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 |---|---|---|
 | Simulator | ManiSkill3 (SAPIEN backend) | GPU-vectorized, thousands of parallel envs on one GPU, native rigid/contact-rich manipulation support, growing humanoid asset support |
 | RL algorithms | PPO, SAC (via CleanRL or Stable-Baselines3-style custom loop) | Standard, well-understood baselines; easy to reason about in interviews |
-| Robot platform | Unitree G1 (primary), H1 (alt) | Accessible humanoid form factor, active open-source SDK/URDF ecosystem, realistic loco-manipulation research target |
+| Robot model | Unitree G1 URDF or another ManiSkill-compatible humanoid | Realistic morphology for simulated loco-manipulation and recovery |
 | Config management | Hydra or plain YAML + dataclasses | Reproducible experiment configs |
 | Experiment tracking | Weights & Biases (or TensorBoard if offline) | Standard in robot learning labs |
 | Containerization | Docker + devcontainer | Reproducibility, portfolio polish |
@@ -77,8 +76,8 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 
 ## Assumptions made in these notes (adjust freely)
 
-- Primary hardware target is the **Unitree G1** (lower cost/footprint than H1, more accessible for a solo/small-team project); notes call out where H1 differs.
-- Real-hardware phases are written as **stretch goals gated on actual hardware access** — the project is fully valuable and demo-able in simulation alone if hardware never materializes.
+- The project is intentionally simulation-only; no physical robot access or deployment is planned.
+- The **Unitree G1** is a candidate simulated morphology, not a hardware target.
 - Timeline assumes **part-time, single-contributor** effort (see [11-roadmap-and-milestones.md](11-roadmap-and-milestones.md)); compress or parallelize if you have more time/people.
 
 ## File map
@@ -89,11 +88,9 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 | [02-background-and-related-work.md](02-background-and-related-work.md) | Prior art to read/cite: failure detection, recovery/safe RL, humanoid control, sim platforms |
 | [03-system-architecture.md](03-system-architecture.md) | Module breakdown, data flow, interfaces |
 | [04-simulation-environment-maniskill.md](04-simulation-environment-maniskill.md) | ManiSkill3 setup, robot asset import, task/environment design, failure injection API |
-| [05-robot-platform-unitree.md](05-robot-platform-unitree.md) | Unitree G1/H1 specs, SDK, real-world safety protocol |
 | [06-failure-taxonomy-and-detection.md](06-failure-taxonomy-and-detection.md) | Failure categories, detection methods, labeling strategy, metrics |
 | [07-recovery-policy-design.md](07-recovery-policy-design.md) | Recovery policy library, RL formulation, hierarchical/options framing |
 | [08-training-pipeline.md](08-training-pipeline.md) | End-to-end training pipeline, compute plan, logging, reproducibility |
-| [09-sim-to-real-transfer.md](09-sim-to-real-transfer.md) | Domain randomization, system ID, staged deployment, hardware safety |
 | [10-evaluation-and-benchmarks.md](10-evaluation-and-benchmarks.md) | Metrics, baselines, ablations, proposed open benchmark |
 | [11-roadmap-and-milestones.md](11-roadmap-and-milestones.md) | Phased plan, timeline, risk register |
 | [12-portfolio-and-job-strategy.md](12-portfolio-and-job-strategy.md) | How to package this for job-hunting: repo hygiene, writeups, talking points |

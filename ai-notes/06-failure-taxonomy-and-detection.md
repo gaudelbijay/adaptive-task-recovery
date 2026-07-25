@@ -8,14 +8,14 @@ last_updated: 2026-07-24
 
 ## 1. Failure taxonomy table
 
-| Category | Example | Primary detectable signal(s) | Severity range | Ground truth in sim | Proxy signal on real robot |
-|---|---|---|---|---|---|
-| Perception | Occlusion, segmentation failure, pose estimate jump | vision confidence, temporal pose discontinuity | low–med | object pose vs. sim ground truth | pose estimator's own confidence/covariance, cross-check with proprioceptive contact expectation |
-| Contact / manipulation | Grasp slip, contact loss, misalignment | gripper/hand F-T sensor, contact flags, object velocity vs. hand velocity | med–high | exact contact constraint state, object pose | wrist F/T sensor, tactile if available, visual slip cues |
-| Balance / locomotion | External push, uneven terrain, trip | IMU tilt angle/rate, CoM-vs-support-polygon margin, foot contact timing | high (safety-critical) | exact CoM, support polygon, contact forces | IMU, joint torque estimate, foot contact sensors |
-| Planning / state | Object moved, stale world model, drawer already open | discrepancy between expected and observed state at sub-goal checkpoints | low–med | full state diff vs. plan's assumed state | vision re-check at checkpoints, task-progress monitor |
-| Actuation | Torque saturation, motor fault, backlash | commanded vs. achieved joint torque/position tracking error | med–high | exact motor model deviation (if simulated) | tracking error, temperature/current if exposed by SDK |
-| Whole-body coupling | Manipulation destabilizes stance | CoM shift correlated with arm motion exceeding a learned/derived margin | med–high | full-body state | IMU + joint state fused |
+| Category | Example | Primary detectable signal(s) | Severity range | Ground truth in simulation |
+|---|---|---|---|---|
+| Perception | Occlusion, segmentation failure, pose estimate jump | vision confidence, temporal pose discontinuity | low–med | object pose vs. simulator ground truth |
+| Contact / manipulation | Grasp slip, contact loss, misalignment | contact flags, object velocity vs. hand velocity | med–high | exact contact constraint state and object pose |
+| Balance / locomotion | External push, uneven terrain, trip | IMU tilt angle/rate, CoM-vs-support-polygon margin, foot contact timing | high | exact CoM, support polygon, and contact forces |
+| Planning / state | Object moved, stale world model, drawer already open | discrepancy between expected and observed state at sub-goal checkpoints | low–med | full state diff vs. plan's assumed state |
+| Actuation | Torque saturation, motor fault, backlash | commanded vs. achieved joint torque/position tracking error | med–high | exact simulated motor-model deviation |
+| Whole-body coupling | Manipulation destabilizes stance | CoM shift correlated with arm motion exceeding a learned/derived margin | med–high | full-body simulator state |
 
 Severity should be treated as a **continuous parameter** in the failure-injection API ([04](04-simulation-environment-maniskill.md) §4), not just these coarse bins — use the bins for reporting/aggregation, not for the underlying injection code.
 
@@ -26,10 +26,9 @@ Severity should be treated as a **continuous parameter** in the failure-injectio
 3. **Sequence anomaly model**: a small Transformer/LSTM over a sliding window of proprioceptive (+ optionally visual-feature) history, trained either (a) unsupervised as a next-step predictor with reconstruction/prediction error as the anomaly score, or (b) supervised as a classifier if you have labeled failure windows from the injection API. Do both if time allows — comparing supervised vs. unsupervised detection is a strong ablation for the writeup.
 4. **Multi-modal fusion**: combine proprioceptive and visual anomaly scores (e.g., late fusion of two scores, or a joint model) — only worth doing after single-modality baselines are solid and measured separately, so you can report the fusion's actual marginal benefit.
 
-## 3. Labeling strategy — sim vs. real
+## 3. Labeling strategy
 
 - **In simulation**: the failure-injection API gives you exact onset time and type for every injected failure — use this as ground truth for supervised training and for computing precision/recall/latency. Also log *naturally occurring* failures (task policy fails on its own, e.g. missed grasp with no injection) separately, since these are your best test of generalization beyond the injected-failure distribution.
-- **On the real robot**: you will not have ground-truth failure labels. Approaches, roughly in order of practicality: (a) manually label a small set of recorded sessions by watching video + telemetry after the fact (slow but reliable, do this first for any real eval), (b) use task outcome (object placed correctly / not) as a weak, delayed label for whether a failure occurred somewhere in the episode (loses timing precision), (c) treat the sim-trained detector's outputs as inputs to a lightweight real-world calibration step rather than retraining from scratch on real labels (see [09-sim-to-real-transfer.md](09-sim-to-real-transfer.md)).
 
 ## 4. Metrics
 

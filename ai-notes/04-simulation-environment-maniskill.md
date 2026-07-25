@@ -10,7 +10,7 @@ last_updated: 2026-07-24
 
 - SAPIEN-based rigid-body physics with GPU vectorization: thousands of parallel environment instances on a single GPU, which matters enormously for RL sample efficiency on recovery policies (you need lots of failure/recovery episodes).
 - A `BaseEnv` / `BaseAgent` API for defining custom robots (via URDF/MJCF) and tasks; existing tasks and agents to learn the API from before writing custom ones.
-- Built-in rendering (rasterization + optional ray-tracing) for RGB-D observations, and access to privileged simulator state (exact object pose, contact forces) — critical for **generating clean failure labels in sim** that you will not have on real hardware (see [06](06-failure-taxonomy-and-detection.md) §3).
+- Built-in rendering (rasterization + optional ray-tracing) for RGB-D observations, and access to privileged simulator state such as exact object poses and contact forces, which enables clean failure labels (see [06](06-failure-taxonomy-and-detection.md) §3).
 - Randomization hooks for physical parameters (mass, friction, restitution) and initial state, which is the substrate for both standard domain randomization and this project's *failure injection*.
 
 Verify exact current API names (`BaseEnv`, `BaseAgent`, registration decorators, action-mode options) against the installed version's docs/source when you start implementation — simulator APIs move between releases; don't hardcode assumptions from these notes into your mental model of "how it definitely works."
@@ -18,7 +18,7 @@ Verify exact current API names (`BaseEnv`, `BaseAgent`, registration decorators,
 ## 2. Getting the Unitree humanoid into ManiSkill3
 
 1. **Source the URDF/MJCF**: Unitree publishes robot description files (URDF, sometimes MJCF) for G1/H1 in their own open-source repos (e.g., robot description packages used by `unitree_ros`/`unitree_mujoco`/`unitree_rl_gym`-style projects). Confirm current locations and licenses directly from Unitree's official GitHub org at implementation time rather than trusting a remembered path.
-2. **Import as a custom `BaseAgent`**: define joint names, actuator config (position/velocity/torque control mode, torque limits pulled from the real datasheet), and mount/collision geometry per ManiSkill's agent-definition pattern.
+2. **Import as a custom `BaseAgent`**: define joint names, actuator config (position/velocity/torque control mode and model limits), and mount/collision geometry per ManiSkill's agent-definition pattern.
 3. **Sanity-check standing stability first**: before any task or failure work, verify the imported robot can stand still under a simple PD/joint-position controller for N seconds across randomized start joint noise. This is your "does the asset import even work" smoke test — expect to spend real time here tuning joint damping/stiffness and collision margins; humanoid asset import is consistently one of the fiddlier parts of this kind of project.
 4. **Add a nominal locomotion/manipulation controller** (either import an existing trained policy if the community has published one for this robot in this sim, or train a minimal walking/reaching baseline yourself) before layering failure work on top — you need *something* that fails in interesting ways.
 
@@ -53,12 +53,12 @@ class FailureInjector:
 
 Design goals for this API:
 - **Deterministic given a seed**, so failure scenarios are exactly reproducible for evaluation/comparison across model versions.
-- **Ground-truth labeled**: every injected failure records type, onset step, and (for eval) the "ideal" recovery window, so you can compute detection latency and precision/recall against a real label — a luxury you only have in sim, so use it fully in your evaluation (see [10](10-evaluation-and-benchmarks.md)).
+- **Ground-truth labeled**: every injected failure records type, onset step, and (for evaluation) the ideal recovery window, enabling exact detection-latency and precision/recall measurements (see [10](10-evaluation-and-benchmarks.md)).
 - **Severity-parameterized**: each failure type takes a severity scalar so you can build curricula (train on mild, evaluate generalization to severe) and report a severity-vs-success-rate curve, not just one number.
 
-## 5. Domain randomization plan (for both nominal robustness and later sim2real)
+## 5. Domain randomization plan
 
-Randomize across training: object mass/friction/size within task-plausible ranges, robot joint damping/stiffness (±10–20%), sensor noise (Gaussian on joint encoders, IMU), visual randomization (lighting, textures, camera pose jitter) if using RGB observations, and action/observation latency (a few sim steps) to approximate real control-loop delay.
+Randomize across training: object mass/friction/size within task-plausible ranges, robot joint damping/stiffness (±10–20%), sensor noise (Gaussian on joint encoders and IMU), visual properties (lighting, textures, camera pose jitter) if using RGB observations, and action/observation latency. These variations test robustness beyond one fixed simulator configuration.
 
 Keep a **fixed, un-randomized "canonical" eval config** separate from the randomized training distribution, so you always have an apples-to-apples number across experiment iterations in addition to the randomized-robustness numbers.
 

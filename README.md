@@ -14,10 +14,9 @@ The system is designed to:
 
 ## Project scope
 
-The first version is simulation-first and targets tabletop manipulation and
-basic standing-balance recovery. Policies will be trained and evaluated in
-[ManiSkill](https://www.maniskill.ai/), with the Unitree G1 as the primary
-real-robot target if hardware access becomes available.
+The project is simulation-only and targets tabletop manipulation and basic
+standing-balance recovery. Policies will be trained and evaluated in
+[ManiSkill](https://www.maniskill.ai/) using a simulated humanoid model.
 
 Planned components include:
 
@@ -43,7 +42,7 @@ The main development phases are:
 3. Implement controlled failure injection.
 4. Train and evaluate failure detectors.
 5. Build recovery policies and the end-to-end system.
-6. Explore sim-to-real transfer as a stretch goal.
+6. Package the benchmark, results, and demonstrations.
 
 See the [full roadmap](ai-notes/11-roadmap-and-milestones.md) for details.
 

@@ -21,14 +21,14 @@ This is a working reading list + concept map, organized by sub-area. Treat every
 - **Recovery RL** (Thananjeyan et al.): learns a *risk-aware recovery policy* alongside a task policy — when a learned safety critic predicts the task policy is about to enter a constraint-violating region, control is handed to the recovery policy. Directly relevant structural template for this project (adapt the objective from "avoid unsafe states" to "restore task feasibility").
 - **Safe RL / control barrier functions / Lyapunov-based safety layers**: a broader literature on wrapping a learned policy with a safety filter. Useful for the balance-recovery sub-problem specifically (falls are a hard safety constraint, not just a task-failure).
 - **Options / hierarchical RL framework**: treat each recovery behavior (regrasp, step-recovery, re-approach) as an *option* with its own initiation set and termination condition; the failure monitor + arbiter effectively learns/implements the option-selection policy. This gives a clean, explainable architecture (good for interviews).
-- **Reset-free / autonomous RL**: literature on training policies that don't rely on a human resetting the environment after every failure — relevant to how you'd eventually train recovery behaviors with less simulator hand-holding, and directly relevant if you ever try to fine-tune on a real robot.
+- **Reset-free / autonomous RL**: literature on training policies that do not rely on an external reset after every failure, relevant to scalable recovery training in vectorized simulation.
 - **Behavior trees with learned conditions**: classical robotics fallback structure; worth reading as the "why not just do this" foil in your writeup — behavior trees are still the industry-standard baseline you're arguing against/alongside.
 
 ## 3. Humanoid whole-body control and locomotion
 
 - **Whole-body control (WBC) / QP-based controllers**: standard approach for translating a desired task-space action (e.g., "shift CoM," "step here") into joint torques while respecting balance and contact constraints. Likely needed as the low-level layer under any RL "step-recovery" skill so it stays dynamically feasible.
 - **Model Predictive Control (MPC) for bipedal balance**: short-horizon optimization for push-recovery (capture point / ZMP-based methods are the classical starting point). Read at least one capture-point / ZMP push-recovery paper before implementing the balance-recovery skill.
-- **Learned bipedal locomotion (sim-to-real)**: recent work training walking/loco-manipulation policies end-to-end in GPU-parallel sim (Isaac Gym/Lab, MuJoCo, ManiSkill-adjacent) with heavy domain randomization, then transferring to real bipedal/humanoid hardware. This is the closest "sibling" literature — your project specifically targets the *failure/recovery* slice of this pipeline rather than nominal locomotion.
+- **Learned bipedal locomotion in simulation**: work training walking and loco-manipulation policies end-to-end in GPU-parallel simulators such as Isaac Gym/Lab and MuJoCo. This is the closest sibling literature; this project targets the failure/recovery slice rather than nominal locomotion.
 - **Loco-manipulation**: work that jointly controls locomotion and manipulation (whole-body policies rather than separate walking + arm controllers) — relevant to failure mode #7 in [01](01-problem-statement-and-motivation.md).
 
 ## 4. Vision-language(-action) models and high-level replanning (context, not core scope)
@@ -52,7 +52,7 @@ This is a working reading list + concept map, organized by sub-area. Treat every
 
 1. One classical push-recovery/balance paper (ZMP or capture-point based).
 2. Recovery RL (Thananjeyan et al.) — architecture template.
-3. One GPU-parallel sim-to-real humanoid/legged locomotion paper — methodology template for domain randomization and reward shaping.
+3. One GPU-parallel humanoid or legged-locomotion paper — methodology template for domain randomization and reward shaping.
 4. Options framework primer (Sutton, Precup, Singh) — vocabulary for the recovery-skill-library design.
 5. SayCan — for the "future work: language-conditioned recovery" paragraph.
 

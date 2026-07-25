@@ -8,7 +8,7 @@ last_updated: 2026-07-24
 
 ## 1. Design principles
 
-- **Sim/real parity**: every module talks to a thin `RobotInterface` abstraction so the exact same failure monitor and recovery policies run against ManiSkill3 or the real Unitree SDK. Never let a module call simulator- or SDK-specific APIs directly.
+- **Simulator modularity**: every module talks to a thin `RobotInterface` abstraction so failure monitors and recovery policies are decoupled from a specific ManiSkill environment or robot asset.
 - **Modularity over end-to-end**: perception, failure detection, and recovery are separate, independently testable/debuggable components — not one opaque network. This is a deliberate tradeoff (see [02](02-background-and-related-work.md) §3) favoring explainability and incremental progress over squeezing out the last bit of performance.
 - **Fail safe by default**: if the arbiter is uncertain, the default action is "abort to a safe pose," never "keep doing the task policy's raw output."
 
@@ -51,7 +51,7 @@ raw sensors
                    ▼
       ┌─────────────────────────┐
       │ Whole-Body Controller /  │  maps desired task-space/joint targets → low-level commands
-      │ Action Interface         │  sim: ManiSkill agent.set_action() ; real: Unitree SDK (see 05)
+      │ Action Interface         │  ManiSkill agent.set_action()
       └─────────────┬────────────┘
                      ▼
               Robot / Sim robot
@@ -92,7 +92,7 @@ adaptive-task-recovery/
 │   ├── perception/            # state estimation
 │   ├── detection/             # failure monitor models + baselines
 │   ├── recovery/              # recovery skill library + arbiter
-│   ├── control/                # whole-body controller / action interface, sim + real backends
+│   ├── control/                # whole-body controller / simulator action interface
 │   ├── interfaces.py
 │   └── configs/               # Hydra/YAML experiment configs
 ├── scripts/                    # train_task_policy.py, train_detector.py, train_recovery.py, eval.py
