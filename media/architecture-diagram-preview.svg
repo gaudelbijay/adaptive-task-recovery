@@ -51,25 +51,25 @@
 <text x="30.0" y="128.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE LEGEND — box color = phase that builds it</text>
 <rect x="20" y="144" width="34" height="28" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
 <text x="37.0" y="161.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P0</text>
-<text x="74.0" y="162.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Setup — ~2 wk — repo scaffold, ManiSkill3 install, humanoid asset import</text>
+<text x="74.0" y="162.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Setup — repo scaffold, ManiSkill3 install, humanoid asset import</text>
 <rect x="20" y="176" width="34" height="28" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
 <text x="37.0" y="193.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P1</text>
-<text x="74.0" y="194.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Baseline Task Policies — ~3-4 wk — per-task PPO/SAC policies, whole-body controller</text>
+<text x="74.0" y="194.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Baseline Task Policies — per-task PPO/SAC policies, whole-body controller</text>
 <rect x="20" y="208" width="34" height="28" rx="10" ry="10" fill="#FFE6CC" fill-opacity="1" stroke="#D79B00" stroke-width="1.6"/>
 <text x="37.0" y="225.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P2</text>
-<text x="74.0" y="226.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Injection — ~2 wk — seeded, severity-parameterized failure API</text>
+<text x="74.0" y="226.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Injection — seeded, severity-parameterized failure API</text>
 <rect x="20" y="240" width="34" height="28" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
 <text x="37.0" y="257.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P3</text>
-<text x="74.0" y="258.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Detector — ~3 wk — threshold to ensemble to sequence-model monitor</text>
+<text x="74.0" y="258.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Detector — threshold to ensemble to sequence-model monitor</text>
 <rect x="20" y="272" width="34" height="28" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
 <text x="37.0" y="289.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P4</text>
-<text x="74.0" y="290.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Recovery Policy (core deliverable) — ~4-6 wk — skill library + arbiter + full eval</text>
+<text x="74.0" y="290.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Recovery Policy (core deliverable) — skill library + arbiter + full eval</text>
 <rect x="20" y="304" width="34" height="28" rx="10" ry="10" fill="#B0E3E6" fill-opacity="1" stroke="#0B8299" stroke-width="1.6"/>
 <text x="37.0" y="321.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P5</text>
-<text x="74.0" y="322.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Generalization &amp; Benchmark — ~3-4 wk — held-out eval, benchmark packaging</text>
+<text x="74.0" y="322.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Generalization &amp; Benchmark — held-out eval, benchmark packaging</text>
 <rect x="20" y="336" width="34" height="28" rx="10" ry="10" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-width="1.6"/>
 <text x="37.0" y="353.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P6</text>
-<text x="74.0" y="354.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Writeup &amp; Polish — ~2-3 wk — repo cleanup, demo video, blog post</text>
+<text x="74.0" y="354.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Writeup &amp; Polish — repo cleanup, demo video, blog post</text>
 <rect x="20" y="480" width="2460" height="780" rx="0" ry="0" fill="none" fill-opacity="0.0" stroke="#999999" stroke-width="1.6" stroke-dasharray="10,6"/>
 <text x="30.0" y="498.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">ManiSkill3 Simulator — GPU-vectorized SAPIEN backend</text>
 <text x="30.0" y="514.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">(thousands of parallel envs). Everything inside this</text>
@@ -179,52 +179,45 @@
 <text x="1370.0" y="1550.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  held-out failure type &amp; severity</text>
 <rect x="20" y="1780" width="340" height="260" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
 <text x="30.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 0 — SETUP</text>
-<text x="30.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2 weeks</text>
-<text x="30.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo scaffold, Docker/CI skeleton</text>
-<text x="30.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Install ManiSkill3, run example tasks</text>
-<text x="30.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Import humanoid URDF as BaseAgent</text>
-<text x="30.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: standing-stability smoke test passes</text>
+<text x="30.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo scaffold, Docker/CI skeleton</text>
+<text x="30.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Install ManiSkill3, run example tasks</text>
+<text x="30.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Import humanoid URDF as BaseAgent</text>
+<text x="30.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: standing-stability smoke test passes</text>
 <rect x="380" y="1780" width="340" height="260" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
 <text x="390.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 1 — BASELINE POLICIES</text>
-<text x="390.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3-4 weeks</text>
-<text x="390.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Build PushRecoveryStand first, then</text>
-<text x="390.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  PickPlace / DoorOpen / CarryWalk</text>
-<text x="390.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Train Stage-0 policies per task</text>
-<text x="390.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: &gt;90% nominal success rate</text>
+<text x="390.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Build PushRecoveryStand first, then</text>
+<text x="390.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  PickPlace / DoorOpen / CarryWalk</text>
+<text x="390.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Train Stage-0 policies per task</text>
+<text x="390.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: &gt;90% nominal success rate</text>
 <rect x="740" y="1780" width="340" height="260" rx="10" ry="10" fill="#FFE6CC" fill-opacity="1" stroke="#D79B00" stroke-width="1.6"/>
 <text x="750.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 2 — FAILURE INJECTION</text>
-<text x="750.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2 weeks</text>
-<text x="750.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Implement failure-injection API</text>
-<text x="750.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Sweep severities per failure type</text>
-<text x="750.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: documented severity curves</text>
-<text x="750.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  per failure type per task</text>
+<text x="750.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Implement failure-injection API</text>
+<text x="750.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Sweep severities per failure type</text>
+<text x="750.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: documented severity curves</text>
+<text x="750.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  per failure type per task</text>
 <rect x="1100" y="1780" width="340" height="260" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
 <text x="1110.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 3 — FAILURE DETECTOR</text>
-<text x="1110.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3 weeks</text>
-<text x="1110.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Threshold -&gt; ensemble -&gt; sequence</text>
-<text x="1110.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  model, evaluated identically</text>
-<text x="1110.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats threshold baseline on</text>
-<text x="1110.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  precision/recall for &gt;=2 types</text>
+<text x="1110.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Threshold -&gt; ensemble -&gt; sequence</text>
+<text x="1110.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  model, evaluated identically</text>
+<text x="1110.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats threshold baseline on</text>
+<text x="1110.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  precision/recall for &gt;=2 types</text>
 <rect x="1460" y="1780" width="340" height="260" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
-<text x="1470.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 4 — RECOVERY POLICY</text>
-<text x="1470.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~4-6 weeks (core)</text>
-<text x="1470.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Classical step-recovery controller</text>
-<text x="1470.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">RL-trained regrasp/re-approach/replan</text>
-<text x="1470.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Rule-based arbiter wired end-to-end</text>
-<text x="1470.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats no-recovery + scripted</text>
-<text x="1470.0" y="1876.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  baselines, full ablation suite run</text>
+<text x="1470.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 4 — RECOVERY POLICY (core)</text>
+<text x="1470.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Classical step-recovery controller</text>
+<text x="1470.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">RL-trained regrasp/re-approach/replan</text>
+<text x="1470.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Rule-based arbiter wired end-to-end</text>
+<text x="1470.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats no-recovery + scripted</text>
+<text x="1470.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  baselines, full ablation suite run</text>
 <rect x="1820" y="1780" width="340" height="260" rx="10" ry="10" fill="#B0E3E6" fill-opacity="1" stroke="#0B8299" stroke-width="1.6"/>
 <text x="1830.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 5 — GENERALIZATION &amp; BENCHMARK</text>
-<text x="1830.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3-4 weeks</text>
-<text x="1830.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Held-out failure type/severity eval</text>
-<text x="1830.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Package envs+API+baselines as a</text>
-<text x="1830.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  reproducible benchmark</text>
-<text x="1830.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: benchmark runs from clean setup</text>
+<text x="1830.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Held-out failure type/severity eval</text>
+<text x="1830.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Package envs+API+baselines as a</text>
+<text x="1830.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  reproducible benchmark</text>
+<text x="1830.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: benchmark runs from clean setup</text>
 <rect x="2180" y="1780" width="340" height="260" rx="10" ry="10" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-width="1.6"/>
 <text x="2190.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 6 — WRITEUP &amp; POLISH</text>
-<text x="2190.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2-3 weeks</text>
-<text x="2190.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo cleanup, README w/ GIFs/video</text>
-<text x="2190.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Blog-post writeup(s), demo video</text>
-<text x="2190.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Optional workshop-paper draft</text>
-<text x="2190.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: portfolio-ready public repo</text>
+<text x="2190.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo cleanup, README w/ GIFs/video</text>
+<text x="2190.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Blog-post writeup(s), demo video</text>
+<text x="2190.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Optional workshop-paper draft</text>
+<text x="2190.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: portfolio-ready public repo</text>
 </svg>
