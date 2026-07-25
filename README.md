@@ -12,6 +12,12 @@ The system is designed to:
 3. Return the robot to a state where it can resume the original task, or abort
    safely when recovery is not possible.
 
+## Architecture diagram
+
+![System architecture and build phases](media/architecture-diagram-preview.png)
+
+The editable source is [`media/architecture-diagram.drawio`](media/architecture-diagram.drawio) — open it at [app.diagrams.net](https://app.diagrams.net) (File → Open From → Device) or with the draw.io VS Code extension to edit it. Box color = the phase (P0–P6) that builds that component; see [11-roadmap-and-milestones.md](docs/11-roadmap-and-milestones.md) for the full phase descriptions.
+
 ## Project scope
 
 The project is simulation-only and targets tabletop manipulation and basic

@@ -6,7 +6,7 @@ Living tracker for where this project actually stands. Update this file whenever
 
 **Phase:** Pre-Phase 0 — planning complete, implementation not started.
 
-The full design/planning documentation exists in [`docs/`](docs/) (problem statement, architecture, ManiSkill3 environment plan, failure taxonomy, recovery policy design, training pipeline, evaluation plan, roadmap). No code has been written yet. Next concrete step is Phase 0 from [`docs/11-roadmap-and-milestones.md`](docs/11-roadmap-and-milestones.md): repo scaffold, ManiSkill3 install, humanoid asset import.
+The full design/planning documentation exists in [`docs/`](docs/) (problem statement, architecture, ManiSkill3 environment plan, failure taxonomy, recovery policy design, training pipeline, evaluation plan, roadmap), plus a full architecture + build-phases diagram in [`media/`](media/). No code has been written yet. Next concrete step is Phase 0 from [`docs/11-roadmap-and-milestones.md`](docs/11-roadmap-and-milestones.md): repo scaffold, ManiSkill3 install, humanoid asset import.
 
 ## Todo
 
@@ -21,6 +21,7 @@ The full design/planning documentation exists in [`docs/`](docs/) (problem state
 
 | Date | Change |
 |---|---|
+| 2026-07-24 | Added a detailed system architecture + build-phases diagram in `media/` (`architecture-diagram.drawio`, editable in diagrams.net, plus rendered `.svg`/`.png` previews), color-coded by which roadmap phase (P0–P6) builds each component; linked from `README.md` and `docs/03-system-architecture.md`. |
 | 2026-07-24 | Renamed `ai-notes/` to `docs/`; added this `STATUS.md` as the living todo/status/changelog file; updated cross-references in `README.md` and within `docs/`. |
 | 2026-07-24 | Scoped the entire project to simulation-only — removed real-hardware/sim-to-real content (`05-robot-platform-unitree.md`, `09-sim-to-real-transfer.md`) and updated all cross-references accordingly. |
 | 2026-07-24 | Initial `ai-notes/` documentation set written: project overview, problem statement, related work, system architecture, ManiSkill3 environment design, failure taxonomy/detection, recovery policy design, training pipeline, evaluation/benchmarks, roadmap, portfolio strategy, experiment log template, glossary, references. |

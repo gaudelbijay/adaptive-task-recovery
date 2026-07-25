@@ -1,0 +1,230 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2520 2080" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555555"/></marker></defs>
+<rect x="0" y="0" width="2520" height="2080" fill="#ffffff"/>
+<path d="M 320.0,665.0 L 360.0,665.0 L 360.0,675.0 L 400.0,675.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="360.4" y="666.0" width="39.2" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="380.0" y="676.0" font-size="9.5" fill="#444444" text-anchor="middle">s_raw_t</text>
+<path d="M 660.0,675.0 L 700.0,675.0 L 700.0,680.0 L 740.0,680.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="692.0" y="671.0" width="56.0" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="720.0" y="681.0" font-size="9.5" fill="#444444" text-anchor="middle">s_t window</text>
+<path d="M 660.0,675.0 L 870.0,675.0 L 870.0,675.0 L 1080.0,675.0" fill="none" stroke="#555555" stroke-width="1.6" stroke-dasharray="8,6" marker-end="url(#arrow)"/>
+<rect x="949.8" y="666.0" width="50.4" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="975.0" y="676.0" font-size="9.5" fill="#444444" text-anchor="middle">state s_t</text>
+<path d="M 1000.0,680.0 L 1040.0,680.0 L 1040.0,675.0 L 1080.0,675.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1020.8" y="666.0" width="78.4" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1060.0" y="676.0" font-size="9.5" fill="#444444" text-anchor="middle">failure_signal</text>
+<path d="M 1200.0,780.0 L 1200.0,815.0 L 1110.0,815.0 L 1110.0,850.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1143.0" y="806.0" width="24.0" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1155.0" y="816.0" font-size="9.5" fill="#444444" text-anchor="middle">TASK</text>
+<path d="M 1200.0,780.0 L 1200.0,790.0 L 1600.0,790.0 L 1600.0,800.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1352.4" y="781.0" width="95.2" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1400.0" y="791.0" font-size="9.5" fill="#444444" text-anchor="middle">RECOVER(skill_id)</text>
+<path d="M 1240.0,960.0 L 1590.0,960.0 L 1590.0,665.0 L 1940.0,665.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1840.0,1105.0 L 1890.0,1105.0 L 1890.0,665.0 L 1940.0,665.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 2200.0,665.0 L 2230.0,665.0 L 2230.0,665.0 L 2260.0,665.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="2205.8" y="656.0" width="78.4" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="2245.0" y="666.0" font-size="9.5" fill="#444444" text-anchor="middle">joint commands</text>
+<path d="M 2230.0,1010.0 L 2230.0,885.0 L 2360.0,885.0 L 2360.0,760.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="2233.4" y="876.0" width="123.2" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="2295.0" y="886.0" font-size="9.5" fill="#444444" text-anchor="middle">perturbs physics/state</text>
+<path d="M 2100.0,1120.0 L 2040.0,1120.0 L 2040.0,1550.0 L 1980.0,1550.0" fill="none" stroke="#555555" stroke-width="1.6" stroke-dasharray="8,6" marker-end="url(#arrow)"/>
+<rect x="1967.2" y="1326.0" width="145.6" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="2040.0" y="1336.0" font-size="9.5" fill="#444444" text-anchor="middle">ground-truth failure label</text>
+<rect x="2009.2" y="1339.0" width="61.6" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="2040.0" y="1349.0" font-size="9.5" fill="#444444" text-anchor="middle">(eval only)</text>
+<path d="M 1200.0,780.0 L 1200.0,1100.0 L 1670.0,1100.0 L 1670.0,1420.0" fill="none" stroke="#555555" stroke-width="1.6" stroke-dasharray="8,6" marker-end="url(#arrow)"/>
+<rect x="1376.2" y="1091.0" width="117.6" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1435.0" y="1101.0" font-size="9.5" fill="#444444" text-anchor="middle">outcome log: retries,</text>
+<rect x="1370.6" y="1104.0" width="128.8" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1435.0" y="1114.0" font-size="9.5" fill="#444444" text-anchor="middle">skill selected, latency</text>
+<path d="M 2360.0,760.0 L 2360.0,1330.0 L 190.0,1330.0 L 190.0,760.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<rect x="1238.6" y="1321.0" width="72.8" height="13" fill="#ffffff" opacity="0.85"/>
+<text x="1275.0" y="1331.0" font-size="9.5" fill="#444444" text-anchor="middle">next timestep</text>
+<path d="M 360.0,1910.0 L 380.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 720.0,1910.0 L 740.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1080.0,1910.0 L 1100.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1440.0,1910.0 L 1460.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 1800.0,1910.0 L 1820.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<path d="M 2160.0,1910.0 L 2180.0,1910.0" fill="none" stroke="#555555" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="1260.0" y="40.2" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1a1a1a" text-anchor="middle">Adaptive Task Recovery for Humanoid Robots</text>
+<text x="1260.0" y="64.2" font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="normal" fill="#1a1a1a" text-anchor="middle">System Architecture and Build Phases (simulation-only, ManiSkill3)</text>
+<text x="30.0" y="128.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE LEGEND — box color = phase that builds it</text>
+<rect x="20" y="144" width="34" height="28" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
+<text x="37.0" y="161.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P0</text>
+<text x="74.0" y="162.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Setup — ~2 wk — repo scaffold, ManiSkill3 install, humanoid asset import</text>
+<rect x="20" y="176" width="34" height="28" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
+<text x="37.0" y="193.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P1</text>
+<text x="74.0" y="194.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Baseline Task Policies — ~3-4 wk — per-task PPO/SAC policies, whole-body controller</text>
+<rect x="20" y="208" width="34" height="28" rx="10" ry="10" fill="#FFE6CC" fill-opacity="1" stroke="#D79B00" stroke-width="1.6"/>
+<text x="37.0" y="225.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P2</text>
+<text x="74.0" y="226.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Injection — ~2 wk — seeded, severity-parameterized failure API</text>
+<rect x="20" y="240" width="34" height="28" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
+<text x="37.0" y="257.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P3</text>
+<text x="74.0" y="258.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Detector — ~3 wk — threshold to ensemble to sequence-model monitor</text>
+<rect x="20" y="272" width="34" height="28" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="37.0" y="289.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P4</text>
+<text x="74.0" y="290.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Recovery Policy (core deliverable) — ~4-6 wk — skill library + arbiter + full eval</text>
+<rect x="20" y="304" width="34" height="28" rx="10" ry="10" fill="#B0E3E6" fill-opacity="1" stroke="#0B8299" stroke-width="1.6"/>
+<text x="37.0" y="321.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P5</text>
+<text x="74.0" y="322.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Generalization &amp; Benchmark — ~3-4 wk — held-out eval, benchmark packaging</text>
+<rect x="20" y="336" width="34" height="28" rx="10" ry="10" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-width="1.6"/>
+<text x="37.0" y="353.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P6</text>
+<text x="74.0" y="354.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Writeup &amp; Polish — ~2-3 wk — repo cleanup, demo video, blog post</text>
+<rect x="20" y="480" width="2460" height="780" rx="0" ry="0" fill="none" fill-opacity="0.0" stroke="#999999" stroke-width="1.6" stroke-dasharray="10,6"/>
+<text x="30.0" y="498.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">ManiSkill3 Simulator — GPU-vectorized SAPIEN backend</text>
+<text x="30.0" y="514.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">(thousands of parallel envs). Everything inside this</text>
+<text x="30.0" y="530.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">dashed box runs purely in simulation.</text>
+<rect x="60" y="570" width="260" height="190" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
+<text x="70.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Raw Sensors (Simulated)  [P0]</text>
+<text x="70.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">RGB-D camera (head-mounted)</text>
+<text x="70.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">IMU: orientation, ang. vel., accel.</text>
+<text x="70.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Joint encoders: pos / vel / torque</text>
+<text x="70.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Per-link contact sensors</text>
+<text x="70.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; raw sensor stream s_raw_t</text>
+<rect x="400" y="570" width="260" height="210" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
+<text x="410.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Perception / State Estimation  [P1]</text>
+<text x="410.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">RGB-D -&gt; object pose (seg+pose est,</text>
+<text x="410.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  or ground-truth in sim)</text>
+<text x="410.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">IMU+encoders -&gt; base orientation,</text>
+<text x="410.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  joint pos/vel/torque</text>
+<text x="410.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Contacts -&gt; contact flags/forces</text>
+<text x="410.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; state vector s_t</text>
+<rect x="740" y="570" width="260" height="220" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
+<text x="750.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Monitor  [P3]</text>
+<text x="750.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">f(s_(t-k..t)) -&gt; nominal / failure</text>
+<text x="750.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">v1: threshold baseline (IMU tilt,</text>
+<text x="750.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  F/T outlier, tracking error)</text>
+<text x="750.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">v2: ensemble dynamics-disagreement</text>
+<text x="750.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">v3: sequence anomaly model (LSTM/</text>
+<text x="750.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  Transformer over obs window)</text>
+<text x="750.0" y="686.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; FailureSignal{type, confidence,</text>
+<text x="750.0" y="700.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  latency}</text>
+<rect x="1080" y="570" width="240" height="210" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1090.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Policy Arbiter  [P4]</text>
+<text x="1090.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Discrete switch each step:</text>
+<text x="1090.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  TASK | RECOVER(skill_id) | ABORT</text>
+<text x="1090.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">v1: rule-based state machine on</text>
+<text x="1090.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  failure_type + confidence</text>
+<text x="1090.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">v2 (stretch): learned selection</text>
+<text x="1090.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Safety skills always preempt</text>
+<rect x="980" y="850" width="260" height="220" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
+<text x="990.0" y="868.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Task Policy (per task)  [P1]</text>
+<text x="990.0" y="882.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Baseline PPO/SAC, no failure-</text>
+<text x="990.0" y="896.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">awareness. One policy per task:</text>
+<text x="990.0" y="910.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  PickPlaceRecovery</text>
+<text x="990.0" y="924.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  DoorOpenRecovery</text>
+<text x="990.0" y="938.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  CarryWalkRecovery</text>
+<text x="990.0" y="952.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  PushRecoveryStand</text>
+<text x="990.0" y="966.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Gate: &gt;90% nominal success rate</text>
+<rect x="1360" y="800" width="480" height="610" rx="10" ry="10" fill="#FFFFFF" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1370.0" y="818.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Recovery Policy Library  [P4]  — options framework</text>
+<rect x="1380" y="846" width="440" height="96" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1390.0" y="864.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">regrasp — RL-trained</text>
+<text x="1390.0" y="877.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Trigger: grasp-slip / contact-loss,</text>
+<text x="1390.0" y="890.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">object still in reach. release -&gt;</text>
+<text x="1390.0" y="903.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">re-approach -&gt; re-grasp. Done: held.</text>
+<rect x="1380" y="954" width="440" height="96" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1390.0" y="972.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">re-approach — RL-trained</text>
+<text x="1390.0" y="985.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Trigger: reachable but approach</text>
+<text x="1390.0" y="998.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">invalid (post-perturbation). back off</text>
+<text x="1390.0" y="1011.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; replan approach -&gt; retry.</text>
+<rect x="1380" y="1062" width="440" height="96" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1390.0" y="1080.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">step-recovery (balance) — classical</text>
+<text x="1390.0" y="1093.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Classical MPC / capture-point</text>
+<text x="1390.0" y="1106.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">controller. Trigger: CoM margin</text>
+<text x="1390.0" y="1119.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">violated / high tilt rate.</text>
+<rect x="1380" y="1170" width="440" height="96" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1390.0" y="1188.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">replan-and-retry — RL-trained</text>
+<text x="1390.0" y="1201.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Trigger: env changed (object moved,</text>
+<text x="1390.0" y="1214.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">stale plan). re-perceive -&gt; regenerate</text>
+<text x="1390.0" y="1227.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">sub-goals, or falls through to abort.</text>
+<rect x="1380" y="1278" width="440" height="96" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1390.0" y="1296.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">abort-to-safe-pose — safety backstop</text>
+<text x="1390.0" y="1309.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Always initiable, always preempts.</text>
+<text x="1390.0" y="1322.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Move to neutral pose, stop. Task</text>
+<text x="1390.0" y="1335.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">flagged failed — no silent retries.</text>
+<rect x="1940" y="570" width="260" height="190" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
+<text x="1950.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Whole-Body Controller /</text>
+<text x="1950.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Action Interface  [P1 infra]</text>
+<text x="1950.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Maps task-space/joint targets -&gt;</text>
+<text x="1950.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">low-level joint commands</text>
+<text x="1950.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">ManiSkill agent.set_action()</text>
+<text x="1950.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Same interface for task policy AND</text>
+<text x="1950.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">every recovery skill</text>
+<rect x="2260" y="570" width="200" height="190" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
+<text x="2270.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Simulated Humanoid  [P0]</text>
+<text x="2270.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Unitree-style URDF/MJCF morphology,</text>
+<text x="2270.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">imported as custom BaseAgent</text>
+<text x="2270.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Executes commands, physics updates</text>
+<text x="2270.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Smoke test: stands N sec under PD</text>
+<text x="2270.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">control w/ randomized joint noise</text>
+<rect x="2100" y="1010" width="260" height="220" rx="10" ry="10" fill="#FFE6CC" fill-opacity="1" stroke="#D79B00" stroke-width="1.6"/>
+<text x="2110.0" y="1028.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Injection Module  [P2]</text>
+<text x="2110.0" y="1042.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">external_force / friction_drop /</text>
+<text x="2110.0" y="1056.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">object_perturbation / sensor_dropout</text>
+<text x="2110.0" y="1070.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">/ actuator_fault / contact_loss</text>
+<text x="2110.0" y="1084.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Deterministic (seeded), severity-</text>
+<text x="2110.0" y="1098.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">parameterized</text>
+<text x="2110.0" y="1112.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Ground-truth onset+type logged</text>
+<text x="2110.0" y="1126.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">for evaluation only</text>
+<rect x="1360" y="1420" width="620" height="260" rx="10" ry="10" fill="#B0E3E6" fill-opacity="1" stroke="#0B8299" stroke-width="1.6"/>
+<text x="1370.0" y="1438.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Evaluation Harness  [P3-P5, packaged in P5]</text>
+<text x="1370.0" y="1452.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Metrics: nominal/under-failure success,</text>
+<text x="1370.0" y="1466.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  recovery success rate, time-to-recovery,</text>
+<text x="1370.0" y="1480.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  detection precision/recall/latency,</text>
+<text x="1370.0" y="1494.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  retry count</text>
+<text x="1370.0" y="1508.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Baselines: no-recovery, scripted-recovery,</text>
+<text x="1370.0" y="1522.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  blind-retry, monolithic-robust, oracle-detector</text>
+<text x="1370.0" y="1536.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Ablations: detector type, curriculum on/off,</text>
+<text x="1370.0" y="1550.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  held-out failure type &amp; severity</text>
+<rect x="20" y="1780" width="340" height="260" rx="10" ry="10" fill="#F5F5F5" fill-opacity="1" stroke="#666666" stroke-width="1.6"/>
+<text x="30.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 0 — SETUP</text>
+<text x="30.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2 weeks</text>
+<text x="30.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo scaffold, Docker/CI skeleton</text>
+<text x="30.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Install ManiSkill3, run example tasks</text>
+<text x="30.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Import humanoid URDF as BaseAgent</text>
+<text x="30.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: standing-stability smoke test passes</text>
+<rect x="380" y="1780" width="340" height="260" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
+<text x="390.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 1 — BASELINE POLICIES</text>
+<text x="390.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3-4 weeks</text>
+<text x="390.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Build PushRecoveryStand first, then</text>
+<text x="390.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  PickPlace / DoorOpen / CarryWalk</text>
+<text x="390.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Train Stage-0 policies per task</text>
+<text x="390.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: &gt;90% nominal success rate</text>
+<rect x="740" y="1780" width="340" height="260" rx="10" ry="10" fill="#FFE6CC" fill-opacity="1" stroke="#D79B00" stroke-width="1.6"/>
+<text x="750.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 2 — FAILURE INJECTION</text>
+<text x="750.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2 weeks</text>
+<text x="750.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Implement failure-injection API</text>
+<text x="750.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Sweep severities per failure type</text>
+<text x="750.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: documented severity curves</text>
+<text x="750.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  per failure type per task</text>
+<rect x="1100" y="1780" width="340" height="260" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
+<text x="1110.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 3 — FAILURE DETECTOR</text>
+<text x="1110.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3 weeks</text>
+<text x="1110.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Threshold -&gt; ensemble -&gt; sequence</text>
+<text x="1110.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  model, evaluated identically</text>
+<text x="1110.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats threshold baseline on</text>
+<text x="1110.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  precision/recall for &gt;=2 types</text>
+<rect x="1460" y="1780" width="340" height="260" rx="10" ry="10" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-width="1.6"/>
+<text x="1470.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 4 — RECOVERY POLICY</text>
+<text x="1470.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~4-6 weeks (core)</text>
+<text x="1470.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Classical step-recovery controller</text>
+<text x="1470.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">RL-trained regrasp/re-approach/replan</text>
+<text x="1470.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Rule-based arbiter wired end-to-end</text>
+<text x="1470.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: beats no-recovery + scripted</text>
+<text x="1470.0" y="1876.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  baselines, full ablation suite run</text>
+<rect x="1820" y="1780" width="340" height="260" rx="10" ry="10" fill="#B0E3E6" fill-opacity="1" stroke="#0B8299" stroke-width="1.6"/>
+<text x="1830.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 5 — GENERALIZATION &amp; BENCHMARK</text>
+<text x="1830.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~3-4 weeks</text>
+<text x="1830.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Held-out failure type/severity eval</text>
+<text x="1830.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Package envs+API+baselines as a</text>
+<text x="1830.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">  reproducible benchmark</text>
+<text x="1830.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: benchmark runs from clean setup</text>
+<rect x="2180" y="1780" width="340" height="260" rx="10" ry="10" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-width="1.6"/>
+<text x="2190.0" y="1798.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">PHASE 6 — WRITEUP &amp; POLISH</text>
+<text x="2190.0" y="1811.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">~2-3 weeks</text>
+<text x="2190.0" y="1824.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Repo cleanup, README w/ GIFs/video</text>
+<text x="2190.0" y="1837.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Blog-post writeup(s), demo video</text>
+<text x="2190.0" y="1850.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Optional workshop-paper draft</text>
+<text x="2190.0" y="1863.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#1a1a1a" text-anchor="start">Exit: portfolio-ready public repo</text>
+</svg>

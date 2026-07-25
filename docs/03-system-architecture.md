@@ -6,6 +6,8 @@ last_updated: 2026-07-24
 
 # System Architecture
 
+> A visual version of this module breakdown, color-coded by which roadmap phase builds each part, lives at [`media/architecture-diagram.drawio`](../media/architecture-diagram.drawio) (editable in [app.diagrams.net](https://app.diagrams.net)) with a rendered preview at [`media/architecture-diagram-preview.png`](../media/architecture-diagram-preview.png).
+
 ## 1. Design principles
 
 - **Simulator modularity**: every module talks to a thin `RobotInterface` abstraction so failure monitors and recovery policies are decoupled from a specific ManiSkill environment or robot asset.
