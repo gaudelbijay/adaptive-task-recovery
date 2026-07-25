@@ -86,7 +86,7 @@ Keep these as actual Python `Protocol`/ABC definitions in `src/atr/interfaces.py
 
 ```
 adaptive-task-recovery/
-├── ai-notes/                  # this folder — design docs, kept up to date as ground truth changes
+├── docs/                       # this folder — design docs, kept up to date as ground truth changes
 ├── src/atr/
 │   ├── envs/                  # ManiSkill3 task + failure-injection environments
 │   ├── perception/            # state estimation
@@ -99,7 +99,8 @@ adaptive-task-recovery/
 ├── tests/
 ├── docker/
 ├── README.md
-└── ai-notes/13-experiment-log-template.md  # linked, not duplicated
+├── STATUS.md                   # todo / current status / recent changes, kept current
+└── docs/13-experiment-log-template.md  # linked, not duplicated
 ```
 
 ## 5. Why modular over monolithic (interview-ready justification)

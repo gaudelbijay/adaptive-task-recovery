@@ -12,7 +12,7 @@ It combines many capabilities relevant to humanoid and robot-learning roles: RL,
 
 ## 2. Deliverables to produce (in priority order)
 
-1. **A genuinely clean public repo**: good top-level README (problem, approach, results, GIFs/video, how to reproduce), `ai-notes/` kept as living design docs (this folder), one command to reproduce the headline result ([08-training-pipeline.md](08-training-pipeline.md) §5), tests, CI badge.
+1. **A genuinely clean public repo**: good top-level README (problem, approach, results, GIFs/video, how to reproduce), `docs/` kept as living design docs (this folder), one command to reproduce the headline result ([08-training-pipeline.md](08-training-pipeline.md) §5), tests, CI badge.
 2. **A demo video** (even sim-only): 60–90 seconds showing (a) task succeeding normally, (b) a failure happening, (c) the system detecting and recovering, (d) the no-recovery baseline failing on the same scenario side-by-side. This side-by-side comparison clip is the single highest-leverage artifact for a portfolio — it makes the contribution legible in 10 seconds to someone who will never read the code.
 3. **A short blog-post series** (one post per major phase, or one comprehensive post): written for a technical-but-not-necessarily-robotics-expert audience. Include the failures/debugging stories, not just the final numbers — "here's a dead end I hit and how I diagnosed it" is more convincing of real engineering skill than a clean success narrative.
 4. **Optional: a workshop paper draft** (e.g., a robot-learning workshop at a venue like CoRL/ICRA/RSS) if the results are strong enough — even an unpublished draft PDF linked from the repo signals a research-caliber effort.

@@ -31,7 +31,8 @@ Planned components include:
 
 This project is in the planning and setup stage. The research questions,
 architecture, training plan, evaluation strategy, and roadmap are documented in
-the [`ai-notes`](ai-notes/) directory.
+the [`docs`](docs/) directory. See [STATUS.md](STATUS.md) for the current
+status, active to-dos, and a log of recent changes.
 
 ## Roadmap
 
@@ -44,7 +45,7 @@ The main development phases are:
 5. Build recovery policies and the end-to-end system.
 6. Package the benchmark, results, and demonstrations.
 
-See the [full roadmap](ai-notes/11-roadmap-and-milestones.md) for details.
+See the [full roadmap](docs/11-roadmap-and-milestones.md) for details.
 
 ## License
 
