@@ -1,49 +1,68 @@
 ---
 title: Glossary
 status: draft
-last_updated: 2026-07-24
+last_updated: 2026-07-26
 ---
 
 # Glossary
 
-Working definitions for this project's vocabulary. Keep entries short; link to [references.md](references.md) for deeper reading rather than expanding definitions here.
+**Adaptive task recovery** — revising a task strategy after the current world no
+longer supports the original plan, while preserving achievable intent.
 
-**ManiSkill3** — GPU-parallelized robot manipulation simulation benchmark/framework built on the SAPIEN physics engine; supports custom robot import via URDF/MJCF and vectorized environments for RL. See [04](04-simulation-environment-maniskill.md).
+**Goal feasibility** — existence of an allowed action sequence that achieves a
+goal from the current state/belief within remaining horizon and resources,
+without violating hard constraints.
 
-**SAPIEN** — the rigid-body physics and rendering engine underlying ManiSkill3.
+**Irreversible world change** — a persistent change whose task-relevant prior
+condition cannot be restored by allowed actions within the episode.
 
-**URDF / MJCF** — Unified/MuJoCo Robot Description Format: XML formats describing a robot's links, joints, and geometry, used to import a robot model into a simulator.
+**Goal graph** — structured representation of atomic goals, dependencies,
+ordering, exclusions, priorities, object identity, and hard constraints.
 
-**DoF (Degrees of Freedom)** — number of independent joints/axes a robot can control; humanoids typically have dozens (legs, arms, torso, sometimes hands/neck).
+**Original intent** — the goals and restrictions encoded by the instruction at
+episode start. In v1 it is operationalized by formal predicates and allowed
+equivalences, not unrestricted human intent.
 
-**Whole-body control (WBC)** — control approach that computes joint commands to achieve a task-space objective (e.g., CoM position, end-effector pose) while simultaneously respecting balance and contact constraints across the whole robot, usually via quadratic-program (QP) optimization at each control step.
+**Intent guard / shield** — runtime component that rejects or masks decisions
+known to violate an explicit constraint or unauthorized substitution rule.
 
-**MPC (Model Predictive Control)** — control method that repeatedly solves a short-horizon optimization problem using a model of the system's dynamics, applying only the first action of each solved plan before re-solving; common for bipedal balance/push-recovery.
+**Vision-language RL** — reinforcement learning conditioned jointly on visual
+observations and natural-language task specifications.
 
-**Capture point / ZMP (Zero Moment Point)** — classical concepts from bipedal balance control describing, respectively, where a robot's CoM would need to step to come to rest, and the point on the ground where net moment is zero; both used to design/verify push-recovery behaviors.
+**Self-supervised visual representation** — visual features learned from
+structure in unlabeled images or video, such as masking, temporal prediction,
+contrast, or self-distillation, rather than manual task labels.
 
-**PPO (Proximal Policy Optimization)** — an on-policy, gradient-based RL algorithm; a standard, stable baseline for continuous-control robot learning.
+**World-change belief** — probabilistic representation of what changed, which
+entities and relations are affected, and whether the change persists.
 
-**SAC (Soft Actor-Critic)** — an off-policy, maximum-entropy RL algorithm; generally more sample-efficient than PPO for continuous control, at the cost of more implementation/tuning complexity.
+**Selective prediction / abstention** — allowing a model to withhold a decision
+when uncertainty is high and evaluating error as a function of coverage.
 
-**Domain randomization** — training a policy across randomized simulator parameters (mass, friction, sensor noise, etc.) so it's robust to the fact that any single simulator configuration is only an approximation of reality or of other simulator configurations.
+**Oracle feasibility** — ground-truth or planner-derived feasibility available
+only for labels, evaluation, and upper-bound baselines.
 
-**Sim-to-real gap** — the performance drop a policy experiences when moved from simulation to a different (typically real, but here potentially just a differently-configured) target environment, caused by unmodeled dynamics, sensing differences, and latency.
+**Privileged state** — simulator information unavailable to the agent but used
+to generate exact predicates, interventions, and evaluation labels.
 
-**OOD (Out-of-Distribution) detection** — detecting that current input/state differs meaningfully from the training distribution; the core mechanism behind this project's failure monitor.
+**Compositional generalization** — performance on novel combinations of known
+goals, objects, relations, language forms, or world changes.
 
-**Epistemic uncertainty** — uncertainty due to lack of knowledge/data (as opposed to inherent randomness/aleatoric uncertainty); estimated here via ensemble-model disagreement to flag novel/anomalous states.
+**POMDP** — partially observable Markov decision process; relevant because
+pixels and history may not uniquely reveal the current world state or change.
 
-**Options framework (Hierarchical RL)** — formalism (Sutton, Precup, Singh) where a high-level policy selects among temporally-extended sub-policies ("options"), each with its own initiation set, internal policy, and termination condition; used here to structure the recovery-skill library.
+**Constrained MDP** — decision process optimizing return subject to limits on
+costs such as hard-intent violations.
 
-**Behavior tree** — a hierarchical, node-based structure (sequence/selector/condition nodes) commonly used in game AI and robotics to encode reactive decision logic, including scripted failure-recovery branches; this project's rule-based baseline arbiter and the "scripted recovery" evaluation baseline both draw on this pattern.
+**Calibration** — agreement between predicted probabilities and empirical
+frequencies; essential when feasibility beliefs drive abandonment decisions.
 
-**Loco-manipulation** — control problems/policies that jointly handle locomotion (walking/balance) and manipulation (reaching/grasping) rather than treating them as independent subsystems.
+**Adaptation regret** — valid goal value lost relative to an oracle-informed
+adaptive policy under the same instruction, state, and intervention.
 
-**Proprioception** — a robot's internal sense of its own state: joint positions/velocities/torques, base orientation/acceleration (IMU) — as opposed to exteroception (external sensing like vision).
+**Embodiment interface** — boundary between the high-level strategy policy and
+the simulated humanoid's navigation, manipulation, and safety controllers.
 
-**VLA (Vision-Language-Action) model** — a model mapping visual observations and natural-language instructions directly to robot actions; mentioned here as future-work context for a more general, language-conditioned recovery-skill selector.
-
-**Curriculum learning (RL)** — training strategy that progressively increases task/environment difficulty (here, failure severity) as the policy demonstrates competence at the current level, rather than training on the full difficulty distribution from the start.
-
-**Arbiter** — this project's term for the module that decides, at each control step, whether to run the task policy, a specific recovery skill, or an abort behavior, based on the failure monitor's output. See [03](03-system-architecture.md) and [07](07-recovery-policy-design.md).
+**Skill failure versus infeasibility** — a skill failure is one unsuccessful
+execution attempt; infeasibility means no allowed strategy can achieve the goal
+within the remaining constraints. The former is evidence, not proof, of the latter.

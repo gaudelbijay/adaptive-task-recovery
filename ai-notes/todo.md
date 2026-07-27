@@ -1,35 +1,38 @@
 # Todo
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 
 ## Now
 
-- [ ] Finish and commit the documentation reorganization.
-- [ ] Create the initial Python package and test directories.
-- [ ] Choose a supported Python version and dependency-management approach.
-- [ ] Install ManiSkill and run one official example.
-- [ ] Record setup commands and known platform constraints.
+- [ ] Redraw the architecture diagram and retire superseded media.
+- [ ] Create `src/atr/`, `configs/`, `scripts/`, `tests/`, and data manifests.
+- [ ] Define typed schemas for goals, constraints, priorities, and interventions.
+- [ ] Compare candidate environments on visual access, intervention control,
+  deterministic replay, language support, oracle planning, and humanoid support.
+- [ ] Select a humanoid asset and validate navigation, reach, grasp, place,
+  inspect, and safe-stop skill interfaces.
+- [ ] Choose dependency management and experiment tracking.
 
 ## Next
 
-- [ ] Select a ManiSkill-compatible humanoid model.
-- [ ] Import the model and verify joint, actuator, and collision configuration.
-- [ ] Implement a standing-stability smoke test.
-- [ ] Add deterministic seeding and basic episode logging.
-- [ ] Create the first `PushRecoveryStand` environment.
-- [ ] Define the first failure-injection interface.
+- [ ] Implement one multi-goal task and controlled instruction grammar.
+- [ ] Implement irreversible, reversible, and neutral interventions.
+- [ ] Build and unit-test the oracle feasibility/constraint checker.
+- [ ] Train a static language-conditioned baseline.
+- [ ] Collect unlabeled visual trajectories with frozen dataset splits.
+- [ ] Select and train initial self-supervised visual baselines.
 
 ## Later
 
-- [ ] Train a nominal baseline policy.
-- [ ] Implement threshold-based failure detection.
-- [ ] Add learned failure detectors.
-- [ ] Train and compare recovery policies.
-- [ ] Run multi-seed evaluation and ablations.
-- [ ] Package benchmark scripts, results, and demo media.
+- [ ] Train calibrated per-goal feasibility models.
+- [ ] Train feasibility-conditioned and monolithic adaptive policies.
+- [ ] Add intent shielding and invalid-substitution checks.
+- [ ] Run held-out composition, intervention, object, and paraphrase tests.
+- [ ] Publish multi-seed results, failure cases, configs, and benchmark generator.
 
 ## Completed
 
-- [x] Define the simulation-only project scope.
-- [x] Draft architecture, training, evaluation, and roadmap documents.
-- [x] Add a top-level project README.
+- [x] Replace the old humanoid recovery research direction.
+- [x] Rewrite stable design documents around the new research question.
+- [x] Preserve simulation-only scope and separate stable/live documentation.
+- [x] Make simulated-humanoid evaluation an explicit project requirement.

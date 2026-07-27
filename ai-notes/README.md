@@ -2,6 +2,9 @@
 
 This directory contains short, frequently updated notes used to track project
 execution. Stable design and research documentation lives in [`../docs`](../docs/).
+The current project direction is feasibility-aware vision-language RL after
+irreversible world changes; historical humanoid-recovery decisions are marked
+as superseded rather than silently removed.
 
 ## Files
 

@@ -1,33 +1,41 @@
 # Project Status
 
-Living tracker for where this project actually stands. Update this file whenever status changes — it's the fast-glance source of truth; [`docs/`](docs/) holds the stable design docs and shouldn't need to change just to reflect day-to-day progress.
+Living tracker for the repository. Stable research design lives in [`docs/`](docs/);
+frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
-**Phase:** Pre-Phase 0 — planning complete, implementation not started.
+**Phase:** Pre-Phase 0 — research reframing complete, implementation not started.
 
-The full design/planning documentation exists in [`docs/`](docs/) (problem statement, architecture, ManiSkill3 environment plan, failure taxonomy, recovery policy design, training pipeline, evaluation plan, roadmap), plus a full architecture + build-phases diagram in [`media/`](media/). No code has been written yet. Next concrete step is Phase 0 from [`docs/11-roadmap-and-milestones.md`](docs/11-roadmap-and-milestones.md): repo scaffold, ManiSkill3 install, humanoid asset import.
+The project now studies feasibility-aware vision-language reinforcement learning
+after unforeseen, irreversible world changes, with a simulated humanoid as the
+target embodiment. The previous failure-monitor/physical-recovery question has
+been superseded, but humanoid manipulation and whole-body control remain part of
+the execution platform. No source code or experiments exist yet; simulator,
+humanoid asset, task schema, pretrained models, and compute remain to be validated.
 
 ## Todo
 
-- [ ] Set up repo scaffold (`src/atr/`, `scripts/`, `tests/`, `docker/`) per [`docs/03-system-architecture.md`](docs/03-system-architecture.md) §4
-- [ ] Install ManiSkill3 locally and run its example tasks
-- [ ] Source and import a ManiSkill-compatible humanoid URDF/MJCF
-- [ ] Pass the standing-stability smoke test ([`docs/04-simulation-environment-maniskill.md`](docs/04-simulation-environment-maniskill.md) §2)
-- [ ] Build `PushRecoveryStand` environment (first task, per [`docs/04-simulation-environment-maniskill.md`](docs/04-simulation-environment-maniskill.md) §3)
-- [ ] Set up experiment tracking (W&B or TensorBoard) and config management (Hydra/YAML) before the first real training run
+- [ ] Scaffold `src/atr/`, `scripts/`, `tests/`, `configs/`, and `data/`
+- [ ] Select a humanoid-capable simulator with object-centric visual tasks and language goals
+- [ ] Select and validate a simulated humanoid asset and reusable low-level skills
+- [ ] Define a machine-checkable schema for goals, priorities, and hard constraints
+- [ ] Specify the first task family and irreversible intervention set
+- [ ] Build an oracle feasibility checker for benchmark labels
+- [ ] Select self-supervised visual baselines (frozen and fine-tuned)
+- [ ] Implement a static language-conditioned policy baseline
+- [ ] Set up experiment tracking, deterministic seeds, and configuration management
+- [ ] Redraw the architecture diagram for the revised system
 
 ## Recent changes
 
 | Date | Change |
 |---|---|
-| 2026-07-24 | Added a detailed system architecture + build-phases diagram in `media/` (`architecture-diagram.drawio`, editable in diagrams.net, plus rendered `.svg`/`.png` previews), color-coded by which roadmap phase (P0–P6) builds each component; linked from `README.md` and `docs/03-system-architecture.md`. |
-| 2026-07-24 | Renamed `ai-notes/` to `docs/`; added this `STATUS.md` as the living todo/status/changelog file; updated cross-references in `README.md` and within `docs/`. |
-| 2026-07-24 | Scoped the entire project to simulation-only — removed real-hardware/sim-to-real content (`05-robot-platform-unitree.md`, `09-sim-to-real-transfer.md`) and updated all cross-references accordingly. |
-| 2026-07-24 | Initial `ai-notes/` documentation set written: project overview, problem statement, related work, system architecture, ManiSkill3 environment design, failure taxonomy/detection, recovery policy design, training pipeline, evaluation/benchmarks, roadmap, portfolio strategy, experiment log template, glossary, references. |
+| 2026-07-26 | Made simulated-humanoid compatibility a required design and evaluation milestone while keeping feasibility reasoning embodiment-agnostic. |
+| 2026-07-26 | Reframed the project around feasibility-aware vision-language RL, self-supervised visual representations, irreversible world changes, and intent-preserving strategy adaptation; superseded the old physical-recovery question. |
+| 2026-07-24 | Added the initial simulation-only humanoid recovery research plan and project trackers. |
 
-## How to update this file
+## Status rule
 
-- **Current status**: one short paragraph, always reflecting *today's* state — overwrite it, don't append to it.
-- **Todo**: the active near-term list (roughly, "what's next" from the current roadmap phase). Check items off or delete them as completed; don't let it accumulate stale items — cross-check against [`docs/11-roadmap-and-milestones.md`](docs/11-roadmap-and-milestones.md) if it drifts.
-- **Recent changes**: append one row per meaningful change (new row at the top), newest first. This is a changelog, not a diff — keep entries to one line.
+Update this file when the phase, immediate work, blockers, or project direction
+changes. Keep detailed rationale in [`ai-notes/decisions.md`](ai-notes/decisions.md).
