@@ -4,6 +4,11 @@ Newest entries go first.
 
 ## 2026-07-26
 
+- Adopted a two-person execution plan: shared benchmark foundation, Person A on
+  representations/language/feasibility, Person B on RL/humanoid execution, and
+  shared integration and evaluation.
+- Added parallel model-selection and simulator spikes plus staged oracle-to-learned
+  belief integration gates.
 - Confirmed the simulated humanoid as the required target embodiment.
 - Added an embodiment/skill interface and required separate measurement of
   high-level reasoning errors and low-level humanoid execution failures.

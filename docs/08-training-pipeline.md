@@ -6,19 +6,29 @@ last_updated: 2026-07-26
 
 # Training Pipeline
 
+## Contributors and handoff contract
+
+Person A owns the `ObservationWindow + instruction -> AgentBelief` path. Person B
+owns the `AgentBelief + available skills -> guarded SkillCall` path. Both own the
+schemas, benchmark, oracle, integration tests, and end-to-end evaluation. Model
+selection is a measured task: downstream utility, calibration, generalization,
+latency, memory, licensing, and integration cost must be recorded.
+
 ## Stage 0 — environment and oracle
 
-Implement one task family, goal schema, deterministic interventions, constraint
-checker, and oracle feasibility planner. Validate a simulated humanoid asset and
-at least the navigation, reach, grasp, place, inspect, and safe-stop skill
-interfaces. Gate: hand-authored tests and replayable episodes agree with oracle
-labels, and low-level skill outcomes are logged separately.
+**Shared:** implement one task family, goal schema, deterministic interventions,
+constraint checker, and oracle feasibility planner. **Person B:** validate the
+humanoid asset and navigation, reach, grasp, place, inspect, and safe-stop skills.
+**Person A:** define trajectory capture and the placeholder belief adapter. Gate:
+hand-authored tests and replayable episodes agree with oracle labels, and
+low-level skill outcomes are logged separately.
 
 ## Stage 1 — static baseline
 
-Train a language-conditioned task policy in unchanged environments. Evaluate it
-both before and after interventions. Gate: reliable nominal behavior and a
-measured adaptation gap.
+**Person B:** train static and oracle-feasibility language-conditioned policies
+and evaluate both before and after interventions. **Person A:** supply the
+deterministic language representation used by these baselines. **Shared gate:**
+reliable nominal behavior and a measured adaptation gap.
 
 Use pretrained/scripted low-level humanoid controllers where possible. Training
 whole-body locomotion from scratch is a separate engineering track and must not
@@ -26,26 +36,33 @@ block validating the high-level research pipeline.
 
 ## Stage 2 — unlabeled visual data
 
-Collect diverse observation sequences without feasibility labels. Pretrain
-self-supervised visual encoders using image, temporal, and optionally
-object-centric objectives. Freeze collection splits before downstream training.
+**Shared:** freeze collection and evaluation splits. **Person A:** collect or
+consume diverse unlabeled observation sequences and pretrain image, temporal,
+and optionally object-centric visual encoders. **Person B:** benchmark inference
+inside the policy loop and maintain compatibility with oracle beliefs.
 
 ## Stage 3 — feasibility model
 
-Generate labeled episodes using interventions and the oracle. Train per-goal
-feasibility and uncertainty heads. Gate: beat simple pixel-difference,
-supervised-feature, and majority baselines on held-out compositions.
+**Shared:** generate labeled episodes using interventions and the oracle.
+**Person A:** train per-goal feasibility and uncertainty heads. **Person B:** run
+the learned beliefs through the fixed oracle-policy scaffold. Gate: beat simple
+pixel-difference, supervised-feature, and majority baselines on held-out
+compositions and demonstrate downstream value over matched noisy beliefs.
 
 ## Stage 4 — adaptive policy
 
-Train the high-level policy using learned feasibility beliefs, initially with
-fixed low-level skills. Add the intent guard. Compare frozen versus jointly
-fine-tuned representations and guard versus reward-only constraints.
+**Person B:** train the high-level policy using learned feasibility beliefs and
+fixed low-level skills, add the intent guard, and compare guard versus
+reward-only constraints. **Person A:** support frozen versus jointly fine-tuned
+representations and monitor calibration drift. **Shared:** own interface changes
+and cross-module failure analysis.
 
 ## Stage 5 — end-to-end evaluation
 
-Run all baselines, ablations, held-out splits, multiple seeds, calibration
-analysis, and counterfactual tests. Report failures, not just means.
+**Person A:** lead representation, language, feasibility, calibration, and
+counterfactual analyses. **Person B:** lead policy, guard, oracle-skill, and
+humanoid execution analyses. **Shared:** run held-out splits and multiple seeds,
+integrate results, and approve claims. Report failures, not just means.
 
 ## Data discipline
 

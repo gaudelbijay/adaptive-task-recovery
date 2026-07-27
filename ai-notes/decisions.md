@@ -2,6 +2,19 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-008: Two-person ownership with shared benchmark first
+
+- **Date:** 2026-07-26
+- **Status:** Accepted
+- **Decision:** Both contributors build the benchmark and contracts first.
+  Person A then leads representation/language/feasibility; Person B leads
+  policy/humanoid execution. Integration and final evaluation remain shared.
+- **Reason:** This balances specialization with the need to test the research
+  question at the perception-policy boundary and avoids late integration.
+- **Consequences:** Person A develops against recorded trajectories, Person B
+  against oracle beliefs, interfaces are versioned, and roadmap phases contain
+  explicit integration gates.
+
 ## D-007: Simulated humanoid is the required target embodiment
 
 - **Date:** 2026-07-26

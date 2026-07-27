@@ -6,63 +6,84 @@ last_updated: 2026-07-26
 
 # Roadmap and Milestones
 
+## Ownership model
+
+- **Shared:** Phase 0, benchmark/oracle construction, schemas, interface contracts,
+  dataset splits, integration, final evaluation, and claims.
+- **Person A:** visual/language model selection, self-supervised representation,
+  goal graphs, world-change and per-goal feasibility models, and calibration.
+- **Person B:** simulator and humanoid integration, reusable skills, static and
+  adaptive RL policies, intent guard, and policy baselines.
+
+Person A develops against recorded trajectories. Person B develops against
+oracle feasibility beliefs. Each phase has an integration gate so learned
+beliefs replace the oracle incrementally rather than at the end.
+
 ## Phase 0 — foundations
 
-- Scaffold the repository and pin dependencies.
-- Compare humanoid-capable environments with a minimal visual-language task.
-- Import a humanoid asset and validate reusable low-level skill interfaces.
-- Define goal, constraint, intervention, and evaluation schemas.
+- **Shared:** Scaffold the repository, pin dependencies, define schemas, and
+  agree on the `AgentBelief` and humanoid skill contracts.
+- **Person A:** Compare visual/language model candidates with a small offline probe.
+- **Person B:** Compare humanoid-capable environments, import an asset, and
+  validate reusable low-level skill interfaces.
+- **Shared:** Integrate both spikes into a minimal visual-language task.
 
 **Exit:** one deterministic humanoid episode can be replayed, rendered, and
 scored, with high- and low-level outcomes logged separately.
 
 ## Phase 1 — benchmark and oracle
 
-- Implement one task family and controlled instruction grammar.
-- Add irreversible, reversible, and neutral interventions.
-- Implement and test oracle goal feasibility and constraint checking.
+- **Shared:** Implement one task family, controlled instruction grammar,
+  interventions, oracle feasibility, constraint checks, and versioned splits.
+- **Person A:** Specify observation/trajectory collection requirements and leakage checks.
+- **Person B:** Implement simulator hooks, intervention execution, and skill telemetry.
 
 **Exit:** a versioned dataset generator produces leakage-audited splits.
 
 ## Phase 2 — static policy baseline
 
-- Train a language-conditioned policy without adaptation machinery.
-- Quantify nominal performance and post-change failure modes.
+- **Person B:** Train static and oracle-feasibility language-conditioned policies.
+- **Person A:** Provide deterministic parsing/encoding and a placeholder belief adapter.
+- **Shared:** Quantify nominal performance, adaptation headroom, and post-change failures.
 
 **Exit:** the adaptation gap is large enough to study and not caused by an
 unreliable nominal policy.
 
 ## Phase 3 — self-supervised representation
 
-- Collect unlabeled visual trajectories.
-- Train/compare image, temporal, and object-centric objectives.
-- Run diagnostic probes and downstream feasibility tests.
+- **Shared:** Generate and freeze unlabeled trajectory and evaluation splits.
+- **Person A:** Train/compare frozen, fine-tuned, image, temporal, and
+  object-centric representations; run diagnostic and feasibility probes.
+- **Person B:** Maintain the policy-side adapter and benchmark inference latency.
 
 **Exit:** at least one representation beats declared baselines on held-out data.
 
 ## Phase 4 — feasibility inference
 
-- Train per-goal feasibility and change models.
-- Calibrate uncertainty and implement abstention.
-- Audit shortcuts and counterfactual behavior.
+- **Person A:** Train per-goal feasibility/change models, calibrate uncertainty,
+  implement abstention, and audit shortcuts/counterfactual behavior.
+- **Person B:** Evaluate learned beliefs in the oracle-policy scaffold without
+  changing policy weights.
+- **Shared:** Pass schema, latency, calibration, and end-to-end integration tests.
 
 **Exit:** model beats simple detectors and improves oracle-measured decisions.
 
 ## Phase 5 — adaptive policy and intent guard
 
-- Train feasibility-conditioned strategy selection.
-- Implement constraint shielding and invalid-substitution checks.
-- Compare modular, monolithic, symbolic, and oracle variants.
+- **Person B:** Train feasibility-conditioned strategy selection, implement the
+  intent guard, and compare modular, monolithic, symbolic, and oracle policies.
+- **Person A:** Support representation fine-tuning and run belief-side ablations.
+- **Shared:** Diagnose cross-module failures and complete the humanoid integration gate.
 
 **Exit:** improved feasible-goal completion without exceeding the predeclared
 intent-violation threshold.
 
 ## Phase 6 — generalization and release
 
-- Run held-out intervention, composition, layout, object, and paraphrase tests.
-- Complete multi-seed statistics and failure analysis.
-- Release benchmark generator, configs, checkpoints where licensing permits,
-  result tables, and demos.
+- **Person A:** Lead representation, feasibility, calibration, and paraphrase analyses.
+- **Person B:** Lead policy, guard, oracle-skill, and humanoid-execution analyses.
+- **Shared:** Run held-out tests, complete multi-seed statistics/failure analysis,
+  and release the benchmark, configs, permitted checkpoints, tables, and demos.
 
 **Exit:** claims are reproducible from a clean checkout and appropriately scoped.
 

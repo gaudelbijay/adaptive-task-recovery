@@ -52,6 +52,21 @@ See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study des
 
 See the [full roadmap](docs/11-roadmap-and-milestones.md).
 
+## Two-person team
+
+Both contributors jointly own the benchmark, schemas, integration contracts,
+and final evaluation. After that shared foundation:
+
+- **Person A — representation and feasibility:** visual/language model selection,
+  self-supervised representations, goal graphs, change inference, per-goal
+  feasibility, calibration, and abstention.
+- **Person B — policy and humanoid execution:** simulator/asset integration,
+  low-level skills, static and adaptive RL policies, intent guard, and policy baselines.
+
+Integration is continuous: Person B first develops against oracle feasibility,
+Person A develops against recorded trajectories, and both replace the oracle
+with learned beliefs through a versioned shared interface.
+
 ## License
 
 This project is licensed under the terms in [LICENSE](LICENSE).

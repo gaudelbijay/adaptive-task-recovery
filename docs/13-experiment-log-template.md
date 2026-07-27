@@ -11,13 +11,16 @@ last_updated: 2026-07-26
 | Field | Value |
 |---|---|
 | Experiment ID | |
-| Date / owner | |
+| Date / primary owner | Person A / Person B / Shared |
+| Reviewer / integration owner | |
 | Commit and dirty state | |
 | Phase | |
 | Hypothesis | |
 | Config and split version | |
 | Environment/intervention version | |
 | Encoder/checkpoint provenance | |
+| Input/output contract version | |
+| Upstream/downstream dependency | |
 | Seeds | |
 | Hardware and wall time | |
 
@@ -29,6 +32,7 @@ last_updated: 2026-07-26
 - Primary metric and success threshold:
 - Secondary metrics:
 - Leakage/counterfactual checks:
+- Integration acceptance test:
 
 ## Results
 

@@ -14,23 +14,30 @@ been superseded, but humanoid manipulation and whole-body control remain part of
 the execution platform. No source code or experiments exist yet; simulator,
 humanoid asset, task schema, pretrained models, and compute remain to be validated.
 
+**Team model:** two contributors. Phase 0 and benchmark construction are shared.
+Person A then leads representation/language/feasibility; Person B leads
+policy/humanoid execution. Interfaces, integration, and evaluation remain shared.
+
 ## Todo
 
-- [ ] Scaffold `src/atr/`, `scripts/`, `tests/`, `configs/`, and `data/`
-- [ ] Select a humanoid-capable simulator with object-centric visual tasks and language goals
-- [ ] Select and validate a simulated humanoid asset and reusable low-level skills
-- [ ] Define a machine-checkable schema for goals, priorities, and hard constraints
-- [ ] Specify the first task family and irreversible intervention set
-- [ ] Build an oracle feasibility checker for benchmark labels
-- [ ] Select self-supervised visual baselines (frozen and fine-tuned)
-- [ ] Implement a static language-conditioned policy baseline
-- [ ] Set up experiment tracking, deterministic seeds, and configuration management
-- [ ] Redraw the architecture diagram for the revised system
+| Owner | Task |
+|---|---|
+| Shared | Scaffold `src/atr/`, `scripts/`, `tests/`, `configs/`, and `data/` |
+| Shared | Define versioned interfaces for goal graphs, feasibility beliefs, skills, and logs |
+| Shared | Select the task family and irreversible/reversible intervention set |
+| Shared | Build and test the benchmark, oracle feasibility checker, and dataset splits |
+| Person A | Evaluate visual and language model candidates against accuracy, calibration, latency, memory, licensing, and downstream utility |
+| Person A | Select self-supervised visual baselines and implement goal/change/feasibility models |
+| Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills |
+| Person B | Implement static, oracle-feasibility, and adaptive policy baselines plus the intent guard |
+| Shared | Set up experiment tracking, deterministic seeds, integration tests, and evaluation harness |
+| Shared | Redraw the architecture diagram with ownership and module boundaries |
 
 ## Recent changes
 
 | Date | Change |
 |---|---|
+| 2026-07-26 | Adopted a two-person ownership model: shared benchmark first, then Person A leads representations/feasibility and Person B leads policy/humanoid execution, with shared integration. |
 | 2026-07-26 | Made simulated-humanoid compatibility a required design and evaluation milestone while keeping feasibility reasoning embodiment-agnostic. |
 | 2026-07-26 | Reframed the project around feasibility-aware vision-language RL, self-supervised visual representations, irreversible world changes, and intent-preserving strategy adaptation; superseded the old physical-recovery question. |
 | 2026-07-24 | Added the initial simulation-only humanoid recovery research plan and project trackers. |
