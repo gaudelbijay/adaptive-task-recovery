@@ -1,70 +1,87 @@
 ---
 title: Training Pipeline
 status: draft
-last_updated: 2026-07-24
+last_updated: 2026-07-26
 ---
 
 # Training Pipeline
 
-## 1. End-to-end stages
+## Contributors and handoff contract
 
-```
-Stage 0: Baseline task policies
-  → train/import a competent policy per task (PickPlaceRecovery, DoorOpenRecovery,
-    CarryWalkRecovery, PushRecoveryStand) with NO failure injection, NO recovery layer.
-  → gate: task succeeds at high rate (>90%, task-dependent) under nominal conditions.
+Person A owns the `ObservationWindow + instruction -> AgentBelief` path. Person B
+owns the `AgentBelief + available skills -> guarded SkillCall` path. Both own the
+schemas, benchmark, oracle, integration tests, and end-to-end evaluation. Model
+selection is a measured task: downstream utility, calibration, generalization,
+latency, memory, licensing, and integration cost must be recorded.
 
-Stage 1: Failure injection curriculum design
-  → sweep failure types/severities against the Stage-0 policies to find severity ranges
-    that are "interesting" (cause failure often enough to matter, not so often the task
-    policy never makes progress).
-  → gate: documented severity ranges per failure type per task.
+## Stage 0 — environment and oracle
 
-Stage 2: Failure detector training
-  → generate labeled trajectories (nominal + injected-failure) from Stage-0 policies
-    running under Stage-1 injection schedules.
-  → train threshold baseline → ensemble-dynamics → sequence model, per 06-failure-taxonomy-and-detection.md.
-  → gate: detector beats threshold baseline on precision/recall for ≥2 failure types.
+**Shared:** implement one task family, goal schema, deterministic interventions,
+constraint checker, and oracle feasibility planner. **Person B:** validate the
+humanoid asset and navigation, reach, grasp, place, inspect, and safe-stop skills.
+**Person A:** define trajectory capture and the placeholder belief adapter. Gate:
+hand-authored tests and replayable episodes agree with oracle labels, and
+low-level skill outcomes are logged separately.
 
-Stage 3: Recovery skill training
-  → for each learned skill (regrasp, re-approach, replan-and-retry): RL training with
-    curriculum, using Stage-0 policy's own success check as the "resume" bonus target.
-  → for classical skills (step-recovery): implement/tune the MPC/capture-point controller,
-    validate against injected pushes.
-  → gate: per-skill success rate under its target severity range.
+## Stage 1 — static baseline
 
-Stage 4: Integrated system evaluation
-  → wire arbiter + detector + skill library + task policy together end-to-end.
-  → run full evaluation suite from 10-evaluation-and-benchmarks.md.
-  → gate: end-to-end recovery success rate beats no-recovery and scripted-recovery baselines.
+**Person B:** train static and oracle-feasibility language-conditioned policies
+and evaluate both before and after interventions. **Person A:** supply the
+deterministic language representation used by these baselines. **Shared gate:**
+reliable nominal behavior and a measured adaptation gap.
 
-Stage 5 (stretch): Cross-task and cross-morphology generalization
-  → evaluate transfer entirely within simulation.
-```
+Use pretrained/scripted low-level humanoid controllers where possible. Training
+whole-body locomotion from scratch is a separate engineering track and must not
+block validating the high-level research pipeline.
 
-Do not skip Stage 0's gate — a shaky baseline task policy makes every later measurement ambiguous (is the recovery policy bad, or was the task policy already unreliable?). Budget real time for this; it's the least glamorous stage but the one everything else's validity depends on.
+## Stage 2 — unlabeled visual data
 
-## 2. Compute plan
+**Shared:** freeze collection and evaluation splits. **Person A:** collect or
+consume diverse unlabeled observation sequences and pretrain image, temporal,
+and optionally object-centric visual encoders. **Person B:** benchmark inference
+inside the policy loop and maintain compatibility with oracle beliefs.
 
-- **Local GPU**: ManiSkill3's GPU-vectorized envs mean a single consumer GPU (e.g., RTX 4090) can likely provide meaningful parallel throughput for state-based observations; measure actual steps/sec early (see [04](04-simulation-environment-maniskill.md) §6) rather than assuming a number, and size batch-env count and training run length to fit your actual hardware/budget.
-- **Cloud burst** (optional): if local compute is a bottleneck for the vision-based or larger-scale training runs, a short cloud GPU rental for specific experiments is more cost-effective than provisioning for peak load throughout — decide per-stage, not up front.
-- **Track cost/throughput**, not just results, in [13-experiment-log-template.md](13-experiment-log-template.md) — "trained in N hours on 1 GPU" is a concrete, verifiable claim that's useful in interviews, unlike vague performance claims.
+## Stage 3 — feasibility model
 
-## 3. Logging / experiment tracking
+**Shared:** generate labeled episodes using interventions and the oracle.
+**Person A:** train per-goal feasibility and uncertainty heads. **Person B:** run
+the learned beliefs through the fixed oracle-policy scaffold. Gate: beat simple
+pixel-difference, supervised-feature, and majority baselines on held-out
+compositions and demonstrate downstream value over matched noisy beliefs.
 
-- Use **Weights & Biases** (or TensorBoard if you want to stay fully offline/local) from the very first Stage-0 run — retrofitting logging after you already have "interesting" results is a common time-sink; set it up once, early.
-- Log per-run: full config (see below), git commit hash, random seed, environment version/failure-injection schedule, and all metrics from [10-evaluation-and-benchmarks.md](10-evaluation-and-benchmarks.md) — not just training reward curves. Training reward alone does not tell you detection precision/recall or recovery success rate.
-- Save periodic checkpoints with enough metadata (config + step count) to resume or re-evaluate any checkpoint later without guessing what produced it.
+## Stage 4 — adaptive policy
 
-## 4. Configuration management
+**Person B:** train the high-level policy using learned feasibility beliefs and
+fixed low-level skills, add the intent guard, and compare guard versus
+reward-only constraints. **Person A:** support frozen versus jointly fine-tuned
+representations and monitor calibration drift. **Shared:** own interface changes
+and cross-module failure analysis.
 
-- Prefer **Hydra** (or a lighter hand-rolled YAML + dataclass loader if you want fewer dependencies) so every experiment is a versioned config file, not a pile of CLI flags remembered only in shell history.
-- Directory convention: `src/atr/configs/{task}/{stage}/{experiment_name}.yaml`, with inheritance/overrides for sweeps (e.g., severity curriculum sweep, detector architecture sweep).
-- Every config used for a reported number in the final writeup should be committed to the repo, not just logged to an external dashboard — reproducibility from the repo alone is a portfolio strength.
+## Stage 5 — end-to-end evaluation
 
-## 5. Reproducibility checklist
+**Person A:** lead representation, language, feasibility, calibration, and
+counterfactual analyses. **Person B:** lead policy, guard, oracle-skill, and
+humanoid execution analyses. **Shared:** run held-out splits and multiple seeds,
+integrate results, and approve claims. Report failures, not just means.
 
-- [ ] Seeds set and logged for env, policy init, and any stochastic evaluation.
-- [ ] `Dockerfile`/devcontainer pinning simulator, PyTorch, and CUDA versions — humanoid sim stacks are notoriously version-sensitive; don't rely on "works on my machine."
-- [ ] `requirements.txt`/lockfile committed, not just a loose list of packages.
-- [ ] A `scripts/reproduce_headline_result.sh` (or equivalent) that runs the exact pipeline producing your top-line reported number from a clean checkout — this is one of the highest-leverage single files for portfolio credibility; a reviewer who can actually reproduce your number believes the rest of the writeup far more.
+## Data discipline
+
+- Version task generators, instruction grammars, intervention manifests, and splits.
+- Separate unlabeled pretraining, downstream training, validation, and test seeds.
+- Store simulator privileged state only in label/evaluation channels.
+- Deduplicate near-identical trajectories across splits.
+- Record model provenance and licenses for pretrained encoders and language models.
+
+## Reproducibility
+
+Every run records configuration, commit, seed, dependency lock, hardware,
+dataset/split version, representation checkpoint, reward specification, and all
+evaluation metrics. Use at least three seeds for development comparisons and
+more for final claims when variance warrants it.
+
+## Compute strategy
+
+Start with low-dimensional actions, small images, short horizons, and frozen
+encoders. Profile data loading and representation inference before scaling RL.
+Do not choose a large vision-language backbone until a cheap oracle-state
+pipeline demonstrates that the benchmark and evaluation can answer the question.

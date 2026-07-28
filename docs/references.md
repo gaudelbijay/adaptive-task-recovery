@@ -1,56 +1,73 @@
 ---
-title: References
+title: References and Reading Queue
 status: draft
-last_updated: 2026-07-24
+last_updated: 2026-07-26
 ---
 
-# References
+# References and Reading Queue
 
-A curated reading list by topic, referenced from [02-background-and-related-work.md](02-background-and-related-work.md). Entries are recorded by author/title/venue as best known; **verify exact citation details (year, venue, arXiv ID) directly when you actually read each one** — treat this list as pointers to go find and confirm, not a bibliography ready to paste into a paper.
+This is a topic-organized queue, not yet a verified bibliography. Add exact
+authors, titles, venues, years, URLs/DOIs, and notes only after checking primary
+sources.
 
-Fill in the "Notes" column as you read — a reading list with no notes six months from now is just a list of titles you'll have forgotten the content of.
+## Vision-language embodied control
 
-## Simulation platforms
+- Vision-language-action models and language-conditioned robotic policies
+- Embodied instruction-following benchmarks
+- Language-conditioned task-and-motion planning
+- Compositional language grounding and referring expressions
 
-| Reference | Topic | Notes |
-|---|---|---|
-| ManiSkill3 project/paper (SAPIEN-based GPU-parallel manipulation benchmark) | Primary simulator for this project | |
-| Isaac Lab / Isaac Gym documentation and associated papers | Comparison platform, widely used for legged/humanoid RL | |
-| MuJoCo / MJX documentation | Comparison platform, accurate contact, JAX vectorization | |
+## Self-supervised visual learning
 
-## Failure detection / anomaly detection
+- Contrastive image representation learning
+- Masked image modeling
+- Self-distillation without labels
+- Temporal contrastive and video prediction objectives
+- Object-centric representation learning and scene graphs
+- Affordance-aware visual representation learning
 
-| Reference | Topic | Notes |
-|---|---|---|
-| Ensemble-based epistemic uncertainty / model disagreement literature (model-based RL safety) | Dynamics-ensemble failure detection | |
-| VAE / autoencoder-based anomaly detection literature | Reconstruction-error OOD detection | |
-| Classic force/torque and tactile sensing papers on slip detection | Contact-based failure signal | |
+## Reinforcement learning and planning
 
-## Recovery and safe RL
+- Goal-conditioned and multi-goal reinforcement learning
+- Hierarchical RL and options
+- Successor features and generalized policy improvement
+- Model-based RL and latent world models
+- Nonstationary, hidden-parameter, and change-point MDPs
+- Constrained MDPs and safe exploration
 
-| Reference | Topic | Notes |
-|---|---|---|
-| Thananjeyan, Balakrishna, et al. — "Recovery RL: Safe Reinforcement Learning with Learned Recovery Zones" | Risk-aware recovery-policy architecture template | Confirm exact venue/year when reading |
-| Control barrier function / Lyapunov-based safe RL literature | Safety-layer wrapping for learned policies | |
-| Sutton, Precup, Singh — "Between MDPs and Semi-MDPs: A Framework for Temporal Abstraction in Reinforcement Learning" | Options framework | Foundational hierarchical RL reference |
-| Reset-free / autonomous RL literature | Training without external episode resets | |
+## Humanoid execution layer
 
-## Humanoid/bipedal control and locomotion
+- Humanoid loco-manipulation and whole-body control
+- Reusable navigation, reach, grasp, and place skills
+- Vision-language-action policies evaluated on humanoid platforms
+- Safety-constrained balance and collision avoidance
+- Skill-success and manipulation-reachability estimation
 
-| Reference | Topic | Notes |
-|---|---|---|
-| Capture point / ZMP-based push-recovery papers (classical bipedal balance control) | Balance-recovery controller design | Read at least one before implementing `step-recovery` |
-| Whole-body control / QP-based controller papers | Low-level controller under RL recovery skills | |
-| GPU-parallel sim-to-real humanoid/legged locomotion papers (e.g., Isaac Gym-trained locomotion policies) | Domain randomization and reward-shaping methodology | |
+## Feasibility and adaptation
 
-## Vision-language(-action) models and high-level planning
+- Reachability and value-based feasibility estimation
+- Learned precondition/effect and affordance models
+- Continual test-time adaptation without catastrophic forgetting
+- Plan repair and execution monitoring after exogenous events
+- Resource-constrained and oversubscription planning
 
-| Reference | Topic | Notes |
-|---|---|---|
-| Ahn et al. — "SayCan" (Do As I Can, Not As I Say) | LLM-grounded affordance/skill selection | Future-work context |
-| RT-2 (Google DeepMind) | Vision-language-action model | Future-work context |
-| "Eureka" (Nvidia) — LLM-designed reward functions | Reward-shaping accelerant | Optional engineering tool, not core method |
+## Intent constraints
 
-## How to extend this list
+- Runtime shielding and action masking
+- Reward machines, temporal logic, and specification-guided RL
+- Constraint inference from language
+- Reward hacking and specification gaming evaluations
+- Selective prediction, uncertainty calibration, and abstention
 
-Add a row whenever [02-background-and-related-work.md](02-background-and-related-work.md) references something new. Prefer adding the *exact* citation (authors, year, venue/arXiv ID) once you've actually located and skimmed the paper, rather than guessing details up front.
+## Benchmark methodology
+
+- Causal and counterfactual benchmark design
+- Dataset leakage and shortcut-learning audits
+- Compositional and out-of-distribution generalization
+- Paired-seed evaluation, bootstrap intervals, and RL reproducibility
+
+## Reading-note fields
+
+For each source record: setting, observations, language source, change model,
+feasibility definition, adaptation mechanism, constraint mechanism, baselines,
+generalization split, limitations, and relevance to an ATR hypothesis.

@@ -70,14 +70,6 @@
 <rect x="20" y="336" width="34" height="28" rx="10" ry="10" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-width="1.6"/>
 <text x="37.0" y="353.9" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="middle">P6</text>
 <text x="74.0" y="354.0" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="bold" fill="#1a1a1a" text-anchor="start">Writeup &amp; Polish — repo cleanup, demo video, blog post</text>
-<rect x="620" y="104" width="1860" height="180" rx="10" ry="10" fill="#FFF2CC" fill-opacity="1" stroke="#D6B656" stroke-width="1.6"/>
-<text x="632.0" y="126.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">OUT OF SCOPE (v1) — explicitly not built, future-work only</text>
-<text x="632.0" y="148.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">• Custom self-supervised visual representation learning (SimCLR / DINO / MAE-style pretraining) — D-004</text>
-<text x="632.0" y="166.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">• Vision-Language(-Action) models (e.g. RT-2-style) for perception or language-conditioned skill selection</text>
-<text x="632.0" y="184.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">• LLM-based task-and-motion planning / high-level replanning</text>
-<text x="632.0" y="202.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">• Eureka-style LLM reward design — optional engineering accelerant only, not a core method</text>
-<text x="632.0" y="228.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#7A6A32" text-anchor="start">See docs/02-background-and-related-work.md §4 · docs/01-problem-statement-and-motivation.md §6 · ai-notes/decisions.md D-004/D-005</text>
-<text x="632.0" y="262.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#7A6A32" text-anchor="start">Full pipeline flow: docs/05-project-flow.md</text>
 <rect x="20" y="480" width="2460" height="780" rx="0" ry="0" fill="none" fill-opacity="0.0" stroke="#999999" stroke-width="1.6" stroke-dasharray="10,6"/>
 <text x="30.0" y="498.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">ManiSkill3 Simulator — GPU-vectorized SAPIEN backend</text>
 <text x="30.0" y="514.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="normal" fill="#1a1a1a" text-anchor="start">(thousands of parallel envs). Everything inside this</text>
@@ -91,13 +83,12 @@
 <text x="70.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; raw sensor stream s_raw_t</text>
 <rect x="400" y="570" width="260" height="210" rx="10" ry="10" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-width="1.6"/>
 <text x="410.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Perception / State Estimation  [P1]</text>
-<text x="410.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">State s_t = privileged sim state</text>
-<text x="410.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  (pose, contact, joints) — PRIMARY</text>
-<text x="410.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  for v1 (D-004)</text>
-<text x="410.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Vision (later, optional): frozen</text>
-<text x="410.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  pretrained backbone (DINOv2)</text>
-<text x="410.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">No custom SSL training. No VLM.</text>
-<text x="410.0" y="686.0" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="normal" fill="#44546a" text-anchor="start">(language-conditioned = future work)</text>
+<text x="410.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">RGB-D -&gt; object pose (seg+pose est,</text>
+<text x="410.0" y="616.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  or ground-truth in sim)</text>
+<text x="410.0" y="630.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">IMU+encoders -&gt; base orientation,</text>
+<text x="410.0" y="644.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">  joint pos/vel/torque</text>
+<text x="410.0" y="658.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">Contacts -&gt; contact flags/forces</text>
+<text x="410.0" y="672.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">-&gt; state vector s_t</text>
 <rect x="740" y="570" width="260" height="220" rx="10" ry="10" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-width="1.6"/>
 <text x="750.0" y="588.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="bold" fill="#1a1a1a" text-anchor="start">Failure Monitor  [P3]</text>
 <text x="750.0" y="602.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="normal" fill="#1a1a1a" text-anchor="start">f(s_(t-k..t)) -&gt; nominal / failure</text>

@@ -1,46 +1,72 @@
 ---
 title: Evaluation and Benchmarks
 status: draft
-last_updated: 2026-07-24
+last_updated: 2026-07-26
 ---
 
 # Evaluation and Benchmarks
 
-## 1. Headline metrics
+## Primary outcomes
 
-| Metric | Definition | Computed against |
-|---|---|---|
-| Task success rate (nominal) | % episodes reaching task goal with no injected failure | Sanity check — should stay high across all system versions |
-| Task success rate (under failure) | % episodes reaching task goal when a failure is injected mid-episode | Primary comparison metric across baselines |
-| Recovery success rate | % of injected-failure episodes where the recovery layer restored task feasibility (task later succeeded) | Isolates recovery-layer contribution specifically |
-| Time-to-recovery | Steps/seconds from failure onset to arbiter handing control back to the task policy | Reported as a distribution, not just mean |
-| Detection precision/recall/latency | Per [06-failure-taxonomy-and-detection.md](06-failure-taxonomy-and-detection.md) §4 | Failure monitor evaluated in isolation |
-| Retry count | Number of recovery attempts per failure event before success/abort | Flags oscillation/thrashing, per [07](07-recovery-policy-design.md) §5 |
-| Fall rate | % simulated episodes ending in an uncontrolled fall | Balance-recovery robustness metric |
+| Outcome | Definition |
+|---|---|
+| Feasible-goal completion | Fraction/value of oracle-feasible goals achieved |
+| Intent violation rate | Episodes with any hard constraint or invalid substitution |
+| Adaptation regret | Valid goal value gap from oracle-feasibility policy |
+| Feasibility quality | Per-goal discrimination, calibration, and selective risk |
+| Adaptation latency | Steps after change before strategy switches appropriately |
+| Efficiency | Steps/resources spent on goals already oracle-infeasible |
+| Humanoid execution success | Chosen semantic skills completed without safety failure |
 
-Report every headline metric **broken down by failure type and severity**, not only aggregated — aggregate numbers are easy to game (e.g., doing great on easy failures, ignoring hard ones) and reviewers who've done robotics work will ask for the breakdown anyway.
+Report nominal task performance separately so adaptation gains cannot hide a
+weaker base policy. Report achieved goals, infeasible goals, abandoned-feasible
+goals, and violations rather than collapsing them into one reward.
 
-## 2. Baselines (build all of these — comparisons are the actual contribution)
+Decompose end-to-end failure into perception, feasibility, high-level strategy,
+intent guard, and humanoid skill execution. Also report a high-level oracle-skill
+evaluation so controller reliability does not obscure the research result.
 
-1. **No-recovery**: task policy runs unmodified; episode ends in whatever state the failure leaves it. This is your floor.
-2. **Scripted/heuristic recovery**: a hand-coded behavior-tree-style fallback (e.g., "if grasp lost, retry grasp once from the same approach") — the realistic industry-standard comparison, not a strawman.
-3. **Blind periodic retry**: no failure detector at all; the system just periodically attempts a generic "reset and retry" regardless of whether anything is actually wrong — isolates the value of *detection* specifically (compare against your full system to show detection matters, not just having a recovery skill).
-4. **Monolithic robust policy**: a single policy trained under heavy domain randomization with no explicit detection/recovery modules — tests the core architectural bet from [03](03-system-architecture.md) §5 head-to-head.
-5. **Oracle detector (upper bound)**: full recovery pipeline but using the simulator's ground-truth failure label instead of the learned detector — measures how much headroom is left in the detector specifically, separate from the recovery skills.
+## Required baselines
 
-## 3. Ablations
+- no-change upper control;
+- static language-conditioned policy;
+- domain-randomized policy without explicit feasibility;
+- simple frame-difference change detector plus rules;
+- adaptive policy with task-reward-only visual encoder;
+- pretrained frozen and fine-tuned visual encoders;
+- symbolic replanner with learned state;
+- oracle-state and oracle-feasibility policies;
+- full self-supervised feasibility-conditioned agent with intent guard.
 
-- Detector: threshold-only vs. ensemble-dynamics vs. sequence-model (per [06](06-failure-taxonomy-and-detection.md)).
-- Arbiter: rule-based vs. learned skill-selection (per [07](07-recovery-policy-design.md) §4), once v2 exists.
-- Curriculum vs. no curriculum for recovery-skill RL training.
-- Generalization: train on failure types {A, B}, evaluate on held-out type {C} — the specific test of RQ4 from [01](01-problem-statement-and-motivation.md).
-- Severity generalization: train at low severity only, evaluate across the full severity range.
+## Core ablations
 
-## 4. Statistical rigor
+- remove temporal history;
+- remove feasibility head;
+- remove intent guard;
+- replace factorized goal graph with one instruction embedding;
+- image-only versus temporal/object-centric self-supervision;
+- frozen versus fine-tuned encoder;
+- forced classification versus calibrated abstention;
+- seen versus held-out goal-change combinations.
 
-- Run every reported number across **multiple seeds** (minimum 3, more if compute allows) and report mean ± std or confidence intervals, not a single run's number — RL results are notoriously seed-sensitive, and reporting a single lucky run is one of the most common credibility gaps reviewers look for.
-- Use a **fixed, held-out set of evaluation episodes/seeds** (not sampled fresh every eval) so comparisons across checkpoints/baselines are apples-to-apples.
+## Statistical protocol
 
-## 5. Proposed open contribution (stretch)
+Predeclare primary metrics and splits. Use paired episode seeds across methods,
+bootstrap confidence intervals, and effect sizes. Correct or clearly label
+multiple exploratory comparisons. Publish per-seed results and failure cases.
 
-Package the task suite + failure-injection API + baselines as a small, documented benchmark others could reuse (e.g., "Humanoid Task Recovery Benchmark on ManiSkill3") — even a modest, well-documented benchmark repo with a clear README and baseline numbers is a strong, concrete, linkable portfolio artifact distinct from the research results themselves, and is the kind of thing that's genuinely useful to cite in a resume/interview ("I built and open-sourced X").
+## Critical controls
+
+- unchanged worlds, to measure unnecessary adaptation;
+- temporary/reversible changes, to measure premature abandonment;
+- visually salient but feasibility-neutral changes;
+- visually subtle but feasibility-changing interventions;
+- paraphrases with identical formal goals;
+- adversarial reward cases where an intent violation is tempting.
+- matched evaluation with oracle skill outcomes versus actual humanoid execution.
+
+## Claim boundary
+
+Results support claims only within the benchmark's operational definitions of
+feasibility and intent. Generalization to real robots, arbitrary instructions,
+or human values requires separate evidence.

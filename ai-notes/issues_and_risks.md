@@ -1,28 +1,27 @@
 # Issues and Risks
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 
 ## Active
 
 | ID | Type | Severity | Description | Mitigation / next check |
 |---|---|---|---|---|
-| R-001 | Risk | High | A suitable humanoid asset may be difficult to import or stabilize in ManiSkill. | Validate one asset during Phase 0; keep a simpler supported robot as a pipeline fallback. |
-| R-002 | Risk | Medium | Dependency or GPU support may differ across development machines. | Pin versions and document a tested setup after the first successful example. |
-| R-003 | Risk | High | The project scope may grow before a baseline works. | Hold Phase 1 to one task and one baseline until its exit criteria pass. |
-| R-004 | Risk | Medium | Injected failures may be too artificial to support useful generalization claims. | Hold out failure types and evaluate naturally occurring policy failures separately. |
-| I-001 | Open question | Medium | The Python, PyTorch, ManiSkill, and SAPIEN version combination is not selected. | Resolve during initial setup and record it in project configuration. |
-| I-002 | Open question | Medium | The first humanoid model is not selected. | Compare asset availability, licensing, import effort, and standing stability. |
+| R-005 | Risk | High | “Feasibility” may collapse into detecting intervention labels rather than estimating reachability. | Use reversible/neutral controls, counterfactual pairs, and oracle-regret evaluation. |
+| R-006 | Risk | High | “Original intent” is underspecified in free-form language. | Begin with a formal goal graph and controlled language; bound claims explicitly. |
+| R-007 | Risk | High | Privileged simulator state or template artifacts may leak feasibility labels. | Isolate label channels and audit seeds, pixels, timing, and language tokens. |
+| R-008 | Risk | Medium | RL variance and large visual encoders may exceed available compute. | Validate with oracle state and frozen small encoders before scaling. |
+| R-009 | Risk | Medium | An intervention may be called irreversible only because the planner times out. | Separate `unknown` from `infeasible`; validate oracle cases and bounds. |
+| R-010 | Risk | Medium | The intent guard may trivially avoid violations by doing nothing. | Report feasible-goal completion and selective coverage alongside violations. |
+| R-011 | Risk | High | Humanoid controller failures may be confused with high-level goal infeasibility. | Use a skill interface, repeated/oracle reachability labels, and separate error decomposition. |
+| R-012 | Risk | Medium | Humanoid simulation and visual RL may exceed the compute budget. | Prototype logic cheaply, reuse low-level skills, freeze encoders initially, and retain humanoid as the final gate. |
+| I-003 | Open question | High | Primary humanoid-capable simulator and asset are not selected. | Run a Phase 0 spike against documented selection criteria. |
+| I-004 | Open question | Medium | Language backbone and SSL visual baselines are not selected. | Choose only after task schema and compute budget are known. |
 
-## Resolved
+## Resolved or superseded
 
 | ID | Resolution date | Resolution |
 |---|---|---|
+| R-001 | 2026-07-26 | Original asset-import risk superseded by R-011/R-012 and the new skill-interface design. |
+| R-004 | 2026-07-26 | Replaced old injected-failure concern with intervention validity and leakage risks. |
+| I-002 | 2026-07-26 | Original model-selection issue superseded by the broader humanoid simulator/asset decision in I-003. |
 | I-000 | 2026-07-24 | Project scope set to simulation-only. |
-
-## Update rules
-
-- Give each item a stable ID.
-- Add a concrete mitigation or next check.
-- Move resolved items to the resolved table; do not silently delete them.
-- Promote a risk into `todo.md` when it has a concrete action that should happen
-  in the current phase.

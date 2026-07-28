@@ -1,65 +1,102 @@
 ---
 title: Roadmap and Milestones
 status: draft
-last_updated: 2026-07-24
+last_updated: 2026-07-26
 ---
 
 # Roadmap and Milestones
 
-Assumes **part-time, single-contributor** effort. Treat durations as planning estimates to revise once you have real velocity data from Phase 0 — the very first thing you'll learn is whether these estimates are realistic for your actual available hours/week.
+## Ownership model
 
-## Phase 0 — Setup (~2 weeks)
+- **Shared:** Phase 0, benchmark/oracle construction, schemas, interface contracts,
+  dataset splits, integration, final evaluation, and claims.
+- **Person A:** visual/language model selection, self-supervised representation,
+  goal graphs, world-change and per-goal feasibility models, and calibration.
+- **Person B:** simulator and humanoid integration, reusable skills, static and
+  adaptive RL policies, intent guard, and policy baselines.
 
-- Repo scaffold per [03-system-architecture.md](03-system-architecture.md) §4, Docker/devcontainer, CI skeleton (lint + a smoke test).
-- ManiSkill3 installed and running its example tasks locally.
-- Unitree humanoid URDF imported and standing-stability smoke test passing ([04](04-simulation-environment-maniskill.md) §2).
-- **Exit criteria**: can run a random-action rollout of the imported humanoid in ManiSkill3 and record a video.
+Person A develops against recorded trajectories. Person B develops against
+oracle feasibility beliefs. Each phase has an integration gate so learned
+beliefs replace the oracle incrementally rather than at the end.
 
-## Phase 1 — Baseline task policies (~3–4 weeks)
+## Phase 0 — foundations
 
-- Implement `PushRecoveryStand` first, then `PickPlaceRecovery`, then `DoorOpenRecovery`/`CarryWalkRecovery` as time allows.
-- Train/tune Stage-0 baseline policies per task per [08-training-pipeline.md](08-training-pipeline.md).
-- **Exit criteria**: all built tasks have a baseline policy at >90% nominal success rate (or documented reason a specific task is harder), logged with seeds/configs.
+- **Shared:** Scaffold the repository, pin dependencies, define schemas, and
+  agree on the `AgentBelief` and humanoid skill contracts.
+- **Person A:** Compare visual/language model candidates with a small offline probe.
+- **Person B:** Compare humanoid-capable environments, import an asset, and
+  validate reusable low-level skill interfaces.
+- **Shared:** Integrate both spikes into a minimal visual-language task.
 
-## Phase 2 — Failure injection and taxonomy validation (~2 weeks)
+**Exit:** one deterministic humanoid episode can be replayed, rendered, and
+scored, with high- and low-level outcomes logged separately.
 
-- Implement the failure-injection API ([04](04-simulation-environment-maniskill.md) §4) for at least external_force, friction_drop, object_perturbation, sensor_dropout.
-- Sweep severities to find "interesting" ranges per task per [08](08-training-pipeline.md) Stage 1.
-- **Exit criteria**: documented severity curves (success rate vs. severity for the *unmodified* Stage-0 policy) per failure type per task.
+## Phase 1 — benchmark and oracle
 
-## Phase 3 — Failure detector (~3 weeks)
+- **Shared:** Implement one task family, controlled instruction grammar,
+  interventions, oracle feasibility, constraint checks, and versioned splits.
+- **Person A:** Specify observation/trajectory collection requirements and leakage checks.
+- **Person B:** Implement simulator hooks, intervention execution, and skill telemetry.
 
-- Threshold baseline → ensemble-dynamics → sequence model, per [06-failure-taxonomy-and-detection.md](06-failure-taxonomy-and-detection.md) §5.
-- **Exit criteria**: precision/recall/latency table beating threshold baseline on ≥2 failure types, committed with reproducible eval script.
+**Exit:** a versioned dataset generator produces leakage-audited splits.
 
-## Phase 4 — Recovery policy training (~4–6 weeks)
+## Phase 2 — static policy baseline
 
-- Classical `step-recovery` controller implemented and validated.
-- RL-trained `regrasp`, `re-approach`, `replan-and-retry` with curricula, per [07-recovery-policy-design.md](07-recovery-policy-design.md).
-- Rule-based arbiter wiring the full pipeline together.
-- Full baseline/ablation suite from [10-evaluation-and-benchmarks.md](10-evaluation-and-benchmarks.md) run and reported.
-- **Exit criteria**: this is the core deliverable — end-to-end system beating no-recovery and scripted-recovery baselines, with honest numbers, is enough on its own for a strong portfolio piece even if nothing past this point happens.
+- **Person B:** Train static and oracle-feasibility language-conditioned policies.
+- **Person A:** Provide deterministic parsing/encoding and a placeholder belief adapter.
+- **Shared:** Quantify nominal performance, adaptation headroom, and post-change failures.
 
-## Phase 5 — Generalization and benchmark packaging (~3–4 weeks)
+**Exit:** the adaptation gap is large enough to study and not caused by an
+unreliable nominal policy.
 
-- Evaluate held-out failure types, severity ranges, task configurations, and simulated robot parameters.
-- Package the environments, failure-injection API, baselines, and evaluation scripts as a reproducible benchmark.
-- **Exit criteria**: generalization results are documented and the benchmark runs from clean setup instructions.
+## Phase 3 — self-supervised representation
 
-## Phase 6 — Writeup, demo, polish (~2–3 weeks)
+- **Shared:** Generate and freeze unlabeled trajectory and evaluation splits.
+- **Person A:** Train/compare frozen, fine-tuned, image, temporal, and
+  object-centric representations; run diagnostic and feasibility probes.
+- **Person B:** Maintain the policy-side adapter and benchmark inference latency.
 
-- Public repo cleanup, README with GIFs/videos, blog-style writeup(s), demo video, optional workshop-paper draft.
-- Per [12-portfolio-and-job-strategy.md](12-portfolio-and-job-strategy.md).
+**Exit:** at least one representation beats declared baselines on held-out data.
 
-## Total estimate
+## Phase 4 — feasibility inference
 
-~6–7 months part-time for the complete simulation-only project, including benchmark packaging and writeup.
+- **Person A:** Train per-goal feasibility/change models, calibrate uncertainty,
+  implement abstention, and audit shortcuts/counterfactual behavior.
+- **Person B:** Evaluate learned beliefs in the oracle-policy scaffold without
+  changing policy weights.
+- **Shared:** Pass schema, latency, calibration, and end-to-end integration tests.
 
-## Risk register
+**Exit:** model beats simple detectors and improves oracle-measured decisions.
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Humanoid asset import in ManiSkill is unstable/fiddly | Delays Phase 0–1 | Budget extra time explicitly (this is a known friction point, see [04](04-simulation-environment-maniskill.md) §2); fall back to a simpler/better-supported robot asset temporarily to validate the *pipeline* while asset issues are debugged in parallel |
-| RL sample inefficiency / reward shaping struggles | Delays Phase 4 | Start with the simplest env (`PushRecoveryStand`) and classical control where possible ([07](07-recovery-policy-design.md) §2); don't over-invest in the hardest RL skill first |
-| Scope creep (adding tasks/skills indefinitely) | Timeline slips, nothing ships | Hold to the v1 scope in [01-problem-statement-and-motivation.md](01-problem-statement-and-motivation.md) §6; log new ideas as "future work," don't implement mid-stream |
-| Time/motivation drop-off on a long solo project | Project stalls | Ship incrementally — each phase's exit criteria is independently postable/shareable (blog post per phase), so partial progress still produces visible portfolio artifacts |
+## Phase 5 — adaptive policy and intent guard
+
+- **Person B:** Train feasibility-conditioned strategy selection, implement the
+  intent guard, and compare modular, monolithic, symbolic, and oracle policies.
+- **Person A:** Support representation fine-tuning and run belief-side ablations.
+- **Shared:** Diagnose cross-module failures and complete the humanoid integration gate.
+
+**Exit:** improved feasible-goal completion without exceeding the predeclared
+intent-violation threshold.
+
+## Phase 6 — generalization and release
+
+- **Person A:** Lead representation, feasibility, calibration, and paraphrase analyses.
+- **Person B:** Lead policy, guard, oracle-skill, and humanoid-execution analyses.
+- **Shared:** Run held-out tests, complete multi-seed statistics/failure analysis,
+  and release the benchmark, configs, permitted checkpoints, tables, and demos.
+
+**Exit:** claims are reproducible from a clean checkout and appropriately scoped.
+
+## Humanoid integration gate
+
+A simpler embodiment may accelerate Phases 1–4, but Phase 5 cannot exit without
+running the full visual-language feasibility and intent pipeline on a simulated
+humanoid. If humanoid controller instability dominates results, report both
+oracle-skill and actual-execution evaluations rather than dropping the humanoid.
+
+## Decision gates
+
+If oracle-feasibility does not improve over the static policy, redesign the task
+or adaptation interface before representation work. If visual models succeed
+only through leakage, repair the benchmark before scaling. If the guard destroys
+goal completion, report the trade-off and revise the constraint representation.
