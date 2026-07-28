@@ -67,7 +67,7 @@ python-dateutil==2.9.0.post0
 pytorch-kinematics==0.7.6
 pytorch-seed==0.2.0
 PyYAML==6.0.3
-requests==2.32.5
+requests==2.33.0
 rich==14.3.3
 sapien==3.0.2
 scipy==1.17.0
