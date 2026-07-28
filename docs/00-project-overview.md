@@ -23,7 +23,13 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 
 ## Core research question
 
-> Given a humanoid executing a long-horizon manipulation or loco-manipulation task, can we learn to (a) detect task-relevant failures from proprioceptive + visual signals faster and more generally than hand-coded thresholds, and (b) select/execute a recovery behavior that restores task feasibility, measured by recovery success rate and time-to-recovery, across failure types never seen during training?
+This is intentionally phased — the v1 question is the one the project is actually scoped and staffed to answer; the full question is the long-run frame it sits inside.
+
+> **v1 (Phases 0–4):** Given a humanoid executing a short-horizon tabletop manipulation or standing-balance task, can we learn to (a) detect a fixed set of injected failure types from proprioceptive (+ optionally visual) signals faster and more precisely than hand-coded thresholds, and (b) select/execute a recovery behavior that restores task feasibility — measured by recovery success rate and time-to-recovery — beating no-recovery and scripted-recovery baselines?
+>
+> **Stretch (Phase 5):** Does detection/recovery performance hold up on failure types, severities, and task variations *never seen during training*? See RQ3/RQ4 in [01-problem-statement-and-motivation.md](01-problem-statement-and-motivation.md).
+
+Phase 4's exit criteria is the one deliverable the project needs to be a success even if nothing past it happens (see [11-roadmap-and-milestones.md](11-roadmap-and-milestones.md)) — don't let "does it generalize to unseen failures" block or dilute effort on "does it work on the failures it was trained for" first.
 
 ## Scope (v1)
 
@@ -74,6 +80,10 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 | Containerization | Docker + devcontainer | Reproducibility, portfolio polish |
 | Language | Python 3.10+, PyTorch | Ecosystem fit with ManiSkill/SAPIEN |
 
+## Perception approach (decided, see D-004)
+
+State observations (privileged simulator state: object pose, contact, joint state) are the **primary** signal for detection and recovery throughout v1 — this is already the plan in [04-simulation-environment-maniskill.md](04-simulation-environment-maniskill.md) §6, since state observations parallelize far better than RGB-D for RL. When/if raw vision is added later, use **frozen pretrained visual features** (e.g. DINOv2) as a drop-in perception input. Do not train a custom self-supervised visual representation (SimCLR/DINO/MAE-style pretraining) — that is a separate research project in its own right and would divert effort from the actual contribution (detection + recovery). Do not adopt a full vision-language model either — VLMs are built for language-conditioned reasoning, which is explicitly out of scope for v1 (see [01](01-problem-statement-and-motivation.md) §6 and the VLA "future work" note in [02](02-background-and-related-work.md) §4).
+
 ## Assumptions made in these notes (adjust freely)
 
 - The project is intentionally simulation-only; no physical robot access or deployment is planned.
@@ -87,6 +97,7 @@ This sits squarely in the "robot learning for real-world robustness" space that 
 | [01-problem-statement-and-motivation.md](01-problem-statement-and-motivation.md) | Precise problem definition, failure taxonomy motivation, research questions |
 | [02-background-and-related-work.md](02-background-and-related-work.md) | Prior art to read/cite: failure detection, recovery/safe RL, humanoid control, sim platforms |
 | [03-system-architecture.md](03-system-architecture.md) | Module breakdown, data flow, interfaces |
+| [05-project-flow.md](05-project-flow.md) | The single-file map: runtime control-loop flow, build/phase order, module ownership, all in one place |
 | [04-simulation-environment-maniskill.md](04-simulation-environment-maniskill.md) | ManiSkill3 setup, robot asset import, task/environment design, failure injection API |
 | [06-failure-taxonomy-and-detection.md](06-failure-taxonomy-and-detection.md) | Failure categories, detection methods, labeling strategy, metrics |
 | [07-recovery-policy-design.md](07-recovery-policy-design.md) | Recovery policy library, RL formulation, hierarchical/options framing |

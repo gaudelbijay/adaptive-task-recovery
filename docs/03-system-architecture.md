@@ -6,7 +6,7 @@ last_updated: 2026-07-24
 
 # System Architecture
 
-> A visual version of this module breakdown, color-coded by which roadmap phase builds each part, lives at [`media/architecture-diagram.drawio`](../media/architecture-diagram.drawio) (editable in [app.diagrams.net](https://app.diagrams.net)) with a rendered preview at [`media/architecture-diagram-preview.png`](../media/architecture-diagram-preview.png).
+> A visual version of this module breakdown, color-coded by which roadmap phase builds each part, lives at [`media/architecture-diagram.drawio`](../media/architecture-diagram.drawio) (editable in [app.diagrams.net](https://app.diagrams.net)) with a rendered preview at [`media/architecture-diagram-preview.png`](../media/architecture-diagram-preview.png). For the runtime flow and build order as a single linear narrative instead of a module-by-module breakdown, see [05-project-flow.md](05-project-flow.md).
 
 ## 1. Design principles
 
@@ -21,9 +21,11 @@ raw sensors
    │
    ▼
 ┌───────────────────────┐
-│ Perception / State     │  RGB-D → object pose (segmentation + pose est. or ground truth in sim)
+│ Perception / State     │  Privileged sim state (object pose, contact) is primary for v1
 │ Estimation             │  IMU + joint encoders → base orientation, joint pos/vel/torque
 │                         │  Contact sensors → per-link contact flags/forces
+│                         │  If/when raw vision is added: frozen pretrained backbone (e.g.
+│                         │  DINOv2) — no custom SSL pretraining, no VLM. See D-004.
 └───────────┬────────────┘
             │  state vector s_t  (proprioceptive + task-relevant object/goal features)
             ▼
@@ -84,26 +86,29 @@ class Arbiter(Protocol):
 
 Keep these as actual Python `Protocol`/ABC definitions in `src/atr/interfaces.py` once implementation starts — the important thing now is that every later design doc (failure detection, recovery policy) is written against this contract so pieces compose instead of needing a rewrite.
 
-## 4. Proposed repo layout (for when code starts)
+## 4. Repo layout — module packages
+
+The `src/atr/` scaffold below exists now (empty packages + interface stubs), ahead of Phase 0 implementation, specifically so each module can be designed, built, and tested independently against the `Protocol` contracts in §3. Each module owns exactly one directory, one `README.md` describing its scope/interface/status, and one design doc in `docs/`. A module's internals are free to change as long as it keeps satisfying its `Protocol`; that's the whole point of the split in §5.
 
 ```
 adaptive-task-recovery/
-├── docs/                       # this folder — design docs, kept up to date as ground truth changes
+├── docs/                       # design docs, kept up to date as ground truth changes
 ├── src/atr/
-│   ├── envs/                  # ManiSkill3 task + failure-injection environments
-│   ├── perception/            # state estimation
-│   ├── detection/             # failure monitor models + baselines
-│   ├── recovery/              # recovery skill library + arbiter
+│   ├── interfaces.py           # RobotInterface, FailureMonitor, RecoverySkill, Arbiter Protocols (§3)
+│   ├── envs/                  # ManiSkill3 task + failure-injection environments — owns 04-simulation-environment-maniskill.md
+│   ├── perception/            # state estimation; ground-truth sim state now, frozen pretrained backbone later — see D-004
+│   ├── detection/             # failure monitor models + baselines — owns 06-failure-taxonomy-and-detection.md
+│   ├── recovery/              # recovery skill library + arbiter — owns 07-recovery-policy-design.md
 │   ├── control/                # whole-body controller / simulator action interface
-│   ├── interfaces.py
 │   └── configs/               # Hydra/YAML experiment configs
 ├── scripts/                    # train_task_policy.py, train_detector.py, train_recovery.py, eval.py
-├── tests/
+├── tests/                       # mirrors src/atr/ — tests/envs, tests/perception, tests/detection, tests/recovery, tests/control
 ├── docker/
 ├── README.md
-├── STATUS.md                   # todo / current status / recent changes, kept current
-└── docs/13-experiment-log-template.md  # linked, not duplicated
+└── STATUS.md                   # todo / current status / recent changes, kept current
 ```
+
+Each module directory's `README.md` states: what it owns, what `Protocol` it implements or consumes, what it depends on from other modules (should be interfaces only, never internals), and current status. That's what makes "work on `detection/` separately from `recovery/`" actually true rather than aspirational.
 
 ## 5. Why modular over monolithic (interview-ready justification)
 

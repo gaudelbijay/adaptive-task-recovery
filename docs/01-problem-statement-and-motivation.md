@@ -37,8 +37,13 @@ Humanoids make this **harder than a fixed-base arm or a wheeled robot** because:
 
 ## 4. Research questions this project answers
 
-1. **RQ1 (Detection):** Can a learned failure monitor (trained on proprioceptive + visual features) detect task-relevant failures earlier and with better precision/recall than fixed thresholds, and does it generalize to failure severities/types not seen in training?
+**Core (v1, Phases 0–4 — answer these first):**
+
+1. **RQ1 (Detection):** Can a learned failure monitor (trained primarily on proprioceptive state, optionally + visual features) detect task-relevant failures earlier and with better precision/recall than fixed thresholds, on failure types seen during training?
 2. **RQ2 (Recovery policy structure):** Does a modular "detect → select recovery skill → execute → resume" architecture outperform (a) no recovery and (b) a monolithic policy trained under heavy domain randomization, on task success rate under injected failures?
+
+**Stretch (Phase 5 — only after RQ1/RQ2 have honest answers):**
+
 3. **RQ3 (Generalization):** How well do failure-detection and recovery behaviors generalize to unseen failure types, task variations, and simulation parameters?
 4. **RQ4 (Generalization):** Does a recovery policy trained on a curriculum of failure types transfer to *held-out* failure types (e.g., trained on slip + push, tested on sensor dropout)?
 
@@ -48,7 +53,7 @@ Humanoids make this **harder than a fixed-base arm or a wheeled robot** because:
 - A failure detector with measured precision/recall/latency, beating a hand-tuned threshold baseline on at least 2 failure types.
 - A recovery policy that raises task success rate under injected failures by a clearly reported margin over a no-recovery baseline (target: **+30 percentage points or more**, task-dependent — treat this as a hypothesis to validate, not a promise).
 - A public repo, writeup, and demo video suitable for a portfolio (see [12](12-portfolio-and-job-strategy.md)).
-- **Stretch:** recovery skills that generalize across multiple simulated humanoid morphologies or task families.
+- **Stretch (Phase 5, answers RQ3/RQ4):** measured generalization to held-out failure types/severities/task variations, and recovery skills that generalize across multiple simulated humanoid morphologies or task families. Not required for v1 success.
 
 ## 6. Non-goals
 

@@ -33,6 +33,24 @@ Planned components include:
 - A policy arbiter for task, recovery, and abort decisions
 - Evaluation against no-recovery and scripted-recovery baselines
 
+## Module layout
+
+`src/atr/` is split into independently buildable packages, each owning one
+design doc and talking to the others only through the `Protocol` contracts in
+[`src/atr/interfaces.py`](src/atr/interfaces.py):
+
+| Module | Owns | Design doc |
+|---|---|---|
+| [`envs/`](src/atr/envs/) | ManiSkill3 tasks + failure injection | [04-simulation-environment-maniskill.md](docs/04-simulation-environment-maniskill.md) |
+| [`perception/`](src/atr/perception/) | State estimation (sim state now, frozen visual backbone later) | [03-system-architecture.md](docs/03-system-architecture.md) §2 |
+| [`detection/`](src/atr/detection/) | Failure monitors (threshold → dynamics-ensemble → sequence model) | [06-failure-taxonomy-and-detection.md](docs/06-failure-taxonomy-and-detection.md) |
+| [`recovery/`](src/atr/recovery/) | Recovery skill library + arbiter | [07-recovery-policy-design.md](docs/07-recovery-policy-design.md) |
+| [`control/`](src/atr/control/) | Whole-body / action interface | [03-system-architecture.md](docs/03-system-architecture.md) §2 |
+
+See each module's `README.md` for its status and what it depends on, or
+[docs/05-project-flow.md](docs/05-project-flow.md) for the single-file map of
+the whole runtime flow and build order.
+
 ## Current status
 
 This project is in the planning and setup stage. The research questions,
