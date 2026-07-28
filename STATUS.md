@@ -5,14 +5,20 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
-**Phase:** Pre-Phase 0 — research reframing complete, implementation not started.
+**Phase:** Pre-Phase 0 — research reframing complete; simulator spike underway.
 
 The project now studies feasibility-aware vision-language reinforcement learning
 after unforeseen, irreversible world changes, with a simulated humanoid as the
 target embodiment. The previous failure-monitor/physical-recovery question has
 been superseded, but humanoid manipulation and whole-body control remain part of
-the execution platform. No source code or experiments exist yet; simulator,
-humanoid asset, task schema, pretrained models, and compute remain to be validated.
+the execution platform. Investigation code exists (`spikes/maniskill_humanoid_spike/`,
+not project architecture — see D-006): ManiSkill3 humanoid loading, deterministic
+scripted events, object-level interventions, RGB-D observations, and basic
+reach/grasp manipulation are all confirmed working (D-009, D-010, D-011).
+Known platform gap: `mplib`-based motion planning doesn't build on Apple
+Silicon macOS (worked around via `pinocchio`). Still open: an Isaac Lab spike
+for comparison (I-003, now low severity). Task schema, pretrained models,
+and compute remain unaddressed.
 
 **Team model:** two contributors. Phase 0 and benchmark construction are shared.
 Person A then leads representation/language/feasibility; Person B leads
@@ -28,7 +34,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 | Shared | Build and test the benchmark, oracle feasibility checker, and dataset splits |
 | Person A | Evaluate visual and language model candidates against accuracy, calibration, latency, memory, licensing, and downstream utility |
 | Person A | Select self-supervised visual baselines and implement goal/change/feasibility models |
-| Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills — ManiSkill3 spiked 2026-07-28 (`spikes/maniskill_humanoid_spike/`, D-009/D-010): humanoid, seeding, privileged state, AND object-level interventions all confirmed; Isaac Lab spike and RGB/skill-library testing still open |
+| Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills — ManiSkill3 spiked 2026-07-28 (`spikes/maniskill_humanoid_spike/`, D-009/D-010/D-011): humanoid, seeding, privileged state, object-level interventions, RGB-D, and basic reach/grasp ALL confirmed; only an Isaac Lab comparison spike remains before I-003 can close |
 | Person B | Implement static, oracle-feasibility, and adaptive policy baselines plus the intent guard |
 | Shared | Set up experiment tracking, deterministic seeds, integration tests, and evaluation harness |
 | Shared | Redraw the architecture diagram with ownership and module boundaries |
@@ -37,6 +43,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-07-28 | Extended the spike further: RGB-D observations confirmed working (`manipulation_skill_spike.py`, D-011); a scripted reach-grasp-lift succeeded 5/5 on ManiSkill3's `PickCube-v1`. Found and worked around a real platform gap — `mplib` (ManiSkill3's canned motion-planning dependency) doesn't build on Apple Silicon macOS; `pinocchio` (`pip install pin`) does, and its IK-based Cartesian controller was used instead. I-003 downgraded to Low severity — only an Isaac Lab comparison spike remains open. |
 | 2026-07-28 | Extended the spike to test object-level interventions (`object_intervention_spike.py`, D-010) — the requirement that actually gates the simulator decision, not standing balance. Confirmed on ManiSkill3: object removal from the live physics scene, and mid-episode addition of new geometry, both deterministic given a seed. Found and documented a real gotcha: the `Actor` wrapper goes stale after removal. I-003 downgraded to Medium severity. |
 | 2026-07-28 | Ran the ManiSkill3 humanoid simulator spike D-006 calls for: `spikes/maniskill_humanoid_spike/` (Unitree G1 + H1, deterministic scripted push, CPU-backend sim, pytest suite, recorded videos). Findings in `spikes/maniskill_humanoid_spike/README.md` and D-009 — humanoid/seeding/privileged-state confirmed, object-level interventions and Isaac Lab comparison still open. Also resolved the Python/dependency setup in practice: pyenv virtualenv `.maniskill` (Python 3.12.12), pinned in `requirements-maniskill.lock.txt`. |
 | 2026-07-26 | Adopted a two-person ownership model: shared benchmark first, then Person A leads representations/feasibility and Person B leads policy/humanoid execution, with shared integration. |

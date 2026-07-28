@@ -2,6 +2,29 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-011: ManiSkill3 RGB-D and basic manipulation confirmed; canned motion planning is not portable here
+
+- **Date:** 2026-07-28
+- **Status:** Accepted
+- **Decision:** Extended the spike again (`manipulation_skill_spike.py`) to
+  test RGB-D observations and the "reusable reach/grasp" requirement.
+  RGB-D (`obs_mode="rgbd"`) works cleanly on `PickCube-v1`. ManiSkill3's
+  shipped motion-planning solutions depend on `mplib`, which fails to build
+  on this machine (Apple Silicon macOS, pins `libclang==11.0.1`, no matching
+  wheel). Worked around it using the built-in `pd_ee_delta_pos` Cartesian
+  controller (IK via `pinocchio`, installable here as `pin`) with a simple
+  hand-scripted waypoint sequence — picked up and lifted a cube 5/5 times
+  across seeds 0-4.
+- **Reason:** These were the last two untested rows in the selection
+  requirements table besides language (not a simulator capability) and
+  Isaac Lab comparison.
+- **Consequences:** ManiSkill3 now clears every testable requirement.
+  `mplib`/collision-aware motion planning is a known platform gap on Apple
+  Silicon dev machines specifically — if collision-aware planning turns out
+  to matter later, budget time to resolve the `mplib` build or use a
+  different planner, rather than assuming the shipped examples work
+  out of the box. I-003 stays open only pending an Isaac Lab spike.
+
 ## D-010: ManiSkill3 object-level interventions confirmed working
 
 - **Date:** 2026-07-28

@@ -26,6 +26,10 @@ Two things, in two separate env registrations:
    blocking obstacle) be added to an already-built scene mid-episode?
    Registered as `ObjectInterventionSpike-v1`. Uses ManiSkill3's plain
    `panda` arm, not a humanoid — object mechanics are embodiment-agnostic.
+3. **Manipulation skill + RGB-D observations** (`manipulation_skill_spike.py`)
+   — does ManiSkill3 support the "reusable reach/grasp" skill requirement,
+   and does RGB-D observation mode actually work? Runs on ManiSkill3's
+   built-in `PickCube-v1` task, not a custom env.
 
 ## How to run it
 
@@ -53,8 +57,8 @@ selection requirements — ✅ tested and works, ⚠️ not exercised by this sp
 | Deterministic seeding | ✅ Confirmed exactly reproducible: same seed → identical push onset step, severity, and force vector, across independent env instances and separate script runs. See `tests/spikes/test_maniskill_humanoid_spike.py::test_push_reproducible_given_seed`. |
 | Privileged state for oracle labels | ✅ Exact simulator state (pose, qpos, contact) is directly readable — used for both the standing/fallen check and the push injection. |
 | Controllable state transitions | ✅ **Now tested directly** (`object_intervention_spike.py`), not just the physical push. Confirmed: (a) an object can be genuinely removed from the live physics scene mid-episode (`actor.remove_from_scene()` — verified via low-level `scene.sub_scenes[0].entities` membership dropping, not just a Python-side flag), and (b) **new** geometry can be added to an already-built scene mid-episode (a "route blocker" actor spawned at a scripted step — entity count goes up by exactly one, confirmed collidable). Both are deterministic given a seed. This is the actual gating capability for I-003/D-006, and it works. |
-| RGB observations | ⚠️ Not exercised — this spike used `obs_mode="state"` throughout. ManiSkill3 natively supports RGB-D observation modes and was used here only for `render_mode="rgb_array"` video capture, which does work. |
-| Object-centric interaction, reusable nav/reach/grasp/place/safe-stop skills | ⚠️ Object *existence/removal* mechanics are now tested (above), but not a reusable skill library — no navigate/reach/grasp/place was exercised. ManiSkill3 ships example manipulation tasks (`PickCube-v1`, `PushCube-v1`, `OpenCabinetDoor-v1`, etc. — 74 registered envs total in this install) suggesting a skill library exists, but none were run here. |
+| RGB observations | ✅ **Now tested** (`manipulation_skill_spike.py`): `obs_mode="rgbd"` on `PickCube-v1` returns real, non-degenerate `rgb` (128×128×3, uint8, full 0-255 range) and `depth` (128×128×1, int16, sensible mm-scale range) tensors. |
+| Object-centric interaction, reusable nav/reach/grasp/place skills | ✅ **Partially confirmed** — reach + grasp + lift, specifically: a hand-scripted waypoint sequence using ManiSkill3's built-in Cartesian end-effector controller (`pd_ee_delta_pos`) picked up and lifted a cube 5/5 times across seeds 0-4 on `PickCube-v1`. Navigate/place and the *canned* motion-planning solutions were not tested (see gotcha below) — this confirms basic actuation/grasp mechanics work, not the full skill library. |
 | Natural-language task generation | ❌ Not a ManiSkill3 capability — would need a custom instruction-generation layer regardless of simulator choice. |
 | GPU vectorization | ❌ on this machine specifically: no CUDA (Apple M4 Max has no NVIDIA GPU), so SAPIEN's GPU-vectorized PhysX backend is unavailable. CPU backend (`sim_backend="cpu"`) works fine for single-env development at ~450–600 steps/sec. **Any future large-scale parallel RL training will need a CUDA machine** (cloud GPU) — this is a shared-infra requirement, not specific to ManiSkill vs. Isaac Lab (Isaac Lab also requires an NVIDIA GPU, and more insistently). |
 
@@ -84,6 +88,27 @@ selection requirements — ✅ tested and works, ⚠️ not exercised by this sp
 - Both interventions are deterministic given a seed, same as the push in the
   humanoid spike.
 
+### Manipulation skill + RGB-D findings (2026-07-28)
+
+- **RGB-D works cleanly**: `obs_mode="rgbd"` returns `sensor_data.<camera>.rgb`
+  (uint8, 0-255) and `.depth` (int16, mm-scale) with real, non-degenerate
+  content — confirmed on `PickCube-v1`.
+- **Gotcha: `mplib` (ManiSkill3's motion-planning dependency) does not build
+  on this machine.** `pip install mplib` fails — its build pins
+  `libclang==11.0.1`, and no wheel exists for that exact version on
+  Python 3.12 / macOS arm64 (only 0.2.0/0.2.1 exist on PyPI, both pin the
+  same broken constraint). This blocks the *canned* motion-planning
+  solutions ManiSkill3 ships (`mani_skill.examples.motionplanning.panda...`)
+  — worth knowing before assuming those demos "just work" on Apple Silicon.
+- **Workaround that does work**: ManiSkill3's built-in Cartesian
+  end-effector controller (`pd_ee_delta_pos`) uses `pinocchio` for IK, not
+  `mplib` — and `pinocchio` installs cleanly via `pip install pin` (native
+  arm64 wheel, no build-from-source). A simple hand-scripted waypoint
+  sequence (no collision-aware path planning) using this controller reached,
+  grasped, and lifted the cube 5/5 times. Good enough to confirm basic
+  actuation/grasp mechanics; a *collision-aware* path planner would still
+  need either a working `mplib` build or a different IK/planning approach.
+
 **Bonus finding, relevant to [R-011](../../ai-notes/issues_and_risks.md):**
 under a naive constant-hold action (no trained/tuned balance controller), the
 humanoid falls within ~0.5s (~28–31 of 200 steps) *even with zero push
@@ -95,14 +120,18 @@ not something this spike attempted.
 
 Raw results: `results/maniskill_humanoid_spike_{g1,h1}.json` (gitignored —
 regenerate with the command above). Videos:
-`results/videos/maniskill_humanoid_spike_{g1,h1}/{baseline_no_push,with_push}/*.mp4`.
+`results/videos/maniskill_humanoid_spike_{g1,h1}/{baseline_no_push,with_push}/*.mp4`,
+`results/motionplanning_spike/*.mp4`.
 
 ## Bottom line
 
-ManiSkill3 clears humanoid-support, deterministic-seeding, privileged-state,
-and — now confirmed — **object-level intervention support** (both removal
-and mid-episode addition of new geometry), the requirement that actually
-mattered most for the research question. It's workable on non-CUDA dev
-hardware. Still open: RGB/language integration and the reusable skill
-library are untested, and Isaac Lab hasn't been spiked at all — so per
-D-006, this is strong evidence, not yet a selection.
+ManiSkill3 clears every requirement tested so far: humanoid support,
+deterministic seeding, privileged state, object-level interventions (removal
++ mid-episode geometry addition), RGB-D observations, and basic reach/grasp
+manipulation. It's workable on non-CUDA dev hardware, with one real caveat —
+the `mplib`-dependent canned motion-planning solutions don't build on Apple
+Silicon macOS, though a `pinocchio`-based IK controller works as a
+substitute. Still open: natural-language task generation (expected — not a
+simulator capability at all) and an Isaac Lab spike for comparison. Per
+D-006, this is now substantial evidence for ManiSkill3, though the choice
+technically remains open until Isaac Lab gets an equivalent look.

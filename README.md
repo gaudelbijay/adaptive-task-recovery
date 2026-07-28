@@ -38,8 +38,10 @@ intent modules are embodiment-agnostic, while a humanoid control layer provides
 navigation, reaching, grasping, and safe whole-body skills. A simpler embodiment
 may be used for early research debugging, but humanoid evaluation is a required
 project milestone. The repository is currently in **Pre-Phase 0**: the revised
-research design is documented, but no implementation or experiments exist yet.
-See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study design.
+research design is documented, and a simulator-selection spike is underway
+(`spikes/maniskill_humanoid_spike/`) — no project architecture or experiments
+exist yet. See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for
+the study design.
 
 ## Roadmap
 

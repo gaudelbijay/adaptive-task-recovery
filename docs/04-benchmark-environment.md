@@ -22,10 +22,14 @@ logic testbed, but cannot satisfy the project's humanoid evaluation requirement.
 
 **ManiSkill3 spike (2026-07-28):** see [spikes/maniskill_humanoid_spike/README.md](../spikes/maniskill_humanoid_spike/README.md)
 for results scored against the requirements above. Summary: humanoid support,
-deterministic seeding, and privileged state all check out on non-CUDA dev
-hardware; object-level interventions, language, RGB, and the skill library
-remain untested, and Isaac Lab hasn't been spiked yet — not sufficient on its
-own to select a simulator (see D-006 in `ai-notes/decisions.md`).
+deterministic seeding, privileged state, object-level interventions (removal
++ mid-episode addition of new geometry), RGB-D observations, and basic
+reach/grasp manipulation all check out on non-CUDA dev hardware. One
+platform gap found: `mplib`-dependent canned motion planning doesn't build
+on Apple Silicon macOS (worked around via a `pinocchio`-based IK
+controller). Natural-language task generation isn't a simulator capability
+either way. Isaac Lab hasn't been spiked yet — see D-006/D-009/D-010/D-011 in
+`ai-notes/decisions.md`.
 
 ## Task schema
 
