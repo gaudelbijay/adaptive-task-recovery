@@ -2,6 +2,30 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-010: ManiSkill3 object-level interventions confirmed working
+
+- **Date:** 2026-07-28
+- **Status:** Accepted
+- **Decision:** Extended the spike (`object_intervention_spike.py`) to test
+  the requirement that actually gates the simulator decision: can the
+  simulator realize `WorldIntervention`-style object/scene changes, not just
+  a physical push? Confirmed on ManiSkill3: an object can be genuinely
+  removed from the live physics scene mid-episode, and new geometry (a
+  blocking obstacle) can be added to an already-built scene mid-episode —
+  both deterministic given a seed. Also found a real gotcha: the high-level
+  `Actor` Python wrapper goes stale after removal (keeps returning
+  pre-removal pose/state instead of erroring), so any oracle/eval code must
+  track object existence itself rather than re-querying the wrapper.
+- **Reason:** Standing balance (D-009) turned out not to be the hard
+  question — object-level intervention support was the actual unknown that
+  mattered, per docs/04-benchmark-environment.md's "Candidate irreversible
+  changes" and the `WorldIntervention` API sketch.
+- **Consequences:** ManiSkill3 now clears every requirement tested so far
+  (humanoid support, seeding, privileged state, object-level interventions).
+  Still open before I-003 can close: RGB/language integration, the reusable
+  skill library, and an equivalent Isaac Lab spike for comparison. See
+  `spikes/maniskill_humanoid_spike/README.md` for full results.
+
 ## D-009: ManiSkill3 humanoid spike — findings, not a simulator selection
 
 - **Date:** 2026-07-28
@@ -11,19 +35,19 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   outside `src/`, since D-006 says not to commit simulator-specific
   architecture yet). Confirms humanoid asset support (Unitree G1 bundled, H1
   one download away), exact deterministic seeding of a scripted event, and
-  privileged-state access. Does **not** confirm object-level intervention
-  support, RGB/language integration, or the skill library — and Isaac Lab
-  hasn't been spiked at all yet.
+  privileged-state access. Does **not** confirm RGB/language integration or
+  the skill library — object-level intervention support was confirmed
+  separately, see D-010.
 - **Reason:** Needed concrete evidence before the simulator decision could be
   anything but a guess; D-006 explicitly requires this spike step.
-- **Consequences:** ManiSkill3 remains a candidate, not a selection — I-003
-  stays open until Isaac Lab gets an equivalent spike and the untested
-  requirements (interventions, RGB, skills) are checked. Also recorded:
-  no CUDA on the primary dev machine (Apple M4 Max), so SAPIEN's
-  GPU-vectorized backend is unavailable there; CPU backend is fine for
-  single-env dev (~450–600 steps/sec) but large-scale parallel RL training
-  will need a CUDA machine regardless of which simulator is chosen. See
-  `spikes/maniskill_humanoid_spike/README.md` for full results.
+- **Consequences:** ManiSkill3 remains a strong candidate, not a final
+  selection — I-003 stays open until Isaac Lab gets an equivalent spike and
+  the remaining untested requirements (RGB, language, skills) are checked.
+  Also recorded: no CUDA on the primary dev machine (Apple M4 Max), so
+  SAPIEN's GPU-vectorized backend is unavailable there; CPU backend is fine
+  for single-env dev (~450–600 steps/sec) but large-scale parallel RL
+  training will need a CUDA machine regardless of which simulator is chosen.
+  See `spikes/maniskill_humanoid_spike/README.md` for full results.
 
 ## D-008: Two-person ownership with shared benchmark first
 
