@@ -28,7 +28,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 | Shared | Build and test the benchmark, oracle feasibility checker, and dataset splits |
 | Person A | Evaluate visual and language model candidates against accuracy, calibration, latency, memory, licensing, and downstream utility |
 | Person A | Select self-supervised visual baselines and implement goal/change/feasibility models |
-| Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills |
+| Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills — ManiSkill3 spiked 2026-07-28 (`spikes/maniskill_humanoid_spike/`, see D-009); Isaac Lab spike and skill-library/intervention testing still open |
 | Person B | Implement static, oracle-feasibility, and adaptive policy baselines plus the intent guard |
 | Shared | Set up experiment tracking, deterministic seeds, integration tests, and evaluation harness |
 | Shared | Redraw the architecture diagram with ownership and module boundaries |
@@ -37,6 +37,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-07-28 | Ran the ManiSkill3 humanoid simulator spike D-006 calls for: `spikes/maniskill_humanoid_spike/` (Unitree G1 + H1, deterministic scripted push, CPU-backend sim, pytest suite, recorded videos). Findings in `spikes/maniskill_humanoid_spike/README.md` and D-009 — humanoid/seeding/privileged-state confirmed, object-level interventions and Isaac Lab comparison still open. Also resolved the Python/dependency setup in practice: pyenv virtualenv `.maniskill` (Python 3.12.12), pinned in `requirements-maniskill.lock.txt`. |
 | 2026-07-26 | Adopted a two-person ownership model: shared benchmark first, then Person A leads representations/feasibility and Person B leads policy/humanoid execution, with shared integration. |
 | 2026-07-26 | Made simulated-humanoid compatibility a required design and evaluation milestone while keeping feasibility reasoning embodiment-agnostic. |
 | 2026-07-26 | Reframed the project around feasibility-aware vision-language RL, self-supervised visual representations, irreversible world changes, and intent-preserving strategy adaptation; superseded the old physical-recovery question. |

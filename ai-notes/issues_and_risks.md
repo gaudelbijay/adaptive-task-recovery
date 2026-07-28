@@ -1,6 +1,6 @@
 # Issues and Risks
 
-Last updated: 2026-07-26
+Last updated: 2026-07-28
 
 ## Active
 
@@ -12,9 +12,9 @@ Last updated: 2026-07-26
 | R-008 | Risk | Medium | RL variance and large visual encoders may exceed available compute. | Validate with oracle state and frozen small encoders before scaling. |
 | R-009 | Risk | Medium | An intervention may be called irreversible only because the planner times out. | Separate `unknown` from `infeasible`; validate oracle cases and bounds. |
 | R-010 | Risk | Medium | The intent guard may trivially avoid violations by doing nothing. | Report feasible-goal completion and selective coverage alongside violations. |
-| R-011 | Risk | High | Humanoid controller failures may be confused with high-level goal infeasibility. | Use a skill interface, repeated/oracle reachability labels, and separate error decomposition. |
-| R-012 | Risk | Medium | Humanoid simulation and visual RL may exceed the compute budget. | Prototype logic cheaply, reuse low-level skills, freeze encoders initially, and retain humanoid as the final gate. |
-| I-003 | Open question | High | Primary humanoid-capable simulator and asset are not selected. | Run a Phase 0 spike against documented selection criteria. |
+| R-011 | Risk | High | Humanoid controller failures may be confused with high-level goal infeasibility. Concretely observed in the ManiSkill3 spike (2026-07-28): a naive constant-hold action falls within ~0.5s even with zero injected disturbance — a controller-quality problem that would look identical to "infeasible" without careful separation. | Use a skill interface, repeated/oracle reachability labels, and separate error decomposition. |
+| R-012 | Risk | Medium | Humanoid simulation and visual RL may exceed the compute budget. Partially confirmed: no CUDA on the primary dev machine, so GPU-vectorized parallel sim isn't available there — CPU sim is workable for single-env dev only. | Prototype logic cheaply, reuse low-level skills, freeze encoders initially, retain humanoid as the final gate, and budget for a CUDA machine/cloud GPU before any parallel RL training phase. |
+| I-003 | Open question | High | Primary humanoid-capable simulator and asset are not selected. ManiSkill3 spiked (2026-07-28, see `spikes/maniskill_humanoid_spike/README.md` and D-009): humanoid support/seeding/privileged-state confirmed; object-level interventions, RGB, language, and skill library untested; Isaac Lab not yet spiked. | Spike Isaac Lab against the same criteria; test object-level intervention support on whichever simulator(s) pass the humanoid check. |
 | I-004 | Open question | Medium | Language backbone and SSL visual baselines are not selected. | Choose only after task schema and compute budget are known. |
 
 ## Resolved or superseded

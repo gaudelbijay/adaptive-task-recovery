@@ -2,6 +2,29 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-009: ManiSkill3 humanoid spike — findings, not a simulator selection
+
+- **Date:** 2026-07-28
+- **Status:** Accepted
+- **Decision:** Ran the Phase 0 simulator spike D-006 calls for, against
+  ManiSkill3 specifically: `spikes/maniskill_humanoid_spike/` (deliberately
+  outside `src/`, since D-006 says not to commit simulator-specific
+  architecture yet). Confirms humanoid asset support (Unitree G1 bundled, H1
+  one download away), exact deterministic seeding of a scripted event, and
+  privileged-state access. Does **not** confirm object-level intervention
+  support, RGB/language integration, or the skill library — and Isaac Lab
+  hasn't been spiked at all yet.
+- **Reason:** Needed concrete evidence before the simulator decision could be
+  anything but a guess; D-006 explicitly requires this spike step.
+- **Consequences:** ManiSkill3 remains a candidate, not a selection — I-003
+  stays open until Isaac Lab gets an equivalent spike and the untested
+  requirements (interventions, RGB, skills) are checked. Also recorded:
+  no CUDA on the primary dev machine (Apple M4 Max), so SAPIEN's
+  GPU-vectorized backend is unavailable there; CPU backend is fine for
+  single-env dev (~450–600 steps/sec) but large-scale parallel RL training
+  will need a CUDA machine regardless of which simulator is chosen. See
+  `spikes/maniskill_humanoid_spike/README.md` for full results.
+
 ## D-008: Two-person ownership with shared benchmark first
 
 - **Date:** 2026-07-26

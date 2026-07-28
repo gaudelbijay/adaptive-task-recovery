@@ -20,6 +20,13 @@ reputation. ManiSkill, Isaac Lab, or another humanoid-capable platform may be th
 final environment. A household or grid-world environment may provide a cheaper
 logic testbed, but cannot satisfy the project's humanoid evaluation requirement.
 
+**ManiSkill3 spike (2026-07-28):** see [spikes/maniskill_humanoid_spike/README.md](../spikes/maniskill_humanoid_spike/README.md)
+for results scored against the requirements above. Summary: humanoid support,
+deterministic seeding, and privileged state all check out on non-CUDA dev
+hardware; object-level interventions, language, RGB, and the skill library
+remain untested, and Isaac Lab hasn't been spiked yet — not sufficient on its
+own to select a simulator (see D-006 in `ai-notes/decisions.md`).
+
 ## Task schema
 
 Each episode contains:
