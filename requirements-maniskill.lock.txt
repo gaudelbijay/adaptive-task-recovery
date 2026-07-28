@@ -52,7 +52,7 @@ opencv-python==4.13.0.92
 packaging==26.0
 parso==0.8.6
 pexpect==4.9.0
-pillow==12.1.1
+pillow==12.3.0
 pluggy==1.6.0
 prompt_toolkit==3.0.52
 protobuf==6.33.5
