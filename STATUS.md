@@ -33,11 +33,11 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 | Shared | Scaffold `src/atr/`, `scripts/`, `tests/`, `configs/`, and `data/` |
 | Shared | Define versioned interfaces for goal graphs, feasibility beliefs, skills, and logs |
 | Shared | Select the task family and irreversible/reversible intervention set — draft proposed 2026-07-29 (`spikes/task_schema_draft/`, D-013): goal graph schema + oracle feasibility + one matched irreversible/reversible intervention pair, built around the docs/01 worked example. Needs review with teammate before "Accepted." |
+| Person B | Implement static, oracle-feasibility, and adaptive policy baselines plus the intent guard — first step done 2026-07-29 (D-014): `static_policy` vs `feasibility_aware_policy` toy-scale H2 test (feasibility-aware wins on wasted-effort, same goals achieved). Adaptive (learned) policy and intent guard not started. |
 | Shared | Build and test the benchmark, oracle feasibility checker, and dataset splits |
 | Person A | Evaluate visual and language model candidates against accuracy, calibration, latency, memory, licensing, and downstream utility |
 | Person A | Select self-supervised visual baselines and implement goal/change/feasibility models |
 | Person B | Select a humanoid-capable simulator and validate the humanoid asset and low-level skills — ManiSkill3 spiked 2026-07-28 (`spikes/maniskill_humanoid_spike/`, D-009/D-010/D-011): humanoid, seeding, privileged state, object-level interventions, RGB-D, and basic reach/grasp ALL confirmed; only an Isaac Lab comparison spike remains before I-003 can close |
-| Person B | Implement static, oracle-feasibility, and adaptive policy baselines plus the intent guard |
 | Shared | Set up experiment tracking, deterministic seeds, integration tests, and evaluation harness |
 | Shared | Redraw the architecture diagram with ownership and module boundaries |
 
@@ -45,6 +45,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-07-29 | First runnable H2 test (D-014, `policy_baselines.py`): `static_policy` vs `feasibility_aware_policy` after `bowl_destroyed` — both achieve 1/2 goals, but static wastes 25 steps reaching for the destroyed bowl while feasibility-aware skips it (0 waste, half the steps). Toy-scale (existence-based feasibility, not learned), but the first end-to-end test of the project's central research question. Also added `goal_achieved()` (placement completion, not just feasibility) and fixed a float32/float64 boundary bug it uncovered. |
 | 2026-07-29 | Drafted the task schema + intervention set (D-013, `spikes/task_schema_draft/`) — the biggest remaining bottleneck: a `GoalGraph` data model, pure-function oracle feasibility/constraint checking, and a ManiSkill3 scene wiring both to the project's own worked example (mug/bowl/tray/medicine/glass from docs/01), with one irreversible intervention matched against one reversible/temporary control per docs/04's explicit requirement. Proposed, not accepted — needs review with the teammate. |
 | 2026-07-28 | Made the spike device-agnostic (D-012): replaced hardcoded `sim_backend="cpu"` with real CUDA-availability detection (`device_utils.resolve_sim_backend()`), fixed the push force-application code to work under GPU-batched sim (was CPU-only), and turned the object-removal GPU limitation into an explicit `RuntimeError` guard instead of a silent failure mode. CPU path re-verified identical; GPU path untested (no CUDA on this dev machine). |
 | 2026-07-28 | Extended the spike further: RGB-D observations confirmed working (`manipulation_skill_spike.py`, D-011); a scripted reach-grasp-lift succeeded 5/5 on ManiSkill3's `PickCube-v1`. Found and worked around a real platform gap — `mplib` (ManiSkill3's canned motion-planning dependency) doesn't build on Apple Silicon macOS; `pinocchio` (`pip install pin`) does, and its IK-based Cartesian controller was used instead. I-003 downgraded to Low severity — only an Isaac Lab comparison spike remains open. |

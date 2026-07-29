@@ -15,7 +15,7 @@ last_updated: 2026-07-26
 | Adaptation regret | Valid goal value gap from oracle-feasibility policy |
 | Feasibility quality | Per-goal discrimination, calibration, and selective risk |
 | Adaptation latency | Steps after change before strategy switches appropriately |
-| Efficiency | Steps/resources spent on goals already oracle-infeasible |
+| Efficiency | Steps/resources spent on goals already oracle-infeasible — first toy measurement: `wasted_steps` in `spikes/task_schema_draft/policy_baselines.py` (D-014) |
 | Humanoid execution success | Chosen semantic skills completed without safety failure |
 
 Report nominal task performance separately so adaptation gains cannot hide a
@@ -37,6 +37,12 @@ evaluation so controller reliability does not obscure the research result.
 - symbolic replanner with learned state;
 - oracle-state and oracle-feasibility policies;
 - full self-supervised feasibility-conditioned agent with intent guard.
+
+**Toy-scale first instances (2026-07-29):** "static language-conditioned
+policy" and "oracle-feasibility policies" both have first hand-authored
+implementations in `spikes/task_schema_draft/policy_baselines.py` (D-014) —
+a single scenario, not a benchmark run against the other required baselines
+above.
 
 ## Core ablations
 

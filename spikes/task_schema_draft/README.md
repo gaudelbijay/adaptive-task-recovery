@@ -23,6 +23,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`goal_graph.py`](goal_graph.py) | `Goal`, `Constraint`, `GoalGraph` dataclasses matching docs/04's "atomic goals, priorities, dependencies, and hard constraints." `canonical_example()` builds the docs/01 instruction as data. |
 | [`oracle_feasibility.py`](oracle_feasibility.py) | Pure functions: `goal_feasible()` (exists-based, never attempted-motion-based — see "Humanoid validity requirements" in docs/04) and `constraint_violated()` (position-drift / orientation checks), plus `evaluate_goal_graph()` combining both. No simulator dependency — testable in isolation. |
 | [`tidy_up_env.py`](tidy_up_env.py) | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the above to real privileged state. Registered as `TidyUpTaskSchemaDraft-v1`. |
+| [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? |
 
 ## The two interventions (matched, per docs/04)
 
@@ -61,6 +62,36 @@ Both are deterministic given a seed (same pattern as the earlier spikes).
   add/remove is unsupported under GPU-batched sim. `_initialize_episode`
   raises a clear `RuntimeError` if that's violated.
 
+## First H2 result (2026-07-29)
+
+docs/01's H2 hypothesis: *"conditioning strategy selection on per-goal
+feasibility estimates outperforms a static language-conditioned policy after
+irreversible changes."* `policy_baselines.py` runs the smallest possible
+version of that test: both policies attempt `place_mug` then `place_bowl` in
+order, using real arm motion for the reach phase (see the module's scope
+note on what's abstracted — the grasp mechanic itself, already validated
+separately in `maniskill_humanoid_spike/manipulation_skill_spike.py`). After
+`bowl_destroyed` fires before the bowl is attempted:
+
+| Policy | Goals achieved | Total steps | Wasted steps |
+|---|---|---|---|
+| `static_policy` (no feasibility check) | 1/2 | 50 | 25 |
+| `feasibility_aware_policy` (checks first) | 1/2 | 25 | 0 |
+
+Same outcome, half the effort, zero wasted attempts on the now-infeasible
+goal — the feasibility-aware policy checks `goal_feasible()` (a privileged-
+state query, ~zero cost) before committing to the physical reach, and skips
+`place_bowl` immediately instead of reaching for an object that's gone.
+With no intervention, both policies achieve 2/2 goals with zero waste (see
+`tests/drafts/test_policy_baselines.py`).
+
+This is a toy-scale, existence-only version of H2, not a publishable result:
+no learned feasibility estimation (the check is a direct privileged-state
+query), no language, and "wasted steps" is a simplified proxy for cost, not
+a full reward/regret formulation. But it's the first time any part of this
+project's central research question has been demonstrated end to end,
+rather than argued for in prose.
+
 ## What this deliberately doesn't cover yet
 
 - **Language.** `GoalGraph.instruction_text` is a fixed string, not parsed
@@ -71,11 +102,12 @@ Both are deterministic given a seed (same pattern as the earlier spikes).
   requirement, but this one example doesn't exercise them (both goals are
   equal-priority, no dependency between them) — worth a second example that
   does, once this schema shape gets buy-in.
-- **Actual goal completion.** `goal_feasible()` checks whether a goal is
-  still *possible*, not whether it's been *achieved* — placement success
-  detection (object on tray, within some region) isn't implemented, since
-  that's a manipulation-skill question layered on top of this, not a
-  schema question.
+- ~~Actual goal completion~~ — filled in: `goal_achieved()` checks placement
+  (object resting within the tray's footprint), used by `policy_baselines.py`.
+  Still simplified: a successful attempt teleports the object onto the tray
+  rather than re-running a full physical grasp-place sequence (see
+  `policy_baselines.py`'s scope note) — real placement precision/collision
+  between multiple placed objects isn't tested.
 - **Held-out paraphrases/compositions** docs/04 asks for — there's exactly
   one instruction here; templating/holdout is meaningless before the schema
   itself is agreed on.

@@ -37,6 +37,10 @@ either way. Isaac Lab hasn't been spiked yet — see D-006/D-009/D-010/D-011 in
 for a concrete, runnable, tested version of the schema below, built around
 this project's own worked example from docs/01 (mug/bowl/tray/medicine/glass).
 Not committed — a starting point for review (D-013 in `ai-notes/decisions.md`).
+It now also includes a first toy-scale test of H2 (static vs
+oracle-feasibility policy baselines, D-014) — see
+[docs/07-adaptive-policy-design.md](07-adaptive-policy-design.md) "Policy
+variants."
 
 Each episode contains:
 

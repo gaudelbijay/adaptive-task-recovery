@@ -8,7 +8,7 @@ cases" guidance.
 import numpy as np
 
 from task_schema_draft.goal_graph import canonical_example
-from task_schema_draft.oracle_feasibility import ObjectState, evaluate_goal_graph
+from task_schema_draft.oracle_feasibility import ObjectState, evaluate_goal_graph, goal_achieved
 
 
 def _state(**objects: tuple[bool, tuple[float, float, float] | None, float | None]) -> dict:
@@ -95,3 +95,37 @@ class TestConstraintViolations:
 
         result = evaluate_goal_graph(graph, initial_state=initial, current_state=after)
         assert result["constraint_violations"]["dont_move_glass"] is False
+
+
+class TestGoalAchieved:
+    TRAY_POSITION = np.array([0.4, 0.0, 0.005])
+    TRAY_HALF_SIZES = (0.15, 0.2, 0.005)
+
+    def test_object_on_tray_is_achieved(self):
+        graph = canonical_example()
+        state = _nominal_state()
+        state["red_mug"] = ObjectState(exists=True, position=np.array([0.4, -0.08, 0.005]))
+        assert goal_achieved(graph.goals[0], state, self.TRAY_POSITION, self.TRAY_HALF_SIZES)
+
+    def test_object_off_tray_is_not_achieved(self):
+        graph = canonical_example()
+        state = _nominal_state()  # red_mug still at its spawn position, far from the tray
+        assert not goal_achieved(graph.goals[0], state, self.TRAY_POSITION, self.TRAY_HALF_SIZES)
+
+    def test_nonexistent_object_is_not_achieved(self):
+        graph = canonical_example()
+        state = _nominal_state()
+        state["blue_bowl"] = ObjectState(exists=False, position=None)
+        assert not goal_achieved(graph.goals[1], state, self.TRAY_POSITION, self.TRAY_HALF_SIZES)
+
+    def test_tolerates_float_precision_at_exact_tray_height(self):
+        """Regression test: a real teleport-onto-tray in tidy_up_env
+        produced dz = -1.1e-10 (float32/float64 mixing) at an object sitting
+        exactly at tray height, which a strict `0 <= dz` check rejected.
+        See oracle_feasibility.py's goal_achieved for the -1e-4 tolerance fix."""
+        graph = canonical_example()
+        state = _nominal_state()
+        position = self.TRAY_POSITION.copy()
+        position[2] = np.float32(self.TRAY_POSITION[2])  # float32 round-trip, same as sim state
+        state["red_mug"] = ObjectState(exists=True, position=position)
+        assert goal_achieved(graph.goals[0], state, self.TRAY_POSITION, self.TRAY_HALF_SIZES)

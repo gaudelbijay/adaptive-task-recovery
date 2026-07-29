@@ -35,6 +35,16 @@ avoid defining success circularly.
    preconditions and effects.
 6. **Monolithic adaptive policy:** matched capacity without modular heads.
 
+**First toy instances of #1 and #4 (2026-07-29):** `spikes/task_schema_draft/policy_baselines.py`
+implements `static_policy` (#1) and `feasibility_aware_policy` (#4 —
+privileged/oracle labels, not learned beliefs) and runs them against the
+docs/01 worked example. Result: after an irreversible change, both achieve
+the same goals, but the oracle-feasibility policy wastes zero steps versus
+the static policy's wasted attempt on the now-infeasible goal (D-014 in
+`ai-notes/decisions.md`). Toy scale only — see that file's scope notes. This
+does not yet establish the "adaptation headroom" #4 is meant to define; it's
+a single hand-authored scenario, not a swept evaluation.
+
 ## Strategy adaptation
 
 The initial implementation should use a high-level policy that selects the next

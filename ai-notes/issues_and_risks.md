@@ -1,12 +1,12 @@
 # Issues and Risks
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## Active
 
 | ID | Type | Severity | Description | Mitigation / next check |
 |---|---|---|---|---|
-| R-005 | Risk | High | “Feasibility” may collapse into detecting intervention labels rather than estimating reachability. | Use reversible/neutral controls, counterfactual pairs, and oracle-regret evaluation. |
+| R-005 | Risk | High | “Feasibility” may collapse into detecting intervention labels rather than estimating reachability. Concretely present in the current draft: `goal_feasible()` in `spikes/task_schema_draft/oracle_feasibility.py` is a direct object-existence query — functionally almost identical to detecting the intervention label itself, not an estimate of reachability. Acceptable for now only because it's a privileged-state oracle used to validate plumbing (D-014), not a learned feasibility model. | Use reversible/neutral controls, counterfactual pairs, and oracle-regret evaluation. When a learned feasibility estimator is built, it must not have direct access to the "did an intervention fire" signal, or this risk reproduces exactly. |
 | R-006 | Risk | High | “Original intent” is underspecified in free-form language. | Begin with a formal goal graph and controlled language; bound claims explicitly. |
 | R-007 | Risk | High | Privileged simulator state or template artifacts may leak feasibility labels. | Isolate label channels and audit seeds, pixels, timing, and language tokens. |
 | R-008 | Risk | Medium | RL variance and large visual encoders may exceed available compute. | Validate with oracle state and frozen small encoders before scaling. |

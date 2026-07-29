@@ -38,6 +38,30 @@ def goal_feasible(goal: Goal, state: WorldState) -> bool:
     return obj is not None and obj.exists
 
 
+def goal_achieved(
+    goal: Goal,
+    state: WorldState,
+    tray_position: np.ndarray,
+    tray_half_sizes: tuple[float, float, float],
+    z_margin: float = 0.05,
+) -> bool:
+    """Placement completion, not just feasibility: is the goal's target
+    object actually resting within the tray's footprint? (This was listed
+    as a gap in ../README.md "What this deliberately doesn't cover yet" —
+    filled in for the policy-baseline comparison in policy_baselines.py.)"""
+    obj = state.get(goal.target_object)
+    if obj is None or not obj.exists:
+        return False
+    dx = abs(obj.position[0] - tray_position[0])
+    dy = abs(obj.position[1] - tray_position[1])
+    dz = obj.position[2] - tray_position[2]
+    # -1e-4 not 0: float32/float64 mixing (sim state is float32, tray_position
+    # is often a plain float64 literal) can put dz a hair below zero for an
+    # object sitting exactly at tray height — found via a real teleport-onto-tray
+    # test that failed by -1.1e-10 with a strict "dz >= 0" bound.
+    return dx <= tray_half_sizes[0] and dy <= tray_half_sizes[1] and -1e-4 <= dz <= z_margin
+
+
 def constraint_violated(constraint: Constraint, initial_state: WorldState, current_state: WorldState) -> bool:
     obj0 = initial_state.get(constraint.target_object)
     obj1 = current_state.get(constraint.target_object)

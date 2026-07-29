@@ -46,7 +46,10 @@ unrequested object, or violate the glass constraint for reward.
   only through task reward and standard supervised features.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
-  irreversible changes.
+  irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
+  `ai-notes/decisions.md` and `spikes/task_schema_draft/policy_baselines.py`
+  — a hand-authored single scenario, not evidence for the general claim, but
+  the first time this hypothesis has been run rather than just stated.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
 - **H4 — compositional generalization:** factorized goal and change

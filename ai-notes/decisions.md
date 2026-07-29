@@ -2,6 +2,30 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-014: First runnable H2 test — feasibility-aware policy beats static policy (toy scale)
+
+- **Date:** 2026-07-29
+- **Status:** Accepted (as a toy-scale demonstration, not a research result)
+- **Decision:** Built `policy_baselines.py`: a `static_policy` (attempts
+  goals in order regardless of feasibility) vs a `feasibility_aware_policy`
+  (checks `goal_feasible()` before committing to the physical reach).
+  Result after `bowl_destroyed`: both achieve 1/2 goals, but static wastes
+  25 steps reaching for the now-destroyed bowl while feasibility-aware
+  skips it (0 wasted steps, half the total steps). With no intervention,
+  both achieve 2/2 with zero waste. Also fixed a real float32/float64
+  boundary bug found while building this: `goal_achieved()`'s tray-height
+  check rejected a real teleport-onto-tray placement because dz computed to
+  -1.1e-10 instead of exactly 0.
+- **Reason:** This is the first end-to-end demonstration of H2 (docs/01) —
+  everything before this was schema/simulator infrastructure; this is the
+  first time the actual research claim has been tested, even at toy scale.
+- **Consequences:** This is existence-only feasibility (a direct privileged-
+  state query), not learned feasibility, and "wasted steps" is a simplified
+  cost proxy, not a reward/regret formulation — don't cite this as
+  validating H2 in any general sense. It does validate that the schema +
+  oracle + simulator plumbing built in D-013 is wired correctly enough to
+  run a real comparison, which is what it was for.
+
 ## D-013: Draft task schema + intervention set, for review — not a commitment
 
 - **Date:** 2026-07-29
