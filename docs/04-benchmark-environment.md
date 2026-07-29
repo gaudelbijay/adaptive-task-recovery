@@ -33,6 +33,11 @@ either way. Isaac Lab hasn't been spiked yet — see D-006/D-009/D-010/D-011 in
 
 ## Task schema
 
+**Draft implementation (2026-07-29):** see [spikes/task_schema_draft/README.md](../spikes/task_schema_draft/README.md)
+for a concrete, runnable, tested version of the schema below, built around
+this project's own worked example from docs/01 (mug/bowl/tray/medicine/glass).
+Not committed — a starting point for review (D-013 in `ai-notes/decisions.md`).
+
 Each episode contains:
 
 - an initial world state and RGB observation stream;
@@ -90,6 +95,13 @@ must not emit a special observation marker to the agent.
 
 Include matched **reversible** and **temporary** changes. Otherwise the model may
 learn that every detected change implies abandonment.
+
+**Draft coverage:** `spikes/task_schema_draft/` implements one irreversible
+case (object destroyed: `bowl_destroyed`) matched against one
+reversible/temporary case (`temporary_obstacle` — a distractor object that
+appears and disappears without affecting any goal), per the requirement
+above. The other candidate types (container broken, route permanently
+blocked, tool consumed, resource contention) are not yet drafted.
 
 ## Oracle feasibility
 

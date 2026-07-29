@@ -16,9 +16,11 @@ not project architecture — see D-006): ManiSkill3 humanoid loading, determinis
 scripted events, object-level interventions, RGB-D observations, and basic
 reach/grasp manipulation are all confirmed working (D-009, D-010, D-011).
 Known platform gap: `mplib`-based motion planning doesn't build on Apple
-Silicon macOS (worked around via `pinocchio`). Still open: an Isaac Lab spike
-for comparison (I-003, now low severity). Task schema, pretrained models,
-and compute remain unaddressed.
+Silicon macOS (worked around via `pinocchio`). A task schema + intervention
+set draft also exists (`spikes/task_schema_draft/`, D-013) — proposed, not
+yet reviewed with the teammate. Still open: an Isaac Lab spike for
+comparison (I-003, now low severity), pretrained model selection, and
+compute planning.
 
 **Team model:** two contributors. Phase 0 and benchmark construction are shared.
 Person A then leads representation/language/feasibility; Person B leads
@@ -30,7 +32,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 |---|---|
 | Shared | Scaffold `src/atr/`, `scripts/`, `tests/`, `configs/`, and `data/` |
 | Shared | Define versioned interfaces for goal graphs, feasibility beliefs, skills, and logs |
-| Shared | Select the task family and irreversible/reversible intervention set |
+| Shared | Select the task family and irreversible/reversible intervention set — draft proposed 2026-07-29 (`spikes/task_schema_draft/`, D-013): goal graph schema + oracle feasibility + one matched irreversible/reversible intervention pair, built around the docs/01 worked example. Needs review with teammate before "Accepted." |
 | Shared | Build and test the benchmark, oracle feasibility checker, and dataset splits |
 | Person A | Evaluate visual and language model candidates against accuracy, calibration, latency, memory, licensing, and downstream utility |
 | Person A | Select self-supervised visual baselines and implement goal/change/feasibility models |
@@ -43,6 +45,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-07-29 | Drafted the task schema + intervention set (D-013, `spikes/task_schema_draft/`) — the biggest remaining bottleneck: a `GoalGraph` data model, pure-function oracle feasibility/constraint checking, and a ManiSkill3 scene wiring both to the project's own worked example (mug/bowl/tray/medicine/glass from docs/01), with one irreversible intervention matched against one reversible/temporary control per docs/04's explicit requirement. Proposed, not accepted — needs review with the teammate. |
 | 2026-07-28 | Made the spike device-agnostic (D-012): replaced hardcoded `sim_backend="cpu"` with real CUDA-availability detection (`device_utils.resolve_sim_backend()`), fixed the push force-application code to work under GPU-batched sim (was CPU-only), and turned the object-removal GPU limitation into an explicit `RuntimeError` guard instead of a silent failure mode. CPU path re-verified identical; GPU path untested (no CUDA on this dev machine). |
 | 2026-07-28 | Extended the spike further: RGB-D observations confirmed working (`manipulation_skill_spike.py`, D-011); a scripted reach-grasp-lift succeeded 5/5 on ManiSkill3's `PickCube-v1`. Found and worked around a real platform gap — `mplib` (ManiSkill3's canned motion-planning dependency) doesn't build on Apple Silicon macOS; `pinocchio` (`pip install pin`) does, and its IK-based Cartesian controller was used instead. I-003 downgraded to Low severity — only an Isaac Lab comparison spike remains open. |
 | 2026-07-28 | Extended the spike to test object-level interventions (`object_intervention_spike.py`, D-010) — the requirement that actually gates the simulator decision, not standing balance. Confirmed on ManiSkill3: object removal from the live physics scene, and mid-episode addition of new geometry, both deterministic given a seed. Found and documented a real gotcha: the `Actor` wrapper goes stale after removal. I-003 downgraded to Medium severity. |

@@ -2,6 +2,35 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-013: Draft task schema + intervention set, for review — not a commitment
+
+- **Date:** 2026-07-29
+- **Status:** Proposed (needs teammate review before "Accepted" — this is
+  the "Shared" task-family/intervention-set item, not a unilateral call)
+- **Decision:** Built a concrete, tested, runnable draft of docs/04's task
+  schema (`spikes/task_schema_draft/`) around the project's own worked
+  example from docs/01: "Put the red mug and blue bowl on the tray, keep the
+  medicine upright, and do not move the glass." Includes a `GoalGraph` data
+  model (goals/priorities/dependencies/constraints), pure-function oracle
+  feasibility + constraint-violation checking (existence-based, never
+  attempted-motion-based, per docs/04's own caution against that), and a
+  ManiSkill3 scene wiring it to real privileged state — with one irreversible
+  intervention (bowl destroyed) matched against one reversible/temporary
+  control (a distractor object that appears and disappears), per docs/04's
+  explicit requirement to include matched pairs.
+- **Reason:** This was the single biggest bottleneck blocking further
+  progress on both Person A's and Person B's tracks (STATUS.md). A concrete,
+  runnable draft is easier to react to and critique than more prose in
+  docs/04.
+- **Consequences:** Not yet covered: language (deliberately Person A's
+  territory), priorities/dependencies exercised by an actual example, actual
+  goal-completion detection (vs. feasibility), held-out paraphrases, and the
+  other four candidate intervention types (container broken, route
+  permanently blocked, tool consumed, resource contention). See
+  `spikes/task_schema_draft/README.md` "What this deliberately doesn't cover
+  yet." Needs review with your teammate before anything here is treated as
+  settled.
+
 ## D-012: Spike code made device-agnostic; found gotchas addressed, not just documented
 
 - **Date:** 2026-07-28
