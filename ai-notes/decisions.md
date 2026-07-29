@@ -2,6 +2,32 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-016: Task schema confirmed embodiment-agnostic — humanoid variant of TidyUp
+
+- **Date:** 2026-07-29
+- **Status:** Accepted (as a toy-scale demonstration, not a research result)
+- **Decision:** Built `tidy_up_env_humanoid.py` / `policy_baselines_humanoid.py`
+  — the same scene, goals, interventions, policies, and metrics as the panda
+  version, on a Unitree G1 upper body instead. Same qualitative results
+  (D-014/D-015's H2/H3 findings reproduce exactly). Confirms `goal_graph.py`,
+  `oracle_feasibility.py`, and `intent_guard.py` are genuinely
+  embodiment-agnostic. Required two adaptations: hand-calibrated joint-space
+  reach configs (this G1 agent class has no Cartesian controller — checked
+  directly, not just assumed), and a fix for a real settling bug (objects
+  spawned above the kitchen counter's actual surface height tripped
+  `dont_move_glass` from settling alone, before any policy acted) plus a
+  counter-footprint asymmetry (x=-0.15 fell through empty space; x=+0.15 did
+  not) — full detail in `spikes/task_schema_draft/README.md`.
+- **Reason:** Requested directly, to confirm the schema logic isn't
+  accidentally coupled to the panda arm before either contributor invests
+  more in it.
+- **Consequences:** Strengthens the case that D-013's schema draft is sound
+  independent of embodiment choice. Still toy-scale, still needs teammate
+  review — this doesn't change that. The joint-space reach calibration is
+  hand-tuned for this exact scene layout, not a reusable IK solution; a real
+  humanoid manipulation layer (per docs/07's "Strategy adaptation") is
+  separate, later work.
+
 ## D-015: First runnable H3 test — intent guard blocks a constraint violation at zero recall cost (toy scale)
 
 - **Date:** 2026-07-29

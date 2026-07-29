@@ -25,6 +25,8 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`tidy_up_env.py`](tidy_up_env.py) | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the above to real privileged state. Registered as `TidyUpTaskSchemaDraft-v1`. |
 | [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? Also `naive_substitution_policy()`, used by the intent guard test below. |
 | [`intent_guard.py`](intent_guard.py) | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
+| [`tidy_up_env_humanoid.py`](tidy_up_env_humanoid.py) | The same scene and interventions, on a Unitree G1 upper body instead of the panda arm — proves `goal_graph`/`oracle_feasibility`/`intent_guard` are genuinely embodiment-agnostic, not accidentally panda-specific. Registered as `TidyUpTaskSchemaDraft-Humanoid-v1`. |
+| [`policy_baselines_humanoid.py`](policy_baselines_humanoid.py) | The same `static_policy` / `feasibility_aware_policy` / `naive_substitution_policy`, adapted to the humanoid's joint-space-only control (see below). |
 
 ## The two interventions (matched, per docs/04)
 
@@ -118,6 +120,42 @@ more interesting failure mode named in R-010
 by blocking *legitimate* actions too, trading real recall for safety. That
 needs a scenario where the guard's precision is actually in tension with
 completing a real goal — not built yet.
+
+## Humanoid embodiment (2026-07-29)
+
+Same scene, same goals, same interventions, same policies and metrics —
+`tidy_up_env_humanoid.py` swaps the panda arm for a Unitree G1 upper body
+(`unitree_g1_simplified_upper_body_with_head_camera`, the same agent class
+ManiSkill3's own `UnitreeG1PlaceAppleInBowl-v1` example uses) on a kitchen
+counter. Ran the exact same policy comparisons and got the exact same
+qualitative results as the panda version — 1/2 goals achieved either way,
+`feasibility_aware` at 0 wasted steps vs `static`'s 25, guard blocks the
+substitution at zero recall cost — confirming `goal_graph.py` /
+`oracle_feasibility.py` / `intent_guard.py` really are embodiment-agnostic,
+not accidentally coupled to the panda arm.
+
+Two real things had to change, both documented in
+`tidy_up_env_humanoid.py`'s module docstring:
+
+- **No Cartesian controller.** This G1 agent class only exposes
+  `pd_joint_pos`/`pd_joint_delta_pos` — no `pd_ee_delta_pos` like Panda has.
+  Rather than building one (a bigger task — subclassing the agent to add a
+  `PDEEPosControllerConfig` for the right arm), the "reach" phase uses two
+  hand-calibrated joint configurations (`_REACH_CONFIGS`), found by sweeping
+  shoulder/elbow angles and reading off `agent.right_tcp.pose` empirically.
+  Less general than real IK, but it's real arm motion consuming real steps,
+  which is what the "wasted effort" metric actually needs.
+- **A real settling bug, found and fixed.** Objects spawned at an assumed
+  counter height dropped a few centimeters onto the kitchen counter's real
+  surface in the first 1-3 steps — enough to trip `dont_move_glass` on its
+  own, before any policy did anything. Fixed by freezing the
+  never-move/upright baseline a few steps after reset instead of at the
+  instant of spawn (`tidy_up_env_humanoid.py`'s `evaluate()`), plus an
+  explicit settle period in `naive_substitution_policy` before it captures
+  its own baseline (it reads state directly, bypassing `evaluate()`'s fix).
+  Also found: the counter's collision footprint isn't symmetric around
+  x=0 — an object at x=-0.15 fell straight through empty space while
+  x=+0.15 rested fine. Objects are now placed only on the proven side.
 
 ## What this deliberately doesn't cover yet
 
