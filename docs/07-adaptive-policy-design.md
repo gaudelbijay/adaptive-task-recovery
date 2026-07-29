@@ -69,6 +69,15 @@ The intent guard validates candidate high-level choices and, where possible,
 primitive actions. It must distinguish an explicitly allowed substitute from a
 semantically convenient but unauthorized replacement.
 
+**First toy instance (2026-07-29):** `spikes/task_schema_draft/intent_guard.py`'s
+`validate_action()` is the smallest possible version of this — it rejects a
+candidate action targeting a `never_move`-constrained object unless a real
+goal in the graph requires touching it, exactly the "unauthorized
+replacement" case (substituting the glass for a destroyed bowl). See D-015
+in `ai-notes/decisions.md`. Does not yet handle equivalence classes,
+ordering/dependency edges, or the harder recall/safety trade-off this
+section's design implies.
+
 ## Uncertainty and abstention
 
 When evidence is ambiguous, the agent may gather information, delay commitment,

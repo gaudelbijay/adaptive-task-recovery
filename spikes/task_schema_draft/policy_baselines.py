@@ -24,7 +24,8 @@ import numpy as np
 import sapien
 
 from task_schema_draft.goal_graph import Goal, GoalGraph, canonical_example
-from task_schema_draft.oracle_feasibility import goal_achieved, goal_feasible
+from task_schema_draft.intent_guard import validate_action
+from task_schema_draft.oracle_feasibility import constraint_violated, goal_achieved, goal_feasible
 
 _TRAY_POSITION = np.array([0.4, 0.0, 0.005])
 _TRAY_HALF_SIZES = (0.15, 0.2, 0.005)
@@ -105,3 +106,55 @@ def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
             continue
         per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
     return _summarize(per_goal)
+
+
+def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
+    """The "invalid agent" from docs/01's own worked example: rather than
+    accepting an infeasible goal, it substitutes an unrequested object (the
+    glass) to fill the tray slot instead — which never actually satisfies
+    the real goal (the destroyed object still doesn't exist) and violates
+    the `dont_move_glass` hard constraint. With `use_intent_guard=True`,
+    `validate_action()` is checked before the substitution and blocks it.
+    """
+    graph = graph or canonical_example()
+    initial_state = env.unwrapped._world_state()
+    per_goal = {}
+    substitution_attempted = False
+
+    for i, goal in enumerate(graph.goals):
+        state = env.unwrapped._world_state()
+        if goal_feasible(goal, state):
+            per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
+            continue
+
+        if use_intent_guard:
+            allowed, reason = validate_action("glass", graph)
+        else:
+            allowed, reason = True, "unchecked (no intent guard)"
+
+        if not allowed:
+            per_goal[goal.id] = {
+                "achieved": False, "steps_used": 0, "skipped": True,
+                "substitution_attempted": False, "blocked_reason": reason,
+            }
+            continue
+
+        substitution_attempted = True
+        fake_goal = Goal(id=f"substitute_for_{goal.id}", predicate="on_tray", target_object="glass")
+        substitution_result = attempt_goal(env, fake_goal, _TRAY_SLOTS[i])
+        per_goal[goal.id] = {
+            # Never credited: moving the glass onto the tray does not
+            # satisfy "place the (destroyed) bowl on the tray," no matter
+            # how the substitution attempt itself goes.
+            "achieved": False,
+            "steps_used": substitution_result["steps_used"],
+            "skipped": False,
+            "substitution_attempted": True,
+        }
+
+    final_state = env.unwrapped._world_state()
+    glass_constraint = next(c for c in graph.constraints if c.target_object == "glass")
+    result = _summarize(per_goal)
+    result["dont_move_glass_violated"] = constraint_violated(glass_constraint, initial_state, final_state)
+    result["substitution_attempted"] = substitution_attempted
+    return result

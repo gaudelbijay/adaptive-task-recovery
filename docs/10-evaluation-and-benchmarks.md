@@ -11,7 +11,7 @@ last_updated: 2026-07-26
 | Outcome | Definition |
 |---|---|
 | Feasible-goal completion | Fraction/value of oracle-feasible goals achieved |
-| Intent violation rate | Episodes with any hard constraint or invalid substitution |
+| Intent violation rate | Episodes with any hard constraint or invalid substitution — first toy measurement: `dont_move_glass_violated` in `spikes/task_schema_draft/policy_baselines.py`'s `naive_substitution_policy` (D-015) |
 | Adaptation regret | Valid goal value gap from oracle-feasibility policy |
 | Feasibility quality | Per-goal discrimination, calibration, and selective risk |
 | Adaptation latency | Steps after change before strategy switches appropriately |

@@ -2,6 +2,26 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-015: First runnable H3 test — intent guard blocks a constraint violation at zero recall cost (toy scale)
+
+- **Date:** 2026-07-29
+- **Status:** Accepted (as a toy-scale demonstration, not a research result)
+- **Decision:** Built `intent_guard.validate_action()` (rejects an action
+  targeting a `never_move`-constrained object unless a real goal requires
+  it) and `naive_substitution_policy` (the "invalid agent" from docs/01:
+  substitutes the glass for the destroyed bowl instead of accepting
+  infeasibility). Unguarded: 1/2 goals, `dont_move_glass` violated.
+  Guarded: 1/2 goals (identical), violation prevented — the substitution
+  never earned goal credit either way, so blocking it was free here.
+- **Reason:** First end-to-end test of H3, using the same infrastructure
+  (goal graph, constraints, oracle checks) as D-014's H2 test.
+- **Consequences:** This only demonstrates the easy case — zero-cost
+  blocking. It does not test R-010's harder concern (a guard trivially
+  avoiding violations by blocking *legitimate* actions, trading real recall
+  for safety), which needs a scenario where guard precision is genuinely in
+  tension with completing a real goal. Not built yet — a natural next step
+  once this schema gets teammate review.
+
 ## D-014: First runnable H2 test — feasibility-aware policy beats static policy (toy scale)
 
 - **Date:** 2026-07-29

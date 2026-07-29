@@ -23,7 +23,8 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`goal_graph.py`](goal_graph.py) | `Goal`, `Constraint`, `GoalGraph` dataclasses matching docs/04's "atomic goals, priorities, dependencies, and hard constraints." `canonical_example()` builds the docs/01 instruction as data. |
 | [`oracle_feasibility.py`](oracle_feasibility.py) | Pure functions: `goal_feasible()` (exists-based, never attempted-motion-based — see "Humanoid validity requirements" in docs/04) and `constraint_violated()` (position-drift / orientation checks), plus `evaluate_goal_graph()` combining both. No simulator dependency — testable in isolation. |
 | [`tidy_up_env.py`](tidy_up_env.py) | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the above to real privileged state. Registered as `TidyUpTaskSchemaDraft-v1`. |
-| [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? |
+| [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? Also `naive_substitution_policy()`, used by the intent guard test below. |
+| [`intent_guard.py`](intent_guard.py) | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
 
 ## The two interventions (matched, per docs/04)
 
@@ -91,6 +92,32 @@ query), no language, and "wasted steps" is a simplified proxy for cost, not
 a full reward/regret formulation. But it's the first time any part of this
 project's central research question has been demonstrated end to end,
 rather than argued for in prose.
+
+## First H3 result (2026-07-29)
+
+H3: *"explicit goal/constraint checking reduces semantic and constraint
+violations with an acceptable trade-off in achievable-goal recall."*
+`naive_substitution_policy()` in `policy_baselines.py` is the "invalid
+agent" from docs/01's own worked example: when `place_bowl` turns out
+infeasible, instead of accepting that, it substitutes the glass onto the
+tray — which never legitimately satisfies the goal (the bowl still doesn't
+exist) and violates `dont_move_glass`. `intent_guard.validate_action()`
+checks a candidate action against the goal graph's hard constraints before
+it's executed:
+
+| | Goals achieved | `dont_move_glass` violated | Substitution attempted |
+|---|---|---|---|
+| Unguarded | 1/2 | **Yes** | Yes |
+| Guarded | 1/2 | **No** | Blocked before execution |
+
+Same recall, zero violations, once the guard is in place. Notably, this is
+the *easy* case for H3 — the substitution never earned any goal credit
+either way, so blocking it costs nothing. It does not test the harder,
+more interesting failure mode named in R-010
+(`ai-notes/issues_and_risks.md`): a guard that trivially avoids violations
+by blocking *legitimate* actions too, trading real recall for safety. That
+needs a scenario where the guard's precision is actually in tension with
+completing a real goal — not built yet.
 
 ## What this deliberately doesn't cover yet
 

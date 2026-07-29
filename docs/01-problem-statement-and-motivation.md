@@ -52,6 +52,10 @@ unrequested object, or violate the glass constraint for reward.
   the first time this hypothesis has been run rather than just stated.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
+  **First toy-scale test (2026-07-29):** see D-015 and
+  `spikes/task_schema_draft/intent_guard.py` — blocks one hand-authored
+  constraint violation at zero recall cost; does not yet test the harder
+  recall/safety trade-off the hypothesis is actually about (see R-010).
 - **H4 — compositional generalization:** factorized goal and change
   representations transfer better to unseen goal-change combinations than a
   monolithic policy.
