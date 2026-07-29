@@ -12,15 +12,21 @@ pytest.importorskip("mani_skill")
 import gymnasium as gym  # noqa: E402
 
 import maniskill_humanoid_spike  # noqa: E402, F401  (registers ObjectInterventionSpike-v1)
+from maniskill_humanoid_spike.device_utils import resolve_sim_backend  # noqa: E402
 
 
 def _make_env(**kwargs):
+    # Always CPU, never resolve_sim_backend() — object add/remove is
+    # unsupported under GPU-batched sim by simulator design (see
+    # object_intervention_spike.py's module docstring and the
+    # test_gpu_sim_raises_clear_error test below), not a machine-specific
+    # choice.
     return gym.make(
         "ObjectInterventionSpike-v1",
         num_envs=1,
         obs_mode="state",
         render_mode=None,
-        sim_backend="cpu",
+        sim_backend=resolve_sim_backend(prefer_gpu=False),
         **kwargs,
     )
 
@@ -93,4 +99,22 @@ class TestRouteBlockedIntervention:
             assert len(sub_scene.entities) == n_before + 1
             assert env.unwrapped._blocker is not None
         finally:
+            env.close()
+
+
+class TestGpuSimGuard:
+    def test_gpu_sim_raises_clear_error_instead_of_silent_corruption(self):
+        """Can't instantiate real GPU sim on this (CUDA-less) machine to
+        test the true end-to-end path, but the guard itself is a plain
+        attribute check — verify it fires correctly by faking the flag it
+        reads, so the failure mode on a CUDA machine is a clear error, not a
+        cryptic crash several calls deep into SAPIEN's GPU buffers."""
+        env = _make_env(intervention_kind="object_removed", onset_step_range=(3, 4))
+        try:
+            env.reset(seed=0)
+            env.unwrapped.scene.gpu_sim_enabled = True
+            with pytest.raises(RuntimeError, match="requires CPU sim"):
+                env.unwrapped._trigger_intervention()
+        finally:
+            env.unwrapped.scene.gpu_sim_enabled = False
             env.close()

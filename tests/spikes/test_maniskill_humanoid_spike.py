@@ -13,6 +13,7 @@ pytest.importorskip("mani_skill")
 import gymnasium as gym  # noqa: E402
 
 import maniskill_humanoid_spike  # noqa: E402, F401  (registers HumanoidStandSpike-*-v1)
+from maniskill_humanoid_spike.device_utils import resolve_sim_backend  # noqa: E402
 from maniskill_humanoid_spike.scripted_intervention import ScriptedPushIntervention  # noqa: E402
 
 
@@ -22,7 +23,7 @@ def _make_env(**kwargs):
         num_envs=1,
         obs_mode="state",
         render_mode=None,
-        sim_backend="cpu",
+        sim_backend=resolve_sim_backend(),
         **kwargs,
     )
 

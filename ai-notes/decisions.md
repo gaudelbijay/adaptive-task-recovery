@@ -2,6 +2,29 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-012: Spike code made device-agnostic; found gotchas addressed, not just documented
+
+- **Date:** 2026-07-28
+- **Status:** Accepted
+- **Decision:** Replaced hardcoded `sim_backend="cpu"` everywhere in
+  `spikes/maniskill_humanoid_spike/` with `device_utils.resolve_sim_backend()`,
+  which checks `torch.cuda.is_available()` directly — unlike ManiSkill3's own
+  `sim_backend="auto"`, which only branches on `num_envs` and never checks
+  CUDA availability. Also fixed the push force-application code in
+  `humanoid_stand_spike.py` to branch between the CPU per-body API and the
+  GPU batched-tensor API (it previously only worked on CPU). Object
+  add/remove (`object_intervention_spike.py`) is a genuine GPU-sim
+  limitation, not a gap in our code — added an explicit `RuntimeError` guard
+  there instead of pretending it's portable.
+- **Reason:** Requested directly — run on CUDA if available, fall back to
+  CPU, and the code should work unmodified on whichever machine it lands on
+  next (this dev machine, a teammate's machine, or a cloud GPU box).
+- **Consequences:** The CPU path is fully re-verified (identical spike
+  results before/after this refactor). The GPU path is written correctly by
+  inspection and follows the same pattern ManiSkill3's own `Actor.apply_force`
+  uses internally, but is **untested** — this dev machine has no CUDA. Verify
+  on a CUDA machine before trusting it for anything real.
+
 ## D-011: ManiSkill3 RGB-D and basic manipulation confirmed; canned motion planning is not portable here
 
 - **Date:** 2026-07-28

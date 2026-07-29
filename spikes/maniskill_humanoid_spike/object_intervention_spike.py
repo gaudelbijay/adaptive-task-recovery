@@ -8,15 +8,23 @@ away. This tests that directly, on a small tabletop scene (embodiment
 doesn't matter here, so this uses ManiSkill3's plain `panda` arm, not a
 humanoid) with two interventions:
 
-- `ObjectRemovedIntervention`: physically removes an actor from the scene
-  mid-episode (`actor.remove_from_scene()`, CPU-sim only) — tests "required
-  object removed/destroyed."
-- `RouteBlockedIntervention`: spawns a brand new actor into the scene
-  mid-episode — tests something removal doesn't: can new geometry be added
-  after the scene is already built, not just mutated.
+- `intervention_kind="object_removed"`: physically removes an actor from the
+  scene mid-episode (`actor.remove_from_scene()`, CPU-sim only) — tests
+  "required object removed/destroyed."
+- `intervention_kind="route_blocked"`: spawns a brand new actor into the
+  scene mid-episode — tests something removal doesn't: can new geometry be
+  added after the scene is already built, not just mutated.
 
 Both record ground-truth before/after state, matching the before/after +
 oracle-effect logging the Intervention API sketch calls for.
+
+CPU sim only, by simulator design, not by choice: GPU-batched sim
+pre-allocates fixed per-actor buffers at reconfigure time, so it has no
+supported path for removing or adding actors mid-episode. `_trigger_intervention`
+raises a clear `RuntimeError` if this is instantiated under GPU sim rather
+than failing silently or cryptically. Always pass
+`sim_backend="physx_cpu"` (or `resolve_sim_backend(prefer_gpu=False)`) for
+this specific env, regardless of what's available on the machine.
 """
 
 from __future__ import annotations
@@ -118,6 +126,23 @@ class ObjectInterventionSpikeEnv(BaseEnv):
         self._elapsed_control_steps += 1
 
     def _trigger_intervention(self):
+        if self.scene.gpu_sim_enabled:
+            # Both interventions mutate the scene's actor set at runtime
+            # (removing one / adding one). GPU sim pre-allocates fixed-size
+            # per-actor buffers at reconfigure time across all parallel
+            # sub-scenes, so this isn't a "we didn't get to it yet" gap —
+            # SAPIEN's own Actor.remove_from_scene() explicitly documents
+            # CPU-only support, and there's no GPU-sim equivalent for adding
+            # a brand new actor mid-episode either. Fail loudly and early
+            # rather than silently corrupting sim state or hitting a cryptic
+            # low-level error several calls deep.
+            raise RuntimeError(
+                f"{self.intervention_kind} intervention requires CPU sim "
+                "(scene.gpu_sim_enabled=True) — object add/remove is a "
+                "structural scene mutation GPU-batched sim doesn't support. "
+                "Use resolve_sim_backend(prefer_gpu=False) or pass "
+                "sim_backend='physx_cpu' for this env."
+            )
         pose_before = self._target.pose.sp.p.copy()
         if self.intervention_kind == "object_removed":
             self._target.remove_from_scene()

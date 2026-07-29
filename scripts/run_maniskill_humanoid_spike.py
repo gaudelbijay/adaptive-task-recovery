@@ -2,9 +2,11 @@
 
 See spikes/maniskill_humanoid_spike/README.md for what this is and isn't
 testing: whether ManiSkill3 loads a humanoid asset, runs a scripted seeded
-push deterministically, and performs adequately on this dev machine (no
-CUDA). This is a spike, not a trained standing controller — the "hold"
-baseline just targets the (noisy) initial standing pose for the episode.
+push deterministically, and performs adequately on this machine. Machine
+agnostic: uses CUDA if available, otherwise CPU (see device_utils.py) — the
+push-application code branches internally for whichever backend is picked.
+This is a spike, not a trained standing controller — the "hold" baseline
+just targets the (noisy) initial standing pose for the episode.
 
 Usage:
     python scripts/run_maniskill_humanoid_spike.py --robot g1 --episodes 5
@@ -25,10 +27,13 @@ def run(robot: str, episodes: int, max_steps: int, video_dir: Path, results_path
 
     import maniskill_humanoid_spike  # noqa: F401  (registers HumanoidStandSpike-*-v1)
     from mani_skill.utils.wrappers.record import RecordEpisode
+    from maniskill_humanoid_spike.device_utils import resolve_sim_backend
 
     env_id = {"g1": "HumanoidStandSpike-G1-v1", "h1": "HumanoidStandSpike-H1-v1"}[robot]
+    sim_backend = resolve_sim_backend()
+    print(f"sim_backend={sim_backend}")
 
-    results = {"env_id": env_id, "runs": []}
+    results = {"env_id": env_id, "sim_backend": sim_backend, "runs": []}
 
     for label, push_force_range in [
         ("baseline_no_push", (0.0, 0.0)),
@@ -39,7 +44,7 @@ def run(robot: str, episodes: int, max_steps: int, video_dir: Path, results_path
             num_envs=1,
             obs_mode="state",
             render_mode="rgb_array",
-            sim_backend="cpu",
+            sim_backend=sim_backend,
             push_force_range=push_force_range,
         )
         env = RecordEpisode(

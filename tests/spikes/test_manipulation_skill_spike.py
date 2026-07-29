@@ -12,6 +12,7 @@ pytest.importorskip("mani_skill")
 import gymnasium as gym  # noqa: E402
 import mani_skill.envs  # noqa: E402, F401  (registers PickCube-v1 etc.)
 
+from maniskill_humanoid_spike.device_utils import resolve_sim_backend  # noqa: E402
 from maniskill_humanoid_spike.manipulation_skill_spike import (  # noqa: E402
     rgbd_obs_shapes,
     scripted_pick_and_lift,
@@ -20,7 +21,10 @@ from maniskill_humanoid_spike.manipulation_skill_spike import (  # noqa: E402
 
 class TestRgbdObservations:
     def test_rgb_and_depth_are_well_formed(self):
-        env = gym.make("PickCube-v1", num_envs=1, obs_mode="rgbd", render_mode=None, sim_backend="cpu")
+        env = gym.make(
+            "PickCube-v1", num_envs=1, obs_mode="rgbd", render_mode=None,
+            sim_backend=resolve_sim_backend(),
+        )
         try:
             result = rgbd_obs_shapes(env)
             assert result["rgb_shape"][-1] == 3
@@ -39,7 +43,7 @@ class TestScriptedPickAndLift:
         region — 5/5 succeeded in manual runs across seeds 0-4."""
         env = gym.make(
             "PickCube-v1", num_envs=1, obs_mode="state", render_mode=None,
-            sim_backend="cpu", control_mode="pd_ee_delta_pos",
+            sim_backend=resolve_sim_backend(), control_mode="pd_ee_delta_pos",
         )
         try:
             assert scripted_pick_and_lift(env, seed=0)

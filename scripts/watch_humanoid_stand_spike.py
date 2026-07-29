@@ -16,16 +16,19 @@ import time
 
 import maniskill_humanoid_spike  # noqa: F401  (registers HumanoidStandSpike-*-v1)
 import gymnasium as gym
+from maniskill_humanoid_spike.device_utils import resolve_sim_backend
 
 
 def main(robot: str, episodes: int, push_onset_step_range: tuple[int, int], max_steps: int):
     env_id = {"g1": "HumanoidStandSpike-G1-v1", "h1": "HumanoidStandSpike-H1-v1"}[robot]
+    sim_backend = resolve_sim_backend()
+    print(f"sim_backend={sim_backend}")
     env = gym.make(
         env_id,
         num_envs=1,
         obs_mode="state",
         render_mode="human",
-        sim_backend="cpu",
+        sim_backend=sim_backend,
         push_onset_step_range=push_onset_step_range,
     )
 

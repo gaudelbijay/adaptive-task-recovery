@@ -130,8 +130,17 @@ class HumanoidStandSpikeEnv(BaseEnv):
     def _before_simulation_step(self):
         if self._active_force_remaining > 0:
             link = self._get_push_link()
-            body = link._bodies[0]
-            body.add_force_at_point(force=self._active_force, point=body.pose.p)
+            if self.scene.gpu_sim_enabled:
+                # CPU sim exposes add_force_at_point() per-body; GPU sim is
+                # batched and needs a direct write into the shared CUDA force
+                # buffer instead (same pattern mani_skill.utils.structs.actor
+                # .Actor.apply_force uses for its GPU branch).
+                force = torch.as_tensor(self._active_force, dtype=torch.float32, device=self.device)
+                self.scene.px.cuda_rigid_body_force.torch()[link._body_data_index, :3] = force
+                self.scene.px.gpu_apply_rigid_dynamic_force()
+            else:
+                body = link._bodies[0]
+                body.add_force_at_point(force=self._active_force, point=body.pose.p)
             self._active_force_remaining -= 1
 
     def evaluate(self):

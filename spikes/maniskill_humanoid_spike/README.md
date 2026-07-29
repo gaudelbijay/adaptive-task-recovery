@@ -31,6 +31,27 @@ Two things, in two separate env registrations:
    and does RGB-D observation mode actually work? Runs on ManiSkill3's
    built-in `PickCube-v1` task, not a custom env.
 
+## Device-agnostic by design
+
+All scripts/tests pick their sim backend via `device_utils.resolve_sim_backend()`,
+which uses CUDA if `torch.cuda.is_available()` and CPU otherwise — **not**
+ManiSkill3's own `sim_backend="auto"`, which doesn't check CUDA availability
+at all (it only branches on `num_envs`, so a single-env run stays on CPU
+under "auto" even with a GPU present). `humanoid_stand_spike.py`'s push
+force-application branches internally between the CPU per-body API
+(`add_force_at_point`) and the GPU batched-tensor API
+(`cuda_rigid_body_force`) so the same code path works either way.
+`object_intervention_spike.py` is the one deliberate exception: object
+add/remove is unsupported under GPU-batched sim by SAPIEN's own design (fixed
+per-actor buffers allocated at reconfigure time), so it always forces CPU
+and raises a clear `RuntimeError` if that's violated, rather than failing
+silently.
+
+**Caveat:** this dev machine (Apple M4 Max) has no CUDA, so only the CPU
+path has actually been run. The GPU branches are written to the same API
+pattern ManiSkill3's own `Actor.apply_force` uses internally, but are
+untested here — verify on a CUDA machine before relying on them.
+
 ## How to run it
 
 Requires the `.maniskill` pyenv virtualenv (Python 3.12.12) — see
@@ -60,7 +81,7 @@ selection requirements — ✅ tested and works, ⚠️ not exercised by this sp
 | RGB observations | ✅ **Now tested** (`manipulation_skill_spike.py`): `obs_mode="rgbd"` on `PickCube-v1` returns real, non-degenerate `rgb` (128×128×3, uint8, full 0-255 range) and `depth` (128×128×1, int16, sensible mm-scale range) tensors. |
 | Object-centric interaction, reusable nav/reach/grasp/place skills | ✅ **Partially confirmed** — reach + grasp + lift, specifically: a hand-scripted waypoint sequence using ManiSkill3's built-in Cartesian end-effector controller (`pd_ee_delta_pos`) picked up and lifted a cube 5/5 times across seeds 0-4 on `PickCube-v1`. Navigate/place and the *canned* motion-planning solutions were not tested (see gotcha below) — this confirms basic actuation/grasp mechanics work, not the full skill library. |
 | Natural-language task generation | ❌ Not a ManiSkill3 capability — would need a custom instruction-generation layer regardless of simulator choice. |
-| GPU vectorization | ❌ on this machine specifically: no CUDA (Apple M4 Max has no NVIDIA GPU), so SAPIEN's GPU-vectorized PhysX backend is unavailable. CPU backend (`sim_backend="cpu"`) works fine for single-env development at ~450–600 steps/sec. **Any future large-scale parallel RL training will need a CUDA machine** (cloud GPU) — this is a shared-infra requirement, not specific to ManiSkill vs. Isaac Lab (Isaac Lab also requires an NVIDIA GPU, and more insistently). |
+| GPU vectorization | ⚠️ Code is written to use it automatically when available (see "Device-agnostic by design" below), but **untested** — this dev machine (Apple M4 Max) has no CUDA, so SAPIEN's GPU-vectorized PhysX backend is unavailable here. CPU backend works fine for single-env development at ~450–600 steps/sec. **Any future large-scale parallel RL training will need a CUDA machine** (cloud GPU) regardless — this is a shared-infra requirement, not specific to ManiSkill vs. Isaac Lab (Isaac Lab also requires an NVIDIA GPU, and more insistently). |
 
 ### Object-level intervention findings (2026-07-28)
 
