@@ -2,6 +2,35 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-018: G1 placed in the real ReplicaCAD apartment — a second scene-builder bug found and fixed
+
+- **Date:** 2026-07-30
+- **Status:** Accepted
+- **Decision:** Direct follow-up to "but this is not a humanoid robot":
+  placed G1 (fixed-base, confirmed it cannot walk) into the same real
+  apartment D-017 used, instead of Fetch. The obvious fix — catch
+  `ReplicaCADSceneBuilder`'s fetch-only `NotImplementedError` — is wrong:
+  the rearrange scene builder places objects in two passes (temporary
+  pose+1000m-up, then real final pose), and the fetch-only check sits
+  *between* them. Catching the exception skips the second pass, leaving
+  every object floating at z≈1000 — found by inspecting actual object
+  positions, not assumed. Real fix: temporarily present as `"fetch"` (plus
+  alias a `"rest"` keyframe) so the builder completes its own correct
+  logic, then set G1's real pose afterward. Also didn't assume a base
+  position was reachable — raycast-checked several candidates first (same
+  technique as D-017's path planner) before picking one with real open
+  clearance. Same H2/H3 results as every other variant once placement was
+  correct.
+- **Reason:** Answering "is this genuinely embodiment-agnostic" requires
+  actually trying a humanoid in the hardest environment tried so far, not
+  just the two where we'd already worked out the friction points.
+- **Consequences:** `ReplicaCADSceneBuilder`-based scenes have a real,
+  non-obvious constraint: any robot besides `fetch` needs this same
+  fetch-impersonation workaround, not a simple exception handler. Worth
+  knowing before anyone else hits the same z≈1000 floating-object surprise.
+  Full detail in `spikes/task_schema_draft/README.md` "G1 in the real
+  apartment."
+
 ## D-017: Real ReplicaCAD scene integration — needed real path planning, not a scene swap
 
 - **Date:** 2026-07-30

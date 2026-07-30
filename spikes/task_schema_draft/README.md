@@ -30,6 +30,8 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`tidy_up_env_replicacad.py`](tidy_up_env_replicacad.py) | The same goals/interventions on a **real** furnished apartment (ManiSkill3's own `ReplicaCADSetTableTrain` scene builder, real YCB objects) with a mobile Fetch robot, instead of a hand-built scene. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-v1`. |
 | [`navigation.py`](navigation.py) | A grid + Dijkstra path planner, built because a naive point-and-drive controller got physically stuck on a real wall in this scene (see "ReplicaCAD embodiment" below). |
 | [`policy_baselines_replicacad.py`](policy_baselines_replicacad.py) | The same three policies, navigating (not just reaching) to each goal. |
+| [`tidy_up_env_replicacad_humanoid.py`](tidy_up_env_replicacad_humanoid.py) | G1 (fixed-base, no navigation) placed in the same real apartment instead of Fetch — the direct "but this is not a humanoid robot" answer. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1`. |
+| [`policy_baselines_replicacad_humanoid.py`](policy_baselines_replicacad_humanoid.py) | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
 
 ## The two interventions (matched, per docs/04)
 
@@ -206,6 +208,43 @@ demonstrated on a real, unmodified, professionally-built scene with a real
 mobile robot, confirming the schema/oracle/guard layer transfers without
 change to genuinely different environment complexity, not just different
 robot geometry.
+
+## G1 in the real apartment (2026-07-30)
+
+The Fetch demo above answers "does the schema work in a real environment,"
+but drew the follow-up: *that's not a humanoid*. `tidy_up_env_replicacad_humanoid.py`
+places G1 (fixed-base, legs locked — checked its class definition directly,
+it physically cannot walk) into the *same* real apartment instead of Fetch.
+
+Two real problems, found by testing, not by inspection:
+
+- **The obvious fix (catch the fetch-only `NotImplementedError`) is wrong.**
+  `ReplicaCADRearrangeSceneBuilder.initialize()` places objects in **two
+  passes**: first at a temporary pose shifted 1000m up (to dodge leftover
+  collision state from the previous episode), then — *after* the
+  fetch-specific robot-teleport check that raises for anything else — at
+  their real final pose. Catching the exception there skips the second
+  pass entirely. Found this by inspecting actual object positions after
+  using the "obvious" fix: every object was floating at z≈1000, not
+  resting on furniture. **Real fix:** temporarily present as `"fetch"`
+  (and alias a `"rest"` keyframe to G1's `"standing"` one, since the base
+  class's fetch branch expects a keyframe G1 doesn't have) so the builder
+  completes its own correct placement logic, then set G1's real pose
+  afterward. Locked in as a regression test
+  (`test_objects_are_placed_at_real_positions_not_floating`).
+- **No base position was assumed reachable — checked first.** Raycast at
+  candidate standing spots (same technique as `navigation.py`) found real
+  nearby obstacles at several candidates before landing on `[0.55, 0.23]` as
+  the most open one tried, with both target objects (`potted_meat_can`,
+  `master_chef_can`) within the arm's reach envelope from there.
+
+Because G1 can't navigate, goal/constraint roles are swapped from the Fetch
+variant: the two objects near the chosen standing spot are the goals (one
+gets destroyed by the intervention); the bowl and cracker box — genuinely
+out of this fixed-base robot's reach — are constraint-only, monitored via
+privileged state, never touched. Same result once placement was fixed: 1/2
+goals either way, feasibility-aware wastes 0 steps vs. static's 25, guard
+blocks the substitution at zero recall cost.
 
 ## What this deliberately doesn't cover yet
 
