@@ -27,6 +27,9 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`intent_guard.py`](intent_guard.py) | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
 | [`tidy_up_env_humanoid.py`](tidy_up_env_humanoid.py) | The same scene and interventions, on a Unitree G1 upper body instead of the panda arm — proves `goal_graph`/`oracle_feasibility`/`intent_guard` are genuinely embodiment-agnostic, not accidentally panda-specific. Registered as `TidyUpTaskSchemaDraft-Humanoid-v1`. |
 | [`policy_baselines_humanoid.py`](policy_baselines_humanoid.py) | The same `static_policy` / `feasibility_aware_policy` / `naive_substitution_policy`, adapted to the humanoid's joint-space-only control (see below). |
+| [`tidy_up_env_replicacad.py`](tidy_up_env_replicacad.py) | The same goals/interventions on a **real** furnished apartment (ManiSkill3's own `ReplicaCADSetTableTrain` scene builder, real YCB objects) with a mobile Fetch robot, instead of a hand-built scene. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-v1`. |
+| [`navigation.py`](navigation.py) | A grid + Dijkstra path planner, built because a naive point-and-drive controller got physically stuck on a real wall in this scene (see "ReplicaCAD embodiment" below). |
+| [`policy_baselines_replicacad.py`](policy_baselines_replicacad.py) | The same three policies, navigating (not just reaching) to each goal. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -157,6 +160,53 @@ Two real things had to change, both documented in
   x=0 — an object at x=-0.15 fell straight through empty space while
   x=+0.15 rested fine. Objects are now placed only on the proven side.
 
+## ReplicaCAD embodiment (2026-07-29/30)
+
+Requested directly: prefer established environments over hand-built ones
+where they exist. `tidy_up_env_replicacad.py` swaps the hand-built scene for
+ManiSkill3's own `ReplicaCADSetTableTrain` scene builder — a real furnished
+apartment (104 actors, inspected directly) with real YCB objects from
+Habitat's rearrangement dataset. `master_chef_can`, `bowl`, `potted_meat_can`,
+`cracker_box` are genuine YCB models, not primitives; `env-0_024_bowl-4` is
+an actual bowl mesh with real geometry and mass. Requires downloading
+ReplicaCAD (~1.6GB), ReplicaCADRearrange (~2.8GB), and the YCB object set.
+
+**This was not a drop-in scene swap, and that's worth knowing before reaching
+for it again:**
+
+- **These scenes need a mobile robot, not a fixed arm.** `ReplicaCADSetTableTrain`
+  only supports `fetch`, and its objects are scattered across the *entire
+  apartment* (checked real positions — rooms 1-2+ meters apart), not
+  clustered on one table like the panda/humanoid scenes. So "attempt a
+  goal" now genuinely requires navigation, not just a reach.
+- **A naive point-and-drive controller physically got stuck on a real
+  wall.** Confirmed directly, not assumed: a raycast at the exact stuck
+  position hit a `PhysxRigidStaticComponent` 0.29m away in the direction of
+  travel. Fixed with `navigation.py`: a 2D occupancy grid built from
+  SAPIEN's own `PhysxCpuSystem.raycast` (no new dependency) plus Dijkstra
+  shortest-path, then the same proportional controller follows the
+  resulting waypoints instead of driving straight at the target.
+  Deliberately not Habitat's own `.navmesh` files (bundled with the
+  dataset) — parsing those needs `habitat-sim`, a heavy C++ package with
+  the same unverified-on-Apple-Silicon risk profile that burned us on
+  `mplib` (D-011).
+- **The occupancy grid's safety margin needed real tuning, not a
+  guess.** A margin equal to Fetch's actual base radius (0.3m) left every
+  doorway in this scene fully sealed in the discretized grid — no path
+  existed at all between rooms. 0.2m was the largest margin that still
+  found a path; verified by testing several values, not assumed safe.
+- Same abstractions as the other variants otherwise: placement is a
+  teleport-on-success, and interventions/oracle/intent-guard logic is
+  unchanged (only the object alias map and tray position differ).
+
+Net result: same qualitative findings as the panda/humanoid versions (1/2
+goals achieved either way; feasibility-aware wastes 0 steps vs. static's
+~250; the intent guard blocks the substitution at zero recall cost) — now
+demonstrated on a real, unmodified, professionally-built scene with a real
+mobile robot, confirming the schema/oracle/guard layer transfers without
+change to genuinely different environment complexity, not just different
+robot geometry.
+
 ## What this deliberately doesn't cover yet
 
 - **Language.** `GoalGraph.instruction_text` is a fixed string, not parsed
@@ -183,4 +233,14 @@ Two real things had to change, both documented in
 pyenv activate .maniskill
 pip install -e . --no-deps
 python -m pytest tests/drafts/ -v
+```
+
+The panda and humanoid variants need nothing extra. The ReplicaCAD variant
+needs three additional asset downloads (~4.4GB total) before its tests will
+pass instead of erroring on a missing file:
+
+```bash
+python -m mani_skill.utils.download_asset ReplicaCAD -y
+python -m mani_skill.utils.download_asset ReplicaCADRearrange -y
+python -m mani_skill.utils.download_asset ycb -y
 ```

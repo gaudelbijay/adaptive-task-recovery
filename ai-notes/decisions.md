@@ -2,6 +2,37 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-017: Real ReplicaCAD scene integration — needed real path planning, not a scene swap
+
+- **Date:** 2026-07-30
+- **Status:** Accepted
+- **Decision:** Per direct request to prefer established environments over
+  hand-built ones, rebuilt TidyUp on ManiSkill3's own `ReplicaCADSetTableTrain`
+  scene builder — a real furnished apartment (104 actors, inspected directly)
+  with real YCB objects, using the `fetch` mobile robot (the only supported
+  option; `ReplicaCADSetTableTrain` initialization explicitly rejects
+  `panda`). Found this scene's active objects are scattered across the whole
+  apartment (rooms 1-2+ meters apart), so navigation — not just reach — is
+  required. A naive point-and-drive controller got physically stuck on a
+  real wall (confirmed via `PhysxCpuSystem.raycast`, not assumed). Built
+  `navigation.py`: an occupancy grid from SAPIEN's own raycast API (no new
+  dependency) plus Dijkstra shortest-path — deliberately not Habitat's
+  bundled `.navmesh` files, which need `habitat-sim` and carry the same
+  unverified-on-Apple-Silicon risk that `mplib` already cost us (D-011).
+  Same qualitative H2/H3 results as the panda/humanoid variants once
+  navigation worked.
+- **Reason:** Established scenes solve calibration pain (footprints,
+  settling) but don't remove the need to actually validate them — this
+  scene's real complexity (multi-room scatter, real walls) was discovered
+  empirically, not assumed away.
+- **Consequences:** "Use an established environment" traded hand-placement
+  calibration work for real path-planning work — a different kind of
+  integration cost, not a free lunch. The occupancy grid's safety margin
+  (0.2m) was tuned empirically after 0.3m (Fetch's actual base radius) sealed
+  every doorway in the discretized grid; this margin is scene-specific, not
+  a general constant. Full detail in `spikes/task_schema_draft/README.md`
+  "ReplicaCAD embodiment."
+
 ## D-016: Task schema confirmed embodiment-agnostic — humanoid variant of TidyUp
 
 - **Date:** 2026-07-29

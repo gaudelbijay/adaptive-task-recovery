@@ -28,8 +28,12 @@ reach/grasp manipulation all check out on non-CUDA dev hardware. One
 platform gap found: `mplib`-dependent canned motion planning doesn't build
 on Apple Silicon macOS (worked around via a `pinocchio`-based IK
 controller). Natural-language task generation isn't a simulator capability
-either way. Isaac Lab hasn't been spiked yet — see D-006/D-009/D-010/D-011 in
-`ai-notes/decisions.md`.
+either way. Navigation is now also checked (2026-07-30, D-017): ManiSkill3
+exposes a real mobile robot (`fetch`) and a real furnished scene
+(`ReplicaCADSetTableTrain`), but reliable navigation needed a path planner
+we built ourselves (`spikes/task_schema_draft/navigation.py`) — a naive
+controller gets stuck on real walls. Isaac Lab hasn't been spiked yet — see
+D-006/D-009/D-010/D-011/D-017 in `ai-notes/decisions.md`.
 
 ## Task schema
 
