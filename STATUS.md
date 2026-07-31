@@ -7,9 +7,12 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 **Phase:** Pre-Phase 0 — research reframing complete; simulator spike underway.
 
-The project now studies feasibility-aware vision-language reinforcement learning
-after unforeseen, irreversible world changes, with a simulated humanoid as the
-target embodiment. The previous failure-monitor/physical-recovery question has
+The project now studies whether a robot can tell when something it was asked
+to do has become impossible — because the world changed in a way that can't
+be undone — and still do whatever remains achievable, without faking success
+by doing something it was never asked to do. Target embodiment is a simulated
+humanoid; full breakdown in [`docs/00-project-overview.md`](docs/00-project-overview.md).
+The previous failure-monitor/physical-recovery question has
 been superseded, but humanoid manipulation and whole-body control remain part of
 the execution platform. Investigation code exists (`spikes/maniskill_humanoid_spike/`,
 not project architecture — see D-006): ManiSkill3 humanoid loading, deterministic

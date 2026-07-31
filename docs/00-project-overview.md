@@ -14,14 +14,35 @@ strategy to maximize valid goal completion without betraying the instruction.
 
 ## Core research question
 
+A robot gets an instruction with more than one goal. Partway through, the
+world changes in a way that can't be undone — something breaks, disappears,
+or a path closes. Can the robot tell which goals are still possible, still do
+whichever of them remain achievable, and never fake success by doing
+something it was never asked to do?
+
 > Can a vision-language reinforcement learning agent, equipped with
 > self-supervised visual representations, learn to identify which
 > language-specified goals remain feasible after unforeseen and irreversible
 > world changes, and adapt its task strategy to maximize goal achievement
 > without violating the original intent?
 
-Spelling in the supplied question has been normalized (`identify`, `unforeseen`,
-`adapt`) without changing its meaning.
+## Build-up order (one capability at a time)
+
+1. **Done already, zero perception or learning.** Hand-written goals, a
+   privileged-state feasibility oracle, and an intent guard
+   (`spikes/task_schema_draft/`, D-013 through D-018).
+2. **Language.** Parse an actual instruction sentence into the goal graph,
+   instead of writing one by hand.
+3. **Vision, simplest version first.** Replace the privileged-state oracle
+   with a feasibility judgment from images, starting with any working
+   pretrained visual model.
+4. **Self-supervised representations.** Swap in a representation learned
+   from unlabeled data.
+5. **RL policy.** Replace the scripted/oracle policies with one that's
+   actually learned.
+6. **Combine and evaluate end-to-end.**
+
+Full phase breakdown: [`11-roadmap-and-milestones.md`](11-roadmap-and-milestones.md).
 
 ## Motivation
 
@@ -80,6 +101,38 @@ world representation + encoded goals --> feasibility estimator     |
                                                            |
                                         environment + irreversible changes
 ```
+
+## Known technical downsides, in plain language
+
+- **Reinforcement learning is data-hungry and unstable.** It typically needs
+  many thousands of trial-and-error attempts to learn anything, has no
+  guarantee it converges to a good policy, and long tasks make credit
+  assignment hard — if the agent fails, it's genuinely difficult to tell
+  whether the bad decision was step 3 or step 30. Reward functions are also
+  easy to get subtly wrong in ways that get gamed rather than solved.
+- **Self-supervised visual representations aren't guaranteed to capture what
+  the task needs.** They're trained with no notion that "feasibility" or
+  "goals" exist — the encoder just learns whatever regularities are easiest
+  to find in raw pixels. Whether it happens to encode "is this object still
+  intact" in a way that's easy to read back out only shows up after
+  training, by probing it directly.
+- **Errors compound across the pipeline.** Vision feeds the feasibility
+  model, which feeds the policy. A slightly-off visual representation
+  produces a noisy feasibility signal, which produces a policy trained on
+  bad labels, and a downstream failure is hard to trace back to the
+  upstream piece that caused it. The roadmap keeps a privileged-state oracle
+  as a stand-in and swaps in each learned piece one at a time (Phase 3–5 in
+  `11-roadmap-and-milestones.md`) specifically to keep failures isolated.
+- **It's resource-hungry.** RL usually needs many parallel simulated
+  episodes running at once, and self-supervised pretraining usually needs a
+  large volume of unlabeled data. The current dev machine has no CUDA GPU
+  (D-009/D-012 in `ai-notes/decisions.md`) — enough for building and testing
+  logic, not for training at the scale either method needs.
+- **Nothing here is provably correct.** All of it is measured statistically
+  on a benchmark, not proven mathematically, and only generalizes as far as
+  it's actually been tested — held-out objects, layouts, paraphrases, and
+  intervention types (Threats to validity,
+  [`01-problem-statement-and-motivation.md`](01-problem-statement-and-motivation.md)).
 
 ## Primary deliverables
 
