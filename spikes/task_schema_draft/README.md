@@ -32,6 +32,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`policy_baselines_replicacad.py`](policy_baselines_replicacad.py) | The same three policies, navigating (not just reaching) to each goal. |
 | [`tidy_up_env_replicacad_humanoid.py`](tidy_up_env_replicacad_humanoid.py) | G1 (fixed-base, no navigation) placed in the same real apartment instead of Fetch — the direct "but this is not a humanoid robot" answer. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1`. |
 | [`policy_baselines_replicacad_humanoid.py`](policy_baselines_replicacad_humanoid.py) | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
+| [`language.py`](language.py) | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -246,11 +247,54 @@ privileged state, never touched. Same result once placement was fixed: 1/2
 goals either way, feasibility-aware wastes 0 steps vs. static's 25, guard
 blocks the substitution at zero recall cost.
 
+## Language layer (2026-07-30)
+
+`language.py`'s `parse_instruction(text, known_objects)` is stage 2 of the
+build-up order in `docs/00-project-overview.md`: turn an instruction
+sentence into a `GoalGraph`, instead of writing one by hand. Controlled
+grammar, not open-ended NLU — covers exactly the two clause forms every
+hand-authored graph in this project already uses:
+
+- **Conjunction:** "put the X and Y on the tray" → one `on_tray` goal per
+  object.
+- **Exclusion:** "do not move Z" / "don't move Z" / "never move Z" /
+  "leave Z alone" → `never_move`; "keep Z upright" → `maintain_orientation`.
+
+Object phrases resolve against a caller-supplied closed vocabulary (the
+objects that actually exist in the scene the instruction will run in), not
+open vocabulary — matching this project's existing closed-world,
+object-centric scope. An unrecognized clause raises `ValueError` rather than
+being silently dropped: silently ignoring a "do not move X" clause would
+itself be exactly the intent violation this project exists to catch.
+
+Verified three ways (`tests/drafts/test_language.py`):
+
+- **Reproduces** all three existing hand-authored graphs (canonical,
+  ReplicaCAD, ReplicaCAD-humanoid) from their own `instruction_text`.
+- **Held-out paraphrases** — sentences never used to write the grammar:
+  different verb ("place" vs "put"), different negation ("never move" /
+  "leave alone" vs "do not move"), no-comma all-"and" phrasing, Oxford
+  comma, reversed clause order.
+- **Held-out composition** — a new instruction recombining objects across
+  scenes that was never written as a `GoalGraph` anywhere in this project.
+
+Wired into `tidy_up_env.py` for real: its `goal_graph` is now
+`parse_instruction(CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS)`, not
+`canonical_example()` directly — confirmed live, not just in tests: the
+bowl-destroyed intervention still correctly marks the parsed
+`place_blue_bowl` goal infeasible while `place_red_mug` stays feasible.
+`canonical_example()` itself is kept as the parser's hand-authored
+reference, not deleted. The other three environments still build their
+graphs by hand; the parser already reproduces their instruction text
+exactly, so switching them over is mechanical, not a further design
+question.
+
 ## What this deliberately doesn't cover yet
 
-- **Language.** `GoalGraph.instruction_text` is a fixed string, not parsed
-  from free text — that's explicitly Person A's territory (visual/language
-  model selection, per STATUS.md), not drafted here.
+- **Ordering/priority and conditional goals.** docs/04 asks language
+  templates to support these; no existing instruction needs them yet, so
+  no grammar was added for them — would be speculative without a driving
+  test case.
 - **Priorities/dependencies as anything other than a schema field.** The
   dataclasses have `priority` and `depends_on` fields per docs/04's
   requirement, but this one example doesn't exercise them (both goals are
@@ -262,9 +306,9 @@ blocks the substitution at zero recall cost.
   rather than re-running a full physical grasp-place sequence (see
   `policy_baselines.py`'s scope note) — real placement precision/collision
   between multiple placed objects isn't tested.
-- **Held-out paraphrases/compositions** docs/04 asks for — there's exactly
-  one instruction here; templating/holdout is meaningless before the schema
-  itself is agreed on.
+- ~~Held-out paraphrases/compositions~~ — filled in for the language layer
+  (see above). Still not exercised for anything downstream of parsing
+  (vision, policy) — those don't exist yet either.
 
 ## How to run it
 

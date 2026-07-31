@@ -16,7 +16,9 @@ reversible and temporary changes. Otherwise the model may learn that every
 detected change implies abandonment":
 
 - `bowl_destroyed` (irreversible): removes blue_bowl mid-episode — the
-  place_bowl goal becomes infeasible; place_mug does not.
+  place_blue_bowl goal becomes infeasible; place_red_mug does not. (Goal ids
+  come from language.py's parser now, not hand-authored — see goal_graph.py's
+  canonical_example() docstring.)
 - `temporary_obstacle` (reversible/matched control): spawns a distractor
   object near the tray, then removes it again a few steps later — a
   detectable world change that never makes any goal infeasible.
@@ -41,7 +43,8 @@ from mani_skill.utils.building.ground import build_ground
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 
-from task_schema_draft.goal_graph import canonical_example
+from task_schema_draft.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
+from task_schema_draft.language import parse_instruction
 from task_schema_draft.oracle_feasibility import ObjectState, WorldState, evaluate_goal_graph
 
 _OBJECT_SPECS = {
@@ -72,7 +75,7 @@ class TidyUpEnv(BaseEnv):
         self.intervention_kind = intervention_kind
         self.onset_step_range = onset_step_range
         self.obstacle_duration_steps = obstacle_duration_steps
-        self.goal_graph = canonical_example()
+        self.goal_graph = parse_instruction(CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS)
         self._objects: dict[str, Any] = {}
         self._exists: dict[str, bool] = {}
         self._onset_step: int | None = None

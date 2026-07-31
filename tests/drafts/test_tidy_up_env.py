@@ -31,10 +31,10 @@ class TestBowlDestroyedIntervention:
             env.reset(seed=0)
             for _ in range(3):
                 _, _, _, _, info = env.step(env.action_space.sample() * 0)
-            assert info["goal_feasibility"]["place_bowl"] is True  # not yet triggered
+            assert info["goal_feasibility"]["place_blue_bowl"] is True  # not yet triggered
             _, _, _, _, info = env.step(env.action_space.sample() * 0)  # step 3: triggers
-            assert info["goal_feasibility"]["place_bowl"] is False
-            assert info["goal_feasibility"]["place_mug"] is True
+            assert info["goal_feasibility"]["place_blue_bowl"] is False
+            assert info["goal_feasibility"]["place_red_mug"] is True
             assert not any(info["constraint_violations"].values())
         finally:
             env.close()
@@ -47,7 +47,7 @@ class TestBowlDestroyedIntervention:
                 env.reset(seed=7)
                 for step in range(30):
                     _, _, _, _, info = env.step(env.action_space.sample() * 0)
-                    if info["goal_feasibility"]["place_bowl"] is False:
+                    if info["goal_feasibility"]["place_blue_bowl"] is False:
                         onset_steps_seen.append(step)
                         break
             finally:

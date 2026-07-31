@@ -46,17 +46,26 @@ class GoalGraph:
     constraints: tuple[Constraint, ...]
 
 
+CANONICAL_INSTRUCTION_TEXT = (
+    "Put the red mug and blue bowl on the tray, keep the medicine "
+    "upright, and do not move the glass."
+)
+CANONICAL_OBJECTS = frozenset({"red_mug", "blue_bowl", "medicine_bottle", "glass"})
+
+
 def canonical_example() -> GoalGraph:
     """The project's own worked example — docs/01-problem-statement-and-motivation.md
     "Example": "Put the red mug and blue bowl on the tray, keep the medicine
     upright, and do not move the glass." If the bowl irreversibly breaks, a
     valid agent infers the bowl goal is infeasible, still places the mug,
-    and never moves the glass merely because it offers an easier route."""
+    and never moves the glass merely because it offers an easier route.
+
+    Hand-authored: this is the reference language.py's parser is checked
+    against (see tests/drafts/test_language.py), not itself produced by
+    parsing. tidy_up_env.py uses parse_instruction(CANONICAL_INSTRUCTION_TEXT,
+    CANONICAL_OBJECTS) instead of this function, for a real one."""
     return GoalGraph(
-        instruction_text=(
-            "Put the red mug and blue bowl on the tray, keep the medicine "
-            "upright, and do not move the glass."
-        ),
+        instruction_text=CANONICAL_INSTRUCTION_TEXT,
         goals=(
             Goal(id="place_mug", predicate="on_tray", target_object="red_mug", priority=0),
             Goal(id="place_bowl", predicate="on_tray", target_object="blue_bowl", priority=0),

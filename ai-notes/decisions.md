@@ -2,6 +2,48 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-019: First language layer — instructions parsed into goal graphs, not hand-written
+
+- **Date:** 2026-07-30
+- **Status:** Accepted (controlled grammar, not open-ended NLU — scoped
+  intentionally, see Consequences)
+- **Decision:** Built `language.py`: `parse_instruction(text, known_objects)`
+  turns an instruction sentence into a `GoalGraph` via a controlled grammar
+  covering the two forms every existing hand-authored graph in this project
+  already uses — conjunction ("put X and Y on the tray") and exclusion
+  ("do not move Z" / "keep Z upright"). Object phrases resolve against a
+  caller-supplied closed vocabulary (the objects that actually exist in that
+  scene), not open vocabulary. An unrecognized clause raises instead of
+  being silently dropped — silently ignoring a "do not move X" clause would
+  itself be exactly the kind of intent violation this project exists to
+  catch. Verified three ways: reproduces all three existing hand-authored
+  graphs (canonical/replicacad/replicacad-humanoid) from their own
+  instruction text; correctly parses held-out paraphrases never used to
+  write the grammar (different verb, negation form, conjunction style,
+  clause order, Oxford comma); correctly parses a held-out composition
+  (objects recombined into a new sentence never written anywhere in this
+  project). Wired into `tidy_up_env.py` for real — its `goal_graph` is now
+  `parse_instruction(...)` output, not `canonical_example()` directly (which
+  remains only as the parser's hand-authored reference/ground truth).
+- **Reason:** Second stage of the build-up order in
+  `docs/00-project-overview.md` — "parse an actual instruction sentence into
+  the goal graph, instead of writing one by hand" — deliberately built and
+  verified before adding vision or learning, so a failure is traceable to
+  one new capability, not several.
+- **Consequences:** Goal/constraint `id` strings are now generated
+  (`place_<object_id>`, `dont_move_<object_id>`, etc.) rather than
+  hand-chosen, which is why `tests/drafts/test_tidy_up_env.py`'s asserted
+  ids changed (`place_red_mug`/`place_blue_bowl`, not `place_mug`/
+  `place_bowl`) — cosmetic, nothing reads these ids besides dict keys and a
+  guard-block message. Only `tidy_up_env.py` was switched over; the other
+  three environments still build their graphs by hand — the parser already
+  reproduces their instruction text exactly (see
+  `tests/drafts/test_language.py`), so switching them over is mechanical,
+  not a further design question. Ordering/priority ("first... then...") and
+  conditional goals are explicitly not implemented — no existing instruction
+  uses them, and building grammar for them without a driving test case
+  would be speculative per D-013's own scoping discipline.
+
 ## D-018: G1 placed in the real ReplicaCAD apartment — a second scene-builder bug found and fixed
 
 - **Date:** 2026-07-30
