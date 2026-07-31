@@ -210,6 +210,11 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         if self.intervention_kind == "chef_can_destroyed":
             self._get_actor("master_chef_can").remove_from_scene()
             self._exists["master_chef_can"] = False
+            # Removal alone doesn't refresh the render scene graph -- every
+            # existing consumer of this env reads privileged state, not
+            # pixels, so this went unnoticed until vision.py needed real
+            # rendered frames to reflect the removal (see vision.py).
+            self.scene.update_render()
         elif self.intervention_kind == "temporary_obstacle":
             from mani_skill.utils.building.actors import build_box
 

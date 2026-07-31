@@ -33,6 +33,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`tidy_up_env_replicacad_humanoid.py`](tidy_up_env_replicacad_humanoid.py) | G1 (fixed-base, no navigation) placed in the same real apartment instead of Fetch — the direct "but this is not a humanoid robot" answer. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1`. |
 | [`policy_baselines_replicacad_humanoid.py`](policy_baselines_replicacad_humanoid.py) | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
 | [`language.py`](language.py) | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
+| [`vision.py`](vision.py) | `visual_object_exists()` — judges object presence from a rendered camera frame using zero-shot CLIP, instead of reading privileged state. Calibrated against `tidy_up_env_replicacad_humanoid.py`. See "Vision layer" below. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -288,6 +289,56 @@ reference, not deleted. The other three environments still build their
 graphs by hand; the parser already reproduces their instruction text
 exactly, so switching them over is mechanical, not a further design
 question.
+
+## Vision layer (2026-07-31)
+
+`vision.py`'s `visual_object_exists(frame, object_id)` is stage 3 of the
+build-up order in `docs/00-project-overview.md`: judge feasibility from a
+rendered image instead of privileged state, starting with any working
+pretrained model — zero-shot CLIP (`open_clip`, ViT-B-32, OpenAI weights),
+no training or fine-tuning.
+
+Getting this to work at all took four real findings, none assumed going in:
+
+- **Whole-frame CLIP similarity is too weak a signal.** A global image/text
+  score for "a photo of a blue bowl" barely moved when the bowl was actually
+  removed (measured delta ~0.01, sometimes the wrong sign, across 20 seeds).
+  The object is a small fraction of a cluttered frame — a known CLIP weak
+  point. A tight crop around the object's known on-screen location (fixed
+  camera → fixed crop, camera calibration, not a live 3D-position read)
+  fixed this.
+- **`tidy_up_env.py`'s objects are plain colored boxes**, not the objects
+  they're named after (`build_box` primitives standing in for "mug" /
+  "bowl"). Zero-shot CLIP correctly can't recognize "a blue bowl" in a
+  picture of a blue cube, because there isn't one — a scene-realism
+  mismatch, not a CLIP failure. Calibration moved to
+  `tidy_up_env_replicacad_humanoid.py` instead, which has real
+  photorealistic YCB-scanned objects.
+- **A real, previously-latent bug:** removing an object in
+  `_trigger_intervention()`'s `chef_can_destroyed` branch never called
+  `self.scene.update_render()` — every existing consumer of this env reads
+  privileged state, not pixels, so a stale render went unnoticed until this
+  was the first code to actually look at a frame after a removal. Fixed by
+  matching the `update_render()` call the `temporary_obstacle` branch
+  already had.
+- **A second real, previously-latent bug, found but not fixed:** G1's
+  hardcoded base pose and camera in `tidy_up_env_replicacad_humanoid.py` are
+  calibrated for exactly one apartment layout. `ReplicaCADSetTableTrain`
+  loads a different room per seed — rendering seed=2 placed G1 next to a
+  couch and a bicycle, nowhere near the cans. Every prior test of that env
+  (D-018) only ever used seed=0, so this was never caught until vision work
+  rendered and looked at other seeds. `tests/drafts/test_vision.py` is
+  deliberately seed=0-only because of this — see D-020 in
+  `ai-notes/decisions.md`.
+
+Generic object descriptions also measurably underperformed specific/iconic
+ones — "a photo of a green can" gave a much weaker signal for the potted
+meat can than "a photo of a Spam can". Both objects' final calibration:
+a hand-picked crop plus prompt in `_OBJECT_VISUAL_CONFIG`, matching oracle
+feasibility on all 4 cases tested (both objects, before and after the
+intervention) at seed=0. **Not a general accuracy claim** — one scene
+layout, four data points, an object detector for exactly two calibrated
+objects, not a general one (raises rather than guessing for anything else).
 
 ## What this deliberately doesn't cover yet
 

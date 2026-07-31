@@ -2,6 +2,65 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-020: First vision layer — zero-shot CLIP, and two real bugs it surfaced
+
+- **Date:** 2026-07-31
+- **Status:** Accepted (single-scene proof of concept, not a general result —
+  see Consequences)
+- **Decision:** Built `vision.py`: `visual_object_exists(frame, object_id)`
+  judges object presence from a rendered camera frame using zero-shot CLIP
+  (`open_clip`, ViT-B-32, OpenAI weights — no training), instead of reading
+  `WorldState.exists` from the simulator. New dependency, installed clean on
+  Apple Silicon (unlike `mplib`/`habitat-sim`); `requirements-maniskill.lock.txt`
+  regenerated. Four things had to be found empirically before this worked at
+  all, none of them assumed going in:
+  1. Whole-frame CLIP similarity barely moves when an object is actually
+     removed (measured delta ~0.01, sometimes the wrong sign, across 20
+     seeds) — the object is too small a fraction of a cluttered frame. A
+     tight crop around the object's known on-screen location (fixed camera,
+     fixed crop — camera calibration, not a live 3D-position read) fixed this.
+  2. `tidy_up_env.py`'s "objects" are plain colored boxes (`build_box`
+     primitives), not the real objects they're named after — zero-shot CLIP
+     correctly can't recognize "a blue bowl" in a picture of a blue cube,
+     because there isn't one there. Switched calibration to
+     `tidy_up_env_replicacad_humanoid.py` instead, which has real
+     photorealistic YCB-scanned objects (D-017/D-018).
+  3. **A real, previously-latent bug:** `_trigger_intervention()`'s
+     `chef_can_destroyed` branch removed the object from physics but never
+     called `self.scene.update_render()` — every existing consumer of this
+     env reads privileged state, not pixels, so a stale render went
+     unnoticed until this was the first code to actually look at a frame
+     after a removal. Fixed by adding the same `update_render()` call the
+     `temporary_obstacle` branch already had.
+  4. **A second real, previously-latent bug, found but not fixed:** G1's
+     hardcoded base pose and camera in `tidy_up_env_replicacad_humanoid.py`
+     are calibrated for exactly one apartment layout.
+     `ReplicaCADSetTableTrain` loads a different room per seed — rendering
+     seed=2 placed G1 next to a couch and a bicycle, nowhere near the cans.
+     Every prior test of that env (D-018) only ever used seed=0, so this was
+     never caught until vision work rendered and looked at other seeds.
+     `tests/drafts/test_vision.py` is deliberately seed=0-only because of
+     this. Generic prompts ("a photo of a green can") also measurably
+     underperformed specific/iconic ones ("a photo of a Spam can") — not a
+     bug, but a real, documented CLIP behavior worth knowing.
+  Final result at seed=0: 4/4 correct (both objects, before and after the
+  intervention) — matches oracle feasibility on every case tested.
+- **Reason:** Stage 3 of the build-up order in
+  `docs/00-project-overview.md` — "vision, simplest version first... any
+  working pretrained visual model" — the actual point of which is comparing
+  a real (imperfect) vision signal against the privileged-state oracle, per
+  docs/01's "Oracle-feasibility performance defines the headroom."
+- **Consequences:** This is 4 data points from one scene layout, not a
+  statistically meaningful accuracy claim — do not cite this as "CLIP
+  achieves X% feasibility accuracy" in any general sense. `_OBJECT_VISUAL_CONFIG`
+  is hand-calibrated per object (crop + prompt) for this exact camera pose;
+  it is not a general object detector and raises rather than guessing for
+  any object without a calibrated entry. Finding #4 (seed-generalization gap
+  in G1 placement) is a real correction to D-018's implicit scope — that
+  work was only ever validated at seed=0, not stated clearly enough there.
+  Fixing scene-layout generalization is a separate, later problem, not
+  addressed here.
+
 ## D-019: First language layer — instructions parsed into goal graphs, not hand-written
 
 - **Date:** 2026-07-30
@@ -70,6 +129,13 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   non-obvious constraint: any robot besides `fetch` needs this same
   fetch-impersonation workaround, not a simple exception handler. Worth
   knowing before anyone else hits the same z≈1000 floating-object surprise.
+  **Correction (D-020, 2026-07-31):** this decision's "same H2/H3 results"
+  claim was only ever checked at seed=0. G1's hardcoded base pose and camera
+  are calibrated for that one apartment layout specifically —
+  `ReplicaCADSceneBuilder` loads a different room per seed, and other seeds
+  place G1 nowhere near the relevant objects. Not caught until D-020's
+  vision work rendered and looked at other seeds. Scene-layout
+  generalization remains unfixed and out of scope.
   Full detail in `spikes/task_schema_draft/README.md` "G1 in the real
   apartment."
 
