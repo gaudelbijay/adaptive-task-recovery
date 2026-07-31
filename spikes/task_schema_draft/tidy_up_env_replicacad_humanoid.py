@@ -26,6 +26,30 @@ destroyed by the intervention. The bowl — the Fetch variant's destroyed
 object — is too far for this fixed-base robot to ever interact with, so
 destroying it wouldn't demonstrate anything (it was already permanently
 unreachable, not newly infeasible).
+
+Scene layout is pinned, not sampled -- a real bug found by D-020's vision
+work, not assumed. `ReplicaCADRearrangeSceneBuilder` samples the apartment
+layout (`build_config_idxs`), an init variant (`init_config_idxs`), AND
+(independently of both, via further `torch.randint` calls inside
+`initialize()`) which subset of YCB objects are actually placed versus
+hidden at z=-10000 -- all driven by torch's *global* RNG state, not this
+env's own `_episode_rng`. Every existing test of this env (D-018) only ever
+called `reset(seed=0)`, so this was invisible: `env.reset(seed=2)` loads a
+different apartment entirely (confirmed by rendering it -- G1 ends up next
+to a couch and a bicycle), and even pinning `build_config_idxs` alone still
+leaves the "which objects are hidden" draw seed-dependent (confirmed: some
+seeds hide `master_chef_can` or `potted_meat_can` outright, at z=-10000,
+with build_config_idxs held fixed). G1's base pose, camera, and vision.py's
+crop regions are all calibrated for one specific resulting layout -- the one
+`reset(seed=0)` happened to produce before this fix existed. Fixed by
+pinning `build_config_idxs`/`init_config_idxs` AND explicitly reseeding
+torch's global RNG (`torch.manual_seed(_SCENE_TORCH_SEED)`) immediately
+before both scene constructions call into the scene builder, so the
+resulting layout is that same one regardless of the `seed` argument to
+`reset()`. This env's own stochastic element (intervention onset step) is
+unaffected -- it's drawn from `self._episode_rng` (numpy, seeded from the
+`reset(seed=...)` argument through ManiSkill's own machinery), a separate
+stream from torch's global RNG.
 """
 
 from __future__ import annotations
@@ -57,6 +81,17 @@ _LAST_KNOWN_POSITIONS = {
     "potted_meat_can": np.array([0.29, 0.09, 0.68]),
     "master_chef_can": np.array([0.81, 0.37, 0.71]),
 }
+
+# The specific apartment layout / object arrangement G1's base pose, camera,
+# and vision.py's crop regions are all calibrated against -- see module
+# docstring "Scene layout is pinned, not sampled." Found by recording what
+# reset(seed=0) sampled before this fix existed (build_config_idx=59), then
+# searching torch seed values (0-14) at that fixed build/init config for one
+# that keeps both target objects actually placed (not hidden at z=-10000);
+# seed 0 reproduces the exact original layout.
+_SCENE_BUILD_CONFIG_IDX = 59
+_SCENE_INIT_CONFIG_IDX = 0
+_SCENE_TORCH_SEED = 0
 
 # Base position chosen for having real open floor clearance nearby (checked
 # via raycast: only 2 of 12 directional rays hit anything within 0.5m, the
@@ -139,6 +174,11 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         self._obstacle = None
         self._obstacle_remove_step: int | None = None
         self._initial_state: WorldState | None = None
+        # Force the calibrated layout regardless of caller-supplied values --
+        # G1's base pose, camera, and vision.py's crops are meaningless on
+        # any other layout (see module docstring "Scene layout is pinned").
+        kwargs["build_config_idxs"] = [_SCENE_BUILD_CONFIG_IDX]
+        kwargs["init_config_idxs"] = [_SCENE_INIT_CONFIG_IDX]
         super().__init__(
             *args, robot_uids="unitree_g1_simplified_upper_body_with_head_camera",
             scene_builder_cls="ReplicaCADSetTableTrain", **kwargs,
@@ -146,6 +186,11 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
 
     def _get_actor(self, alias: str):
         return self.scene.actors[_OBJECT_ALIASES[alias]]
+
+    def _load_scene(self, options: dict):
+        # Pins which apartment layout gets sampled -- see module docstring.
+        torch.manual_seed(_SCENE_TORCH_SEED)
+        super()._load_scene(options)
 
     def _initialize_episode(self, env_idx: torch.Tensor, options: dict):
         if self.scene.gpu_sim_enabled:
@@ -163,6 +208,12 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         # positions after using that approach, not assumed). The actual fix:
         # temporarily present as "fetch" so the builder completes its own
         # full, correct placement logic, then set G1's real pose afterward.
+        #
+        # Also pins which objects end up placed vs. hidden at z=-10000 --
+        # a second, separate torch.randint draw inside initialize() that
+        # build_config_idxs/init_config_idxs alone don't control (see module
+        # docstring "Scene layout is pinned").
+        torch.manual_seed(_SCENE_TORCH_SEED)
         real_robot_uids = self.robot_uids
         self.robot_uids = "fetch"
         added_rest_keyframe = "rest" not in self.agent.keyframes

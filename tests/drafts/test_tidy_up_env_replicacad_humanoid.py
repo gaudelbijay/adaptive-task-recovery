@@ -54,6 +54,29 @@ class TestTidyUpReplicaCADHumanoidEnv:
         finally:
             env.close()
 
+    def test_scene_layout_reproducible_across_seeds(self):
+        """Regression test for the bug D-020's vision work found: object
+        positions used to depend on the `seed` passed to reset() (via
+        torch's global RNG, not this env's own _episode_rng) -- seed=2
+        loaded a different apartment entirely, and some seeds hid target
+        objects at z=-10000 outright, even with build_config_idxs pinned
+        alone. G1's base pose, camera, and vision.py's crops are only valid
+        for one specific layout, so this must hold regardless of seed."""
+        positions_by_seed = {}
+        for seed in (0, 2, 15, 42):
+            env = _make_env(intervention_kind="none")
+            try:
+                env.reset(seed=seed)
+                positions_by_seed[seed] = {
+                    alias: tuple(env.unwrapped._get_actor(alias).pose.sp.p.tolist())
+                    for alias in ("potted_meat_can", "master_chef_can", "bowl", "cracker_box")
+                }
+            finally:
+                env.close()
+        reference = positions_by_seed[0]
+        for seed, positions in positions_by_seed.items():
+            assert positions == reference, f"seed={seed} layout differs from seed=0: {positions}"
+
     def test_no_false_violations_from_settling(self):
         env = _make_env(intervention_kind="none")
         try:

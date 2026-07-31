@@ -45,6 +45,26 @@ class TestTidyUpReplicaCADEnv:
         finally:
             env.close()
 
+    def test_scene_layout_reproducible_across_seeds(self):
+        """Same bug/fix as tidy_up_env_replicacad_humanoid.py's test of the
+        same name -- this env shares the same scene_builder_cls, and was
+        confirmed to have the same bug: seed=2 hid both potted_meat_can and
+        bowl at z=-10000, this env's own two goal objects."""
+        positions_by_seed = {}
+        for seed in (0, 2, 7, 42):
+            env = _make_env(intervention_kind="none")
+            try:
+                env.reset(seed=seed)
+                positions_by_seed[seed] = {
+                    alias: tuple(env.unwrapped._get_actor(alias).pose.sp.p.tolist())
+                    for alias in ("potted_meat_can", "bowl", "master_chef_can", "cracker_box")
+                }
+            finally:
+                env.close()
+        reference = positions_by_seed[0]
+        for seed, positions in positions_by_seed.items():
+            assert positions == reference, f"seed={seed} layout differs from seed=0: {positions}"
+
 
 class TestNavigation:
     def test_path_planner_routes_around_the_real_wall_that_blocked_naive_control(self):

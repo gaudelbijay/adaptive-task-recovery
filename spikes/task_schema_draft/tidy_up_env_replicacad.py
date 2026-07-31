@@ -22,6 +22,21 @@ target, then drive forward) using Fetch's `base` sub-controller
 (`PDBaseForwardVelControllerConfig`: action = [forward_vel, turn_vel]).
 Placement still uses the teleport-on-success abstraction, same reason as
 the other two variants.
+
+Scene layout is pinned, not sampled -- same fix as
+tidy_up_env_replicacad_humanoid.py, same underlying cause, found while
+fixing that env: `ReplicaCADRearrangeSceneBuilder` samples the apartment
+layout AND (independently, via further `torch.randint` draws inside
+`initialize()`) which subset of YCB objects are actually placed vs. hidden
+at z=-10000, both from torch's *global* RNG, not this env's own
+`_episode_rng`. Confirmed broken here too: `env.reset(seed=2)` hides *both*
+`potted_meat_can` and `bowl` -- this env's own two goal objects would
+silently not exist. Every existing test of this env only ever used seed=0.
+Fixed the same way: pin `build_config_idxs`/`init_config_idxs` and
+`torch.manual_seed(_SCENE_TORCH_SEED)` right before both scene-building
+calls, decoupled from the `seed` argument to `reset()` (which still
+controls this env's own intervention-onset randomization via
+`self._episode_rng`, a separate stream).
 """
 
 from __future__ import annotations
@@ -80,6 +95,13 @@ def replicacad_example() -> GoalGraph:
 _TRAY_POSITION = np.array([-1.0, 0.6, 0.7])
 _TRAY_HALF_SIZES = (0.3, 0.3, 0.15)
 
+# Same layout tidy_up_env_replicacad_humanoid.py pins, and for the same
+# reason -- see module docstring "Scene layout is pinned." Both envs use the
+# same scene_builder_cls, so this is the identical apartment.
+_SCENE_BUILD_CONFIG_IDX = 59
+_SCENE_INIT_CONFIG_IDX = 0
+_SCENE_TORCH_SEED = 0
+
 
 class TidyUpReplicaCADEnv(SceneManipulationEnv):
     """Same interventions as the other two TidyUp variants, layered on top
@@ -106,6 +128,10 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
         self._obstacle = None
         self._obstacle_remove_step: int | None = None
         self._initial_state: WorldState | None = None
+        # Force the calibrated layout regardless of caller-supplied values --
+        # see module docstring "Scene layout is pinned."
+        kwargs["build_config_idxs"] = [_SCENE_BUILD_CONFIG_IDX]
+        kwargs["init_config_idxs"] = [_SCENE_INIT_CONFIG_IDX]
         super().__init__(
             *args, robot_uids="fetch", scene_builder_cls="ReplicaCADSetTableTrain", **kwargs
         )
@@ -113,12 +139,20 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
     def _get_actor(self, alias: str):
         return self.scene.actors[_OBJECT_ALIASES[alias]]
 
+    def _load_scene(self, options: dict):
+        # Pins which apartment layout gets sampled -- see module docstring.
+        torch.manual_seed(_SCENE_TORCH_SEED)
+        super()._load_scene(options)
+
     def _initialize_episode(self, env_idx: torch.Tensor, options: dict):
         if self.scene.gpu_sim_enabled:
             raise RuntimeError(
                 "TidyUpReplicaCADEnv requires CPU sim — object add/remove is "
                 "unsupported under GPU-batched sim. Pass sim_backend='physx_cpu'."
             )
+        # Also pins which objects end up placed vs. hidden at z=-10000 -- see
+        # module docstring.
+        torch.manual_seed(_SCENE_TORCH_SEED)
         super()._initialize_episode(env_idx, options)
 
         seed = int(self._episode_rng.randint(0, 2**31 - 1))

@@ -340,6 +340,35 @@ intervention) at seed=0. **Not a general accuracy claim** — one scene
 layout, four data points, an object detector for exactly two calibrated
 objects, not a general one (raises rather than guessing for anything else).
 
+## Scene-layout generalization fix (2026-07-31)
+
+D-020's finding #4 (G1 placement only ever validated at seed=0) is fixed —
+see D-021 in `ai-notes/decisions.md`. Root cause:
+`ReplicaCADRearrangeSceneBuilder` samples both the apartment layout and
+which YCB objects are actually placed (vs. hidden at z=-10000) from torch's
+*global* RNG, independent of this project's own per-episode
+`_episode_rng`. Confirmed broken in **both** real-scene envs, not just the
+humanoid one — `tidy_up_env_replicacad.py`'s `env.reset(seed=2)` hid both
+of its own goal objects outright. Fixed in both files by pinning
+`build_config_idxs`/`init_config_idxs` to the config `reset(seed=0)`
+happened to sample originally, and reseeding torch's global RNG
+(`torch.manual_seed(0)`) immediately before both scene-construction calls.
+`test_scene_layout_reproducible_across_seeds` (added to both envs' test
+files) confirms all four target objects now land at byte-identical
+positions across seeds {0, 2, 7/15, 42}.
+
+**A separate, deeper issue turned up while verifying this and is not
+resolved:** rendered frames for `tidy_up_env_replicacad_humanoid.py` came
+out measurably darker on the second and third `gym.make()` of the *exact
+same* config (`seed=0`, nothing changed) within one Python process, with
+object positions still confirmed identical — this is unrelated to seed,
+looks like renderer/scene-graph state not fully releasing between
+`env.close()` and the next construction, and wasn't chased to a root cause
+this round. The actual pytest suite runs green regardless (each test file
+only builds a small, fixed number of renderable instances), but a batch
+script that constructs many such envs in a loop should not currently be
+trusted for `vision.py` results without checking this first.
+
 ## What this deliberately doesn't cover yet
 
 - **Ordering/priority and conditional goals.** docs/04 asks language

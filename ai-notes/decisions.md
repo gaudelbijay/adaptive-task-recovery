@@ -2,6 +2,54 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-021: Fixed the scene-layout generalization gap D-020 found — and found a deeper, unresolved one
+
+- **Date:** 2026-07-31
+- **Status:** Accepted (the object-placement fix); the rendering finding
+  below is explicitly *not* resolved — see Consequences
+- **Decision:** Direct follow-up to D-020's finding #4. Root cause:
+  `ReplicaCADRearrangeSceneBuilder` draws from torch's *global* RNG at two
+  independent points — once for `sample_build_config_idxs()` (which
+  apartment) and again inside `initialize()` for which YCB objects are
+  actually placed versus hidden at z=-10000 — neither tied to this env's own
+  `_episode_rng`. Confirmed both `tidy_up_env_replicacad_humanoid.py` and
+  `tidy_up_env_replicacad.py` (same scene_builder_cls) were affected;
+  `env.reset(seed=2)` on the Fetch variant hid *both* of that env's goal
+  objects outright. Fixed in both files: force
+  `build_config_idxs=[59]`/`init_config_idxs=[0]` (the config `reset(seed=0)`
+  happened to sample before this fix existed) and call
+  `torch.manual_seed(0)` immediately before both scene-construction calls
+  (`_load_scene`, `_initialize_episode`), decoupling scene layout entirely
+  from the `seed` argument. Verified with a new regression test in each
+  env's test file (`test_scene_layout_reproducible_across_seeds`): all four
+  target objects now land at byte-identical positions across seeds
+  {0, 2, 7/15, 42}.
+  **Separate finding, not resolved:** while verifying this fix against
+  `vision.py`, rendered frames sometimes came out visibly darker/differently
+  exposed than the known-good look — but this turned out to be unrelated to
+  `seed` at all. Creating the *same* env config (`seed=0`, every field
+  identical) repeatedly in one Python process gave a correctly-lit render on
+  the first instantiation and a measurably darker one (mean pixel value 114
+  vs 39) on the second and third, even though the underlying object
+  positions were confirmed identical. This looks like renderer/scene-graph
+  state not being fully released between `env.close()` and the next
+  `gym.make()` for this env+render config, not a scene-layout issue.
+  `tests/drafts/test_vision.py` was left scoped to a single seed=0 instance
+  (unchanged) specifically because this makes multi-instance rendering
+  comparisons unreliable — the actual pytest suite runs green regardless
+  (74/74), but a hand-run exploration script that builds many such envs
+  in a loop is not a fair test of this until the render-leakage question is
+  actually understood, not guessed at.
+- **Reason:** D-020 explicitly flagged this as unfixed; fixing it removes a
+  real correctness gap in both real-scene environments, not just the one
+  under vision-layer development.
+- **Consequences:** Object placement and reachability are now genuinely
+  seed-independent in both ReplicaCAD envs — this closes D-018's correction
+  note. The rendering/instantiation-order finding is new, real, and
+  unresolved; do not assume `vision.py`'s calibration holds if this env is
+  instantiated with `render_mode` set many times in one process (e.g. a
+  batch evaluation loop) without further investigation first.
+
 ## D-020: First vision layer — zero-shot CLIP, and two real bugs it surfaced
 
 - **Date:** 2026-07-31
@@ -134,8 +182,11 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   are calibrated for that one apartment layout specifically —
   `ReplicaCADSceneBuilder` loads a different room per seed, and other seeds
   place G1 nowhere near the relevant objects. Not caught until D-020's
-  vision work rendered and looked at other seeds. Scene-layout
-  generalization remains unfixed and out of scope.
+  vision work rendered and looked at other seeds.
+  **Fixed in D-021 (2026-07-31):** scene layout is now pinned regardless of
+  seed; object placement and G1's reachability are confirmed identical
+  across seeds by a regression test. D-020's separate rendering-state
+  finding (see D-021) is unrelated to this and still open.
   Full detail in `spikes/task_schema_draft/README.md` "G1 in the real
   apartment."
 
