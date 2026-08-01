@@ -2,6 +2,49 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-022: Render-producing-reset desync — investigated hard, not fixed, guarded instead
+
+- **Date:** 2026-08-01
+- **Status:** Accepted as a documented, guarded, unresolved issue — not
+  claiming this is fixed
+- **Decision:** Followed D-021's rendering finding to an actual root-cause
+  attempt. Confirmed properties, each tested directly rather than assumed:
+  unrelated to seed (identical `seed=0` config, repeated); reproduces with
+  the *same* env instance across repeated `reset()` calls, not just fresh
+  `gym.make()` instances; reproduces with `options={"reconfigure": True}`
+  forced on every reset; unaffected by `sapien.render.clear_cache()`;
+  `ambient_light` and light-entity count identical across instantiations
+  (ruled out a lighting-value explanation); simple brightness/contrast
+  normalization of the crop does not fix `vision.py`'s resulting
+  misclassification; reproduces on **both** `tidy_up_env_replicacad.py` and
+  `tidy_up_env_replicacad_humanoid.py` (rules out anything specific to
+  either env's own code, since they're otherwise quite different). Visually
+  confirmed the failure mode is not just "darker" — later renders sometimes
+  show entirely different furniture geometry while privileged object
+  positions stay correct, i.e. the rendered scene graph desyncs from the
+  physics scene. This is consistent with a SAPIEN/ManiSkill CPU-renderer
+  resource leak between env teardown and reconstruction, not anything in
+  this project's own code — but that's an informed guess, not a confirmed
+  root cause. Did not patch SAPIEN/ManiSkill or file an upstream issue this
+  round. Instead: both env files now count render-producing resets
+  (`_render_producing_reset_count`, module-level, per env class) and
+  `warnings.warn()` past the second one in a process, so a silently-wrong
+  render becomes a loud warning instead of a trusted one.
+- **Reason:** After D-021's fix, this was the one remaining thread from the
+  "fix all these things" ask. A real attempt was made before concluding it
+  isn't fixable at the application level in reasonable scope — a
+  best-effort empirical narrowing, then an honest stop, is better than
+  either silently shipping wrong renders or claiming a fix that isn't real.
+- **Consequences:** `vision.py` results are only trustworthy for the first
+  one or two render-producing resets of these envs in a process — verified
+  by inspecting saved frames directly (`tests/drafts/test_vision.py`'s two
+  cases both checked this way, see that file's docstring), not merely
+  assumed safe. A batch script or notebook that constructs many such env
+  instances in a loop and renders each one will hit this and should not
+  trust results past the warning without visually spot-checking frames.
+  Revisit if this ever blocks real work — likely means checking ManiSkill3
+  release notes/issues for this specific symptom, or filing one.
+
 ## D-021: Fixed the scene-layout generalization gap D-020 found — and found a deeper, unresolved one
 
 - **Date:** 2026-07-31
@@ -34,12 +77,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   positions were confirmed identical. This looks like renderer/scene-graph
   state not being fully released between `env.close()` and the next
   `gym.make()` for this env+render config, not a scene-layout issue.
-  `tests/drafts/test_vision.py` was left scoped to a single seed=0 instance
-  (unchanged) specifically because this makes multi-instance rendering
-  comparisons unreliable — the actual pytest suite runs green regardless
-  (74/74), but a hand-run exploration script that builds many such envs
-  in a loop is not a fair test of this until the render-leakage question is
-  actually understood, not guessed at.
+  **Follow-up (D-022, 2026-08-01):** investigated this properly rather than
+  leaving it as a guess — root cause not found, but narrowed a lot and now
+  guarded with a runtime warning. See D-022.
 - **Reason:** D-020 explicitly flagged this as unfixed; fixing it removes a
   real correctness gap in both real-scene environments, not just the one
   under vision-layer development.

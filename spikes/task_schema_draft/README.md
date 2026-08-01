@@ -357,17 +357,27 @@ happened to sample originally, and reseeding torch's global RNG
 files) confirms all four target objects now land at byte-identical
 positions across seeds {0, 2, 7/15, 42}.
 
-**A separate, deeper issue turned up while verifying this and is not
-resolved:** rendered frames for `tidy_up_env_replicacad_humanoid.py` came
-out measurably darker on the second and third `gym.make()` of the *exact
-same* config (`seed=0`, nothing changed) within one Python process, with
-object positions still confirmed identical — this is unrelated to seed,
-looks like renderer/scene-graph state not fully releasing between
-`env.close()` and the next construction, and wasn't chased to a root cause
-this round. The actual pytest suite runs green regardless (each test file
-only builds a small, fixed number of renderable instances), but a batch
-script that constructs many such envs in a loop should not currently be
-trusted for `vision.py` results without checking this first.
+**A separate, deeper issue turned up while verifying this — investigated
+properly, not fixed** (D-022 in `ai-notes/decisions.md`). Rendered frames
+for both real-scene envs can desync from the actual scene (object positions
+stay correct; the image doesn't — sometimes showing entirely different
+furniture) after roughly the second render-producing reset within one
+Python process. Ruled out, each tested directly rather than assumed: seed
+(identical `seed=0` config, repeated, still degrades); reconfigure timing
+(forcing `options={"reconfigure": True}` on every reset doesn't help);
+`sapien.render.clear_cache()`; lighting values (`ambient_light` and
+light-entity count are identical across instantiations). Reproduces on
+**both** envs, ruling out anything specific to either one's own code.
+Consistent with a SAPIEN/ManiSkill CPU-renderer resource leak between
+`env.close()` and the next scene construction — an informed guess, not a
+confirmed root cause; not something fixable at this project's level without
+patching SAPIEN/ManiSkill or filing an upstream issue, neither attempted
+this round. Both envs now count render-producing resets and warn past the
+point actually verified safe (`_render_producing_reset_count` in each
+file), converting a silent wrong answer into a loud one.
+`tests/drafts/test_vision.py` keeps exactly two render-producing resets and
+both were visually re-verified against saved frames directly, not just
+trusted from the CLIP score.
 
 ## What this deliberately doesn't cover yet
 

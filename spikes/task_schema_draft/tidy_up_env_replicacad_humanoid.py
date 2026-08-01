@@ -54,6 +54,7 @@ stream from torch's global RNG.
 
 from __future__ import annotations
 
+import warnings
 from typing import Literal
 
 import numpy as np
@@ -92,6 +93,25 @@ _LAST_KNOWN_POSITIONS = {
 _SCENE_BUILD_CONFIG_IDX = 59
 _SCENE_INIT_CONFIG_IDX = 0
 _SCENE_TORCH_SEED = 0
+
+# Guard for a real, unresolved rendering bug (D-022): the *rendered* scene
+# graph (not privileged state -- object positions stay correct, verified by
+# test_scene_layout_reproducible_across_seeds) desyncs from the actual
+# built scene after roughly the second render-producing reset/instantiation
+# of this env within one process -- confirmed process-wide (also reproduces
+# on tidy_up_env_replicacad.py, a different env class), confirmed
+# independent of seed, reconfigure forcing, and sapien.render.clear_cache().
+# Looks like a SAPIEN/ManiSkill CPU-renderer state leak, not anything in
+# this project's code, and wasn't chased further than that. This counts
+# render-producing resets in this process and warns past the point that's
+# actually been empirically verified safe, so a silently-wrong render
+# becomes a loud warning instead -- see vision.py and README "Vision layer."
+_render_producing_reset_count = 0
+# Conservative: fresh-instantiation-each-time testing showed problems as
+# early as the *second* render-producing reset in a process (same-instance
+# reuse tolerated a bit more) -- warn from the second one onward rather
+# than assume the more generous case.
+_RENDER_SAFE_LIMIT = 1
 
 # Base position chosen for having real open floor clearance nearby (checked
 # via raycast: only 2 of 12 directional rays hit anything within 0.5m, the
@@ -198,6 +218,25 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
                 "TidyUpReplicaCADHumanoidEnv requires CPU sim — object "
                 "add/remove is unsupported under GPU-batched sim."
             )
+        # Bug guard (D-022): counts render-producing resets, not just
+        # reconfigures -- the desync reproduces even across repeated
+        # reset() calls on one already-built instance, which never re-runs
+        # _load_scene (reconfiguration_freq defaults to 0). See the
+        # constant's own comment above for what this actually guards.
+        if self.render_mode is not None:
+            global _render_producing_reset_count
+            _render_producing_reset_count += 1
+            if _render_producing_reset_count > _RENDER_SAFE_LIMIT:
+                warnings.warn(
+                    f"This is render-producing reset #{_render_producing_reset_count} of "
+                    "TidyUpReplicaCADHumanoidEnv in this process. Rendered frames past "
+                    "roughly the 2nd such reset have been observed to desync from the "
+                    "actual scene (object positions stay correct; the image doesn't) -- "
+                    "an unresolved SAPIEN/ManiSkill rendering bug, not fixed here. Do not "
+                    "trust vision.py results from this env instance without visually "
+                    "verifying the frame first. See D-022 in ai-notes/decisions.md.",
+                    stacklevel=2,
+                )
         # ReplicaCADRearrangeSceneBuilder.initialize() does real object
         # placement in TWO passes: objects go to a temporary pose+1000m-up
         # position first, THEN (after teleporting the robot, which is where

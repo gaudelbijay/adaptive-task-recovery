@@ -6,17 +6,26 @@ checks visual_object_exists() against the same privileged _exists state the
 oracle uses -- privileged state is the label here, not the input, which is
 exactly the comparison docs/01's "Success criteria" calls "headroom."
 
-Seed=0 only, deliberately: rendering real frames for this test is what
-surfaced a real, previously-unknown bug in tidy_up_env_replicacad_humanoid.py
--- G1's hardcoded base pose and camera are calibrated against seed=0's
-apartment layout specifically. `ReplicaCADSetTableTrain` loads a genuinely
-different room per seed (confirmed by rendering seed=2: G1 ends up next to
-a couch and a bicycle, nowhere near the cans), so every existing test for
-that env (D-018, all seed=0) was accidentally validating one scene layout,
-not the general case. That's a real finding from this stage, not a
-shortcut -- see D-020 in ai-notes/decisions.md. Fixing the general case is
-a separate, later problem; this test scopes itself to the one layout
-that's actually known to place G1 sensibly.
+Two seed-related things this file used to work around, status as of D-021/
+D-022:
+
+- **Scene-layout-depends-on-seed (D-020's finding #4): fixed.** Used to be
+  seed=0-only because other seeds loaded a different apartment entirely.
+  Now pinned regardless of seed (D-021) -- confirmed via
+  `test_scene_layout_reproducible_across_seeds` in
+  test_tidy_up_env_replicacad_humanoid.py.
+- **Render-producing-reset desync (D-022): NOT fixed, still why this file
+  stays conservative.** Independently of seed, rendered frames for this env
+  have been observed to desync from the actual scene after roughly the
+  second render-producing reset within one process (object positions stay
+  correct; the image doesn't). Root cause not found -- reproduces
+  regardless of seed, of forcing `reconfigure=True`, and of
+  `sapien.render.clear_cache()`; looks like a SAPIEN/ManiSkill CPU-renderer
+  state leak. The env now warns past that point
+  (`tidy_up_env_replicacad_humanoid.py`'s `_render_producing_reset_count`
+  guard). This file keeps exactly two render-producing resets total (one
+  per test below) and both have been visually spot-checked against saved
+  frames, not just trusted from the CLIP score alone.
 
 Slow: each case renders a frame and runs a real CLIP forward pass on CPU
 (no CUDA on this dev machine).

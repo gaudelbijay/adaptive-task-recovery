@@ -37,10 +37,22 @@ Fixed the same way: pin `build_config_idxs`/`init_config_idxs` and
 calls, decoupled from the `seed` argument to `reset()` (which still
 controls this env's own intervention-onset randomization via
 `self._episode_rng`, a separate stream).
+
+A second, unresolved bug (D-022), found while verifying the fix above:
+rendered frames (not privileged state -- object positions stay correct)
+desync from the actual scene after roughly the second render-producing
+reset of this env within one process. Confirmed here too, not just the
+humanoid variant -- rules out anything specific to this project's own code,
+since both envs are otherwise quite different. Reproduces regardless of
+seed, of forcing `reconfigure=True`, and of `sapien.render.clear_cache()`;
+not chased to a root cause (looks like a SAPIEN/ManiSkill CPU-renderer
+state leak). `_initialize_episode` below counts render-producing resets and
+warns past the point that's actually been verified safe.
 """
 
 from __future__ import annotations
 
+import warnings
 from typing import Literal
 
 import numpy as np
@@ -102,6 +114,10 @@ _SCENE_BUILD_CONFIG_IDX = 59
 _SCENE_INIT_CONFIG_IDX = 0
 _SCENE_TORCH_SEED = 0
 
+# Guard for the unresolved rendering bug (D-022) -- see module docstring.
+_render_producing_reset_count = 0
+_RENDER_SAFE_LIMIT = 1
+
 
 class TidyUpReplicaCADEnv(SceneManipulationEnv):
     """Same interventions as the other two TidyUp variants, layered on top
@@ -154,6 +170,24 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
         # module docstring.
         torch.manual_seed(_SCENE_TORCH_SEED)
         super()._initialize_episode(env_idx, options)
+
+        # Bug guard (D-022) -- see module docstring. Counts render-producing
+        # resets, not just reconfigures, since the desync reproduces even
+        # across repeated reset() calls on one already-built instance.
+        if self.render_mode is not None:
+            global _render_producing_reset_count
+            _render_producing_reset_count += 1
+            if _render_producing_reset_count > _RENDER_SAFE_LIMIT:
+                warnings.warn(
+                    f"This is render-producing reset #{_render_producing_reset_count} of "
+                    "TidyUpReplicaCADEnv in this process. Rendered frames past roughly "
+                    "the 2nd such reset have been observed to desync from the actual "
+                    "scene (object positions stay correct; the image doesn't) -- an "
+                    "unresolved SAPIEN/ManiSkill rendering bug, not fixed here. Verify "
+                    "any rendered frame visually before trusting it. See D-022 in "
+                    "ai-notes/decisions.md.",
+                    stacklevel=2,
+                )
 
         seed = int(self._episode_rng.randint(0, 2**31 - 1))
         rng = np.random.default_rng(seed)
