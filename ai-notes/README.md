@@ -13,6 +13,7 @@ as superseded rather than silently removed.
 - [recent_changes.md](recent_changes.md) — newest-first project change log
 - [decisions.md](decisions.md) — important decisions and their rationale
 - [issues_and_risks.md](issues_and_risks.md) — active blockers, uncertainties, and risks
+- [review-request-task-schema.md](review-request-task-schema.md) — standing request for teammate review of D-013's task schema and everything built on it since; see that file's own "why now"
 
 ## Maintenance rules
 
