@@ -2,6 +2,129 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-025: First learned policy — tabular Q-learning discovers the feasibility rule from reward, not from being told it
+
+- **Date:** 2026-08-01
+- **Status:** Accepted (toy-scale — 2 goals, 3 meaningful states, same
+  caveats as every other toy-scale demonstration in this project)
+- **Decision:** Built `rl_policy.py`: tabular Q-learning over
+  `(goal_id, feasible) -> {SKIP, ATTEMPT}`, trained across 120 randomized
+  episodes (intervention present or not, timing varied) using real
+  environment rollouts — real arm motion via `attempt_goal()` from
+  `policy_baselines.py`, unchanged. Trains in ~19s on CPU. Result: the
+  learned greedy policy converges to exactly "attempt iff feasible" —
+  `feasibility_aware_policy`'s hard-coded rule — without ever being told
+  that rule, and matches it exactly head-to-head (same goals achieved, zero
+  wasted steps vs. static's 25). A real bug found and fixed while building
+  this: epsilon-greedy exploration can choose to skip the first goal, which
+  (unlike the deterministic baselines, which always attempt it) shortens
+  elapsed time before the second goal's feasibility check — occasionally
+  reading "feasible" correctly at check-time, then having the intervention
+  fire mid-attempt, producing a systematic negative bias in one Q-value
+  (confirmed: `("place_bowl", True)` converged to -0.98 instead of +1.0 at
+  n_episodes=120). Fixed by making SKIP consume the same elapsed time an
+  attempt would have (`_wait()`), keeping the state observation
+  non-stale regardless of which action gets explored.
+- **Reason:** Stage 5 of the build-up order in
+  `docs/00-project-overview.md` — replace the scripted/oracle policies with
+  one that's actually learned. Deliberately scoped to the *decision* layer
+  (attempt vs. skip a goal) matching this project's research question
+  throughout, not a learned motor policy — low-level control (the reach
+  phase) is untouched. Operates entirely on privileged state, no
+  rendering, so D-022's confirmed upstream rendering bug doesn't apply
+  here at all.
+- **Consequences:** This is 3 Q-table entries, not a general RL result —
+  the state space here is trivial by construction (2 goals × exists/not).
+  What it does demonstrate cleanly: the same behavior D-014 got by
+  hard-coding a rule can instead be recovered by trial-and-reward learning,
+  on real environment rollouts, in under 20 seconds on CPU with no GPU
+  needed.
+  Extending this to a real state space (vision/representation-derived
+  feasibility estimates instead of privileged-state ones, more goals,
+  ordering/priority) is future work, not attempted here.
+
+## D-024: Real contact/tactile grasp confirmation attempted, found genuinely infeasible with current tooling, not implemented
+
+- **Date:** 2026-08-01
+- **Status:** Investigated, not implemented — a documented limitation, not
+  a silent gap
+- **Decision:** Requested addition: alongside vision, confirm grasp success
+  via real contact forces (G1's built-in `right_hand_is_grasping()`) during
+  the reach phase, keeping teleport-on-success for final placement only.
+  Found this isn't achievable with current tooling: G1's existing reach
+  configs (used everywhere in this project) only ever bring the arm to
+  ~45cm from the target object — fine for teleport-on-success, which never
+  needed real precision, but nowhere near contact range. Built a
+  closed-loop numerical-Jacobian IK solver (finite-difference Jacobian,
+  damped least-squares step) to close that gap adaptively, since G1 has no
+  Cartesian controller or analytic IK exposed in ManiSkill (D-016). It
+  converged inconsistently: the *same* starting base position and joint
+  config converged to 11cm from the object in one run and 57cm in another,
+  no code difference between runs. At the distances it did reliably reach,
+  closing the fingers produced zero contact force — genuinely no touch, not
+  a threshold issue. Tried moving G1's base closer to the object (raycast
+  floor-clearance-checked, same method as D-018) — didn't resolve the
+  underlying convergence instability. Stopped here rather than continuing
+  to iterate on an unreliable numerical method or building a proper IK
+  pipeline (e.g. wiring `pinocchio` — already a dependency, used for
+  Panda's Cartesian controller in the original spike — into a real
+  analytic-Jacobian solver for G1 specifically) without a clear signal
+  that's worth the effort for this project's actual research question.
+- **Reason:** Genuinely attempted, not deprioritized on a guess — the user
+  asked directly, and a real effort (grid search, closed-loop IK, base
+  repositioning) was made before concluding this is a bigger problem than
+  "recalibrate a constant."
+- **Consequences:** teleport-on-success remains the manipulation
+  abstraction throughout this project, unchanged — grasp mechanics were
+  never load-bearing for any existing result (H2/H3, vision.py,
+  representation.py all operate on privileged/perceptual existence, not
+  grasp success). If real contact-based confirmation is needed later, the
+  actual path is a proper analytic-Jacobian IK solver built on `pinocchio`
+  (already installed) against G1's real URDF kinematic chain — not another
+  attempt at finite-difference numerical IK, which is what proved
+  unreliable here.
+
+## D-023: First self-supervised representation layer — DINOv2 linear probe, worked around a confirmed dependency bug rather than blocking on it
+
+- **Date:** 2026-08-01
+- **Status:** Accepted (toy-scale, single-scene — same caveats as D-020's
+  vision layer, see Consequences)
+- **Decision:** Built `representation.py`: `dinov2_embed()` extracts a
+  384-dim CLS-token embedding from DINOv2 ViT-S/14
+  (`facebookresearch/dinov2`, self-supervised, no text/labels in its
+  training — genuinely different from D-020's CLIP, which is
+  language-supervised). `fit_and_evaluate_probe()` fits a logistic-regression
+  linear probe and evaluates it with leave-one-out cross-validation. Result
+  on 8 examples (master_chef_can, 4 present / 4 absent): 100% LOO accuracy
+  — the representation linearly separates object-presence at least as well
+  as D-020's zero-shot CLIP did on the same task.
+  D-022's confirmed upstream rendering bug (open, no fix) means more than
+  ~2 render-producing resets in one process can't be trusted — a real
+  obstacle to collecting enough labeled examples for a probe. Worked around
+  it rather than either blocking on it or silently risking corrupted data:
+  `_capture_episode_subprocess.py` captures exactly one labeled example per
+  subprocess invocation, so every capture is "the first" render-producing
+  reset from the OS's point of view, staying inside the verified-safe zone
+  every time. `collect_labeled_examples()` shells out to it per example.
+- **Reason:** Stage 4 of the build-up order in
+  `docs/00-project-overview.md` — swap in a representation learned from
+  unlabeled data, once stage 3 (any working pretrained model) works.
+  Deliberately checked whether a representation with *no* language
+  supervision still supports this judgment, not just a bigger CLIP.
+- **Consequences:** D-021 pinned this env's scene layout for good reason
+  (G1's placement is only valid on one apartment layout), which means every
+  example collected here is visually almost the same scene — this is not a
+  test of representation *generalization* (different objects, layouts,
+  lighting), only of whether DINOv2's embedding linearly separates
+  presence/absence at all, on the one scene currently renderable. 100%
+  accuracy on 8 examples of a genuinely easy, low-noise task should not be
+  read as "DINOv2 solves feasibility perception" — it's the minimum bar
+  this stage needed to clear before being worth building on. The
+  subprocess-per-example pattern is slow (~6s/example) and would not scale
+  to a real training set; if this stage ever needs more than toy-scale
+  data, that means either fixing/upgrading past D-022 or finding a
+  different data-collection strategy, not more subprocesses.
+
 ## D-022: Render-producing-reset desync — confirmed as a known, open, unfixed upstream ManiSkill3 bug
 
 - **Date:** 2026-08-01

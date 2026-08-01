@@ -34,6 +34,9 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`policy_baselines_replicacad_humanoid.py`](policy_baselines_replicacad_humanoid.py) | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
 | [`language.py`](language.py) | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
 | [`vision.py`](vision.py) | `visual_object_exists()` — judges object presence from a rendered camera frame using zero-shot CLIP, instead of reading privileged state. Calibrated against `tidy_up_env_replicacad_humanoid.py`. See "Vision layer" below. |
+| [`representation.py`](representation.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. See "Self-supervised representation layer" below. |
+| [`_capture_episode_subprocess.py`](_capture_episode_subprocess.py) | One-shot render capture, run only as a subprocess — works around D-022 (a confirmed upstream ManiSkill3 rendering bug) by making every labeled example the OS's "first" render-producing reset. |
+| [`rl_policy.py`](rl_policy.py) | `train_q_policy()` + `learned_policy()` — tabular Q-learning that discovers "attempt iff feasible" from reward, instead of `feasibility_aware_policy`'s hard-coded rule. See "Learned policy" below. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -381,6 +384,87 @@ issue directly, converting a silent wrong answer into a loud one.
 `tests/drafts/test_vision.py` keeps exactly two render-producing resets and
 both were visually re-verified against saved frames directly, not just
 trusted from the CLIP score.
+
+## Self-supervised representation layer (2026-08-01)
+
+`representation.py` is stage 4 of the build-up order in
+`docs/00-project-overview.md`: swap in a representation learned from
+unlabeled data, once stage 3 (any working pretrained model) works at all.
+Deliberately a different kind of model from vision.py's CLIP, not just a
+bigger one — DINOv2 (`facebookresearch/dinov2`, ViT-S/14) is trained with
+**no text or labels whatsoever**, purely self-supervised on images. It has
+no built-in notion of "coffee can" or "exists" the way CLIP's zero-shot
+prompting does; the only way to use it here is to fit a small linear probe
+on labeled (embedding, exists) examples and check whether the two classes
+are linearly separable in its feature space — the standard way
+self-supervised representations get evaluated.
+
+Result: a logistic-regression probe on 8 examples (master_chef_can, 4
+present / 4 absent) reaches 100% leave-one-out cross-validation accuracy —
+matching zero-shot CLIP's result on the same task, but from a
+representation that was never told what any of these words mean.
+
+D-022's confirmed upstream rendering bug caps safe render-producing resets
+at roughly 2 per process — nowhere near enough to collect a probing
+dataset. Worked around it rather than blocking on it:
+`_capture_episode_subprocess.py` captures exactly one labeled example and
+exits, so every invocation is the OS's "first" render-producing reset and
+stays inside the verified-safe zone regardless of how many examples get
+collected in total. Slow (~6s/example, since each is a fresh SAPIEN+torch
+boot) and wouldn't scale past toy sizes, but correctness matters more than
+speed here.
+
+**Not a generalization test.** D-021 pinned this env's scene layout for
+good reason (G1's placement is only valid on one apartment layout), so
+every example here is visually almost the same scene — the only real
+variation is which object is being asked about and whether the scripted
+intervention has fired. 100% accuracy on 8 easy, low-noise examples is the
+minimum bar this stage needed to clear, not evidence the representation
+generalizes to new objects, layouts, or lighting.
+
+## Learned policy (2026-08-01)
+
+`rl_policy.py` is stage 5 of the build-up order in
+`docs/00-project-overview.md`: replace the scripted/oracle policies with
+one that's actually learned. `feasibility_aware_policy`
+(`policy_baselines.py`) always implemented "attempt iff feasible" as a
+hard-coded rule; this checks whether an agent can discover that same rule
+from trial and reward instead of being told it.
+
+Deliberately narrow: tabular Q-learning over `(goal_id, feasible) ->
+{SKIP, ATTEMPT}`, trained across 120 episodes with randomized interventions
+(present or not, timing varied), using real environment rollouts — the
+same `attempt_goal()` reach mechanic every other policy file uses,
+unchanged. Trains in about 19 seconds on CPU, no GPU needed, since it
+operates entirely on privileged state — no rendering anywhere in this
+file, so D-022's confirmed upstream rendering bug never comes into play.
+
+Result: the learned greedy policy converges to exactly "attempt iff
+feasible" and matches `feasibility_aware_policy` head-to-head — same goals
+achieved, zero wasted steps after `bowl_destroyed`, vs. static's 25. The
+interesting part isn't the number, it's that nothing told the agent this
+rule; it's recovered from reward alone.
+
+**A real bug, found and fixed while building this:** every deterministic
+baseline in this project always attempts the first goal unconditionally
+(it's always feasible), so the second goal's feasibility check always
+happens after a fixed elapsed time, by which point the intervention (fixed
+onset step) has always already fired. A Q-learning agent explores —
+including sometimes skipping the first goal — which shortens that elapsed
+time and can make the second goal's feasibility check read `True`
+correctly, only for the intervention to fire *during* the resulting
+attempt. This produced a systematic negative bias in one Q-value (measured:
+`("place_bowl", True)` converged to -0.98 instead of +1.0), not just noise
+from a handful of unlucky episodes. Fixed by making a skipped action
+consume the same elapsed time an attempt would have, so the environment's
+timing no longer depends on which action gets explored.
+
+**Toy-scale by construction**, same caveat as every other stage: 2 goals,
+3 meaningful Q-table entries. The demonstration is that the same behavior
+D-014 got by hard-coding a rule can instead be recovered by trial-and-reward
+learning on real rollouts, cheaply — not a general RL result. Extending
+this to a real state space (vision/representation-derived feasibility
+instead of privileged-state, more goals, ordering) is future work.
 
 ## What this deliberately doesn't cover yet
 
