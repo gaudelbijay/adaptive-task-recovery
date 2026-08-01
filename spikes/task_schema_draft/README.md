@@ -358,23 +358,26 @@ files) confirms all four target objects now land at byte-identical
 positions across seeds {0, 2, 7/15, 42}.
 
 **A separate, deeper issue turned up while verifying this — investigated
-properly, not fixed** (D-022 in `ai-notes/decisions.md`). Rendered frames
-for both real-scene envs can desync from the actual scene (object positions
-stay correct; the image doesn't — sometimes showing entirely different
-furniture) after roughly the second render-producing reset within one
-Python process. Ruled out, each tested directly rather than assumed: seed
-(identical `seed=0` config, repeated, still degrades); reconfigure timing
-(forcing `options={"reconfigure": True}` on every reset doesn't help);
+properly, confirmed as a known upstream bug, not fixable here** (D-022 in
+`ai-notes/decisions.md`). Rendered frames for both real-scene envs can
+desync from the actual scene (object positions stay correct; the image
+doesn't — sometimes showing entirely different furniture) after roughly
+the second render-producing reset within one Python process. Ruled out,
+each tested directly rather than assumed: seed (identical `seed=0` config,
+repeated, still degrades); reconfigure timing (forcing
+`options={"reconfigure": True}` on every reset doesn't help);
 `sapien.render.clear_cache()`; lighting values (`ambient_light` and
 light-entity count are identical across instantiations). Reproduces on
 **both** envs, ruling out anything specific to either one's own code.
-Consistent with a SAPIEN/ManiSkill CPU-renderer resource leak between
-`env.close()` and the next scene construction — an informed guess, not a
-confirmed root cause; not something fixable at this project's level without
-patching SAPIEN/ManiSkill or filing an upstream issue, neither attempted
-this round. Both envs now count render-producing resets and warn past the
-point actually verified safe (`_render_producing_reset_count` in each
-file), converting a silent wrong answer into a loud one.
+Then checked whether this is a known upstream bug rather than stopping at
+an educated guess: it is —
+[haosulab/ManiSkill#1150](https://github.com/haosulab/ManiSkill/issues/1150),
+open, unfixed, no maintainer workaround, matching this exactly (macOS-only,
+specifically the YCB-object-loading environments, breaking after the
+2nd/3rd reset). Not something to patch in this project. Both envs now
+count render-producing resets and warn past the point actually verified
+safe (`_render_producing_reset_count` in each file), citing the upstream
+issue directly, converting a silent wrong answer into a loud one.
 `tests/drafts/test_vision.py` keeps exactly two render-producing resets and
 both were visually re-verified against saved frames directly, not just
 trusted from the CLIP score.

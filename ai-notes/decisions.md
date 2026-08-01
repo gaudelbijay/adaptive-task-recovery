@@ -2,11 +2,11 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
-## D-022: Render-producing-reset desync — investigated hard, not fixed, guarded instead
+## D-022: Render-producing-reset desync — confirmed as a known, open, unfixed upstream ManiSkill3 bug
 
 - **Date:** 2026-08-01
-- **Status:** Accepted as a documented, guarded, unresolved issue — not
-  claiming this is fixed
+- **Status:** Accepted as a documented, guarded, confirmed-upstream issue —
+  not fixable at this project's level, not a guess anymore
 - **Decision:** Followed D-021's rendering finding to an actual root-cause
   attempt. Confirmed properties, each tested directly rather than assumed:
   unrelated to seed (identical `seed=0` config, repeated); reproduces with
@@ -18,23 +18,33 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   normalization of the crop does not fix `vision.py`'s resulting
   misclassification; reproduces on **both** `tidy_up_env_replicacad.py` and
   `tidy_up_env_replicacad_humanoid.py` (rules out anything specific to
-  either env's own code, since they're otherwise quite different). Visually
-  confirmed the failure mode is not just "darker" — later renders sometimes
-  show entirely different furniture geometry while privileged object
-  positions stay correct, i.e. the rendered scene graph desyncs from the
-  physics scene. This is consistent with a SAPIEN/ManiSkill CPU-renderer
-  resource leak between env teardown and reconstruction, not anything in
-  this project's own code — but that's an informed guess, not a confirmed
-  root cause. Did not patch SAPIEN/ManiSkill or file an upstream issue this
-  round. Instead: both env files now count render-producing resets
+  either env's own code). Visually confirmed the failure mode is not just
+  "darker" — later renders sometimes show entirely different furniture
+  geometry while privileged object positions stay correct, i.e. the
+  rendered scene graph desyncs from the physics scene.
+  **Then checked whether this is a known upstream bug rather than stopping
+  at an educated guess:** it is.
+  [haosulab/ManiSkill#1150](https://github.com/haosulab/ManiSkill/issues/1150)
+  ("Observations turn green after reset in PickSingleYCB-v1 and
+  PickClutterYCB-v1 environments on macOS") reports the same shape of bug —
+  macOS-only, specifically the YCB-object-loading environments (not simple
+  primitive ones like PickCube-v1), breaking after the 2nd or 3rd reset
+  within one process. Filed October 2025 (per GitHub numbering/timing),
+  still **open**, no maintainer fix or workaround, no branches or PRs
+  addressing it. Both our envs load real YCB objects via ReplicaCAD, so
+  this matches. Installed version here: `mani_skill==3.0.0b22`.
+  Given a confirmed, still-open bug in the library itself with no known
+  workaround from its own maintainers, patching it in this project isn't a
+  realistic option — instead: both env files count render-producing resets
   (`_render_producing_reset_count`, module-level, per env class) and
   `warnings.warn()` past the second one in a process, so a silently-wrong
   render becomes a loud warning instead of a trusted one.
 - **Reason:** After D-021's fix, this was the one remaining thread from the
-  "fix all these things" ask. A real attempt was made before concluding it
-  isn't fixable at the application level in reasonable scope — a
-  best-effort empirical narrowing, then an honest stop, is better than
-  either silently shipping wrong renders or claiming a fix that isn't real.
+  "fix all these things" / "fix what's still needed" asks. Worth
+  distinguishing "I couldn't find the cause" from "this is a confirmed,
+  open bug in a dependency, unfixed even by its own maintainers" — the
+  second is a much stronger, more actionable thing to have on record than
+  the first.
 - **Consequences:** `vision.py` results are only trustworthy for the first
   one or two render-producing resets of these envs in a process — verified
   by inspecting saved frames directly (`tests/drafts/test_vision.py`'s two
@@ -42,8 +52,8 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   assumed safe. A batch script or notebook that constructs many such env
   instances in a loop and renders each one will hit this and should not
   trust results past the warning without visually spot-checking frames.
-  Revisit if this ever blocks real work — likely means checking ManiSkill3
-  release notes/issues for this specific symptom, or filing one.
+  Genuinely not resolvable here; revisit by checking whether
+  haosulab/ManiSkill#1150 has closed on a future ManiSkill3 upgrade.
 
 ## D-021: Fixed the scene-layout generalization gap D-020 found — and found a deeper, unresolved one
 

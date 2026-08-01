@@ -38,16 +38,18 @@ calls, decoupled from the `seed` argument to `reset()` (which still
 controls this env's own intervention-onset randomization via
 `self._episode_rng`, a separate stream).
 
-A second, unresolved bug (D-022), found while verifying the fix above:
-rendered frames (not privileged state -- object positions stay correct)
-desync from the actual scene after roughly the second render-producing
-reset of this env within one process. Confirmed here too, not just the
-humanoid variant -- rules out anything specific to this project's own code,
-since both envs are otherwise quite different. Reproduces regardless of
-seed, of forcing `reconfigure=True`, and of `sapien.render.clear_cache()`;
-not chased to a root cause (looks like a SAPIEN/ManiSkill CPU-renderer
-state leak). `_initialize_episode` below counts render-producing resets and
-warns past the point that's actually been verified safe.
+A second bug (D-022), found while verifying the fix above: rendered frames
+(not privileged state -- object positions stay correct) desync from the
+actual scene after roughly the second render-producing reset of this env
+within one process. Confirmed here too, not just the humanoid variant --
+rules out anything specific to this project's own code, since both envs
+are otherwise quite different. Reproduces regardless of seed, of forcing
+`reconfigure=True`, and of `sapien.render.clear_cache()`. Confirmed as a
+known, open, upstream ManiSkill3 bug: haosulab/ManiSkill#1150, macOS-only,
+specifically YCB-object-loading environments, breaking after the 2nd/3rd
+reset -- exactly this. No maintainer fix exists, so not something to patch
+here. `_initialize_episode` below counts render-producing resets and warns
+past the point that's actually been verified safe.
 """
 
 from __future__ import annotations
@@ -182,10 +184,11 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
                     f"This is render-producing reset #{_render_producing_reset_count} of "
                     "TidyUpReplicaCADEnv in this process. Rendered frames past roughly "
                     "the 2nd such reset have been observed to desync from the actual "
-                    "scene (object positions stay correct; the image doesn't) -- an "
-                    "unresolved SAPIEN/ManiSkill rendering bug, not fixed here. Verify "
-                    "any rendered frame visually before trusting it. See D-022 in "
-                    "ai-notes/decisions.md.",
+                    "scene (object positions stay correct; the image doesn't) -- a "
+                    "known, open, unfixed upstream ManiSkill3 bug on macOS with "
+                    "YCB-object scenes (haosulab/ManiSkill#1150), not fixable here. "
+                    "Verify any rendered frame visually before trusting it. See D-022 "
+                    "in ai-notes/decisions.md.",
                     stacklevel=2,
                 )
 

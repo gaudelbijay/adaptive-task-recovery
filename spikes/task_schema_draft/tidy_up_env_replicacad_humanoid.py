@@ -94,18 +94,20 @@ _SCENE_BUILD_CONFIG_IDX = 59
 _SCENE_INIT_CONFIG_IDX = 0
 _SCENE_TORCH_SEED = 0
 
-# Guard for a real, unresolved rendering bug (D-022): the *rendered* scene
-# graph (not privileged state -- object positions stay correct, verified by
+# Guard for a real rendering bug (D-022): the *rendered* scene graph (not
+# privileged state -- object positions stay correct, verified by
 # test_scene_layout_reproducible_across_seeds) desyncs from the actual
 # built scene after roughly the second render-producing reset/instantiation
 # of this env within one process -- confirmed process-wide (also reproduces
 # on tidy_up_env_replicacad.py, a different env class), confirmed
 # independent of seed, reconfigure forcing, and sapien.render.clear_cache().
-# Looks like a SAPIEN/ManiSkill CPU-renderer state leak, not anything in
-# this project's code, and wasn't chased further than that. This counts
-# render-producing resets in this process and warns past the point that's
-# actually been empirically verified safe, so a silently-wrong render
-# becomes a loud warning instead -- see vision.py and README "Vision layer."
+# Confirmed as a known, OPEN, upstream ManiSkill3 bug, not anything in this
+# project's code: haosulab/ManiSkill#1150, macOS-only, YCB-object scenes,
+# breaks after the 2nd/3rd reset -- exactly this. No maintainer fix exists.
+# This counts render-producing resets in this process and warns past the
+# point that's actually been empirically verified safe, so a silently-wrong
+# render becomes a loud warning instead -- see vision.py and README
+# "Vision layer."
 _render_producing_reset_count = 0
 # Conservative: fresh-instantiation-each-time testing showed problems as
 # early as the *second* render-producing reset in a process (same-instance
@@ -232,8 +234,9 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
                     "TidyUpReplicaCADHumanoidEnv in this process. Rendered frames past "
                     "roughly the 2nd such reset have been observed to desync from the "
                     "actual scene (object positions stay correct; the image doesn't) -- "
-                    "an unresolved SAPIEN/ManiSkill rendering bug, not fixed here. Do not "
-                    "trust vision.py results from this env instance without visually "
+                    "a known, open, unfixed upstream ManiSkill3 bug on macOS with "
+                    "YCB-object scenes (haosulab/ManiSkill#1150), not fixable here. Do "
+                    "not trust vision.py results from this env instance without visually "
                     "verifying the frame first. See D-022 in ai-notes/decisions.md.",
                     stacklevel=2,
                 )
