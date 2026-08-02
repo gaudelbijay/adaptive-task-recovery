@@ -2,6 +2,47 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-033: ManiSkill3 formally selected as the primary simulator, closing I-003 without an Isaac Lab spike
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Formally selects ManiSkill3 as the project's primary
+  humanoid-capable simulator. D-006 required a simulator spike before
+  committing to simulator-specific architecture — it did not require
+  evaluating a second candidate, and I-003 (`ai-notes/issues_and_risks.md`)
+  had already flagged that the case for treating the ManiSkill3 evidence
+  as sufficient was "considerably stronger... than at last write-up."
+  That evidence, as of this entry: humanoid support, deterministic
+  seeding, privileged state, object-level interventions, RGB-D
+  observations, and reach/grasp all confirmed (D-009–D-011); five
+  further build-up stages built and stress-tested on it, across four
+  robot/scene combinations (D-013–D-029); one real upstream bug found,
+  root-caused against a known GitHub issue, and worked around rather
+  than guessed at (D-022); one real kinematic limit confirmed with a
+  proper verified IK solver rather than assumed (D-024/D-028); one real
+  platform gap found and worked around (`mplib` doesn't build on Apple
+  Silicon, `pinocchio` does) — with nothing disqualifying turning up
+  across any of it.
+- **Reason:** An Isaac Lab spike would be a second full simulator
+  integration — new install, new asset validation, new platform-gap
+  discovery process, on a Low-severity open question that D-006 never
+  actually required resolving via head-to-head comparison. Weighed
+  against seven weeks of accumulated, working, tested ManiSkill3-specific
+  evidence, spiking a second simulator now would cost real time for a
+  comparison this project doesn't need to make to keep moving —
+  the question D-006 asked ("does a viable simulator exist") has been
+  answered affirmatively and repeatedly, not left open.
+- **Consequences:** I-003 closed (moved to "Resolved or superseded" in
+  `ai-notes/issues_and_risks.md`). ManiSkill3/`sapien`-specific code can
+  now be treated as a real, if still spike-stage, architectural
+  commitment rather than a placeholder pending a simulator decision —
+  though it still can't move into `src/atr/` until D-013's separate,
+  still-open schema review resolves (see D-032). Isaac Lab remains a
+  live option later if a specific ManiSkill3 limitation actually blocks
+  something (e.g. D-022's rendering bug, if it turns out to matter more
+  than currently worked around) — this decision closes the open
+  *question*, not the door.
+
 ## D-032: `src/atr/`, `configs/`, `data/` scaffolded — structure only, no code migrated
 
 - **Date:** 2026-08-02

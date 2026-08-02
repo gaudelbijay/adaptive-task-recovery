@@ -1,14 +1,17 @@
 ---
 title: Benchmark Environment and Task Design
 status: draft
-last_updated: 2026-08-01
+last_updated: 2026-08-02
 ---
 
 # Benchmark Environment and Task Design
 
 ## Selection requirements
 
-The simulator is not yet selected. A candidate must support a humanoid model,
+**ManiSkill3 is the selected simulator (D-033, 2026-08-02)** — the
+requirements below are what it was evaluated against before that decision;
+kept as-is since they still describe what any future re-evaluation would
+need to check. A candidate must support a humanoid model,
 RGB observations, object-centric interaction, controllable state transitions,
 deterministic seeding, natural-language task generation, and privileged state
 for oracle labels. It must expose or permit reusable navigation, reaching,
@@ -39,12 +42,13 @@ on real walls. A confirmed, open, unfixed upstream rendering bug was also
 found (D-022, `haosulab/ManiSkill#1150`) that limits how many rendered
 frames can be trusted per process on macOS for real-scene environments —
 guarded around, not a blocker, but a real platform cost to know about.
-Isaac Lab still hasn't been spiked — I-003 in `ai-notes/issues_and_risks.md`
-now leans toward "the ManiSkill3 evidence is sufficient to formally select
-it" being the more defensible call, given how much validated,
-ManiSkill3-specific work now exists (D-006/D-009–D-011/D-017/D-020/D-022/D-028
-in `ai-notes/decisions.md`), but that's still an open decision, not made
-here.
+Isaac Lab was never spiked — **formally decided against doing so (D-033,
+2026-08-02):** D-006 required a spike step, not a second-candidate
+comparison, and the ManiSkill3 evidence (D-006/D-009–D-011/D-017/D-020/
+D-022/D-028/D-032 in `ai-notes/decisions.md`) already cleared that bar with
+nothing disqualifying found. I-003 in `ai-notes/issues_and_risks.md` is
+closed on this basis. Isaac Lab remains available to spike later if a
+specific ManiSkill3 limitation ever actually blocks something.
 
 ## Task schema
 
