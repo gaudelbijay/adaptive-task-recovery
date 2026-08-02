@@ -2,6 +2,46 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-034: Measured CLIP-vs-DINOv2 comparison recorded — evidence for I-004, deliberately not a selection
+
+- **Date:** 2026-08-02
+- **Status:** Accepted (as evidence; no model selected by this entry)
+- **Decision:** Built the measured comparison
+  `ai-notes/model-comparison-clip-vs-dinov2.md` against the criteria
+  `docs/08-training-pipeline.md` already specifies for model selection
+  (downstream utility, calibration, generalization, latency, memory,
+  licensing, integration cost) — none of which had been recorded
+  anywhere before this, despite D-020/D-023/D-027/D-029 already
+  producing real accuracy/generalization/downstream-utility evidence for
+  each model individually. New measurements taken directly, not assumed:
+  latency and memory (isolated per-model subprocess, clean peak-RSS
+  readings, 20 warmed-up calls each — CLIP ViT-B-32: 151.3M params, ~33ms/
+  call, ~1287MB peak-RSS delta; DINOv2 ViT-S/14: 22.1M params, ~15ms/
+  call, ~178MB delta); licensing (verified against each project's actual
+  LICENSE file rather than assumed from memory — both MIT/Apache-2.0,
+  permissive, not a differentiator, notably including catching that
+  DINOv2's *original* 2023 release used a more restrictive license before
+  Meta relicensed it, which would have been an easy, wrong assumption to
+  carry forward); and one direct calibration run (DINOv2's probe via
+  `predict_proba`, LOO, 12 examples: 100% accuracy, Brier 0.0001 — CLIP
+  has no probability output to measure calibration against at all with
+  its current interface, a real finding, not a gap papered over).
+- **Reason:** I-004 (`ai-notes/issues_and_risks.md`) has been open since
+  the project's reframing with no measured comparison behind it — real
+  accuracy evidence existed per-model, but not against each other on the
+  criteria the project's own training-pipeline doc says a selection needs.
+  Building that now, while explicitly declining to select, follows the
+  same pattern D-026 used for `Goal.condition`: produce real evidence,
+  disclose it fully, but don't let building evidence quietly become
+  making the decision the evidence is supposed to inform.
+- **Consequences:** I-004 still open (not resolved by this entry) —
+  `ai-notes/issues_and_risks.md`'s mitigation note ("choose only after
+  task schema and compute budget are known") stands: D-013's review still
+  hasn't resolved. Whoever makes that call later has the numbers now.
+  Notable gap surfaced, not just measured: DINOv2 has never been tested
+  against the `kitchen_sink` scene variant (D-027) despite the code
+  supporting it — CLIP has 2-scene validation, DINOv2 has 1.
+
 ## D-033: ManiSkill3 formally selected as the primary simulator, closing I-003 without an Isaac Lab spike
 
 - **Date:** 2026-08-02

@@ -26,7 +26,9 @@ not yet accepted. **ManiSkill3 formally selected as the primary simulator
 2026-08-02 (D-033)** — I-003 closed without an Isaac Lab spike; D-006 only
 required a spike step, and seven weeks of ManiSkill3-specific evidence
 (D-009 through D-032) already cleared that bar. Still open: pretrained
-model selection (I-004) and compute planning.
+model selection (I-004, now backed by a measured CLIP-vs-DINOv2 comparison
+— D-034, `ai-notes/model-comparison-clip-vs-dinov2.md` — but deliberately
+not decided, pending D-013's review) and compute planning.
 
 **Team model:** two contributors. Phase 0 and benchmark construction are shared.
 Person A then leads representation/language/feasibility; Person B leads
@@ -53,6 +55,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-08-02 | Recorded a measured CLIP-vs-DINOv2 comparison for I-004 (D-034, `ai-notes/model-comparison-clip-vs-dinov2.md`) against `docs/08`'s actual selection criteria: latency and memory measured directly (isolated per-model subprocess — CLIP ViT-B-32 151.3M params/~33ms/call/~1287MB peak-RSS delta vs. DINOv2 ViT-S/14 22.1M params/~15ms/call/~178MB delta), licensing verified against each project's actual LICENSE file (both MIT/Apache-2.0, not a differentiator — caught that DINOv2's original 2023 release was more restrictive before Meta relicensed it), and one direct DINOv2 calibration run (100% LOO accuracy, Brier 0.0001 on 12 examples, caveated hard since the pinned scene layout makes within-class embeddings near-duplicates). Deliberately stops short of selecting either model — I-004's own mitigation note says wait for the schema review, so this is evidence recorded for whenever that decision actually gets made, not a decision itself. |
 | 2026-08-02 | Formally selected ManiSkill3 as the primary simulator (D-033), closing I-003 without spiking Isaac Lab for comparison. D-006 only required a spike step, and seven weeks of continuous, working ManiSkill3-specific evidence (D-009 through D-032 — humanoid support, four robot/scene combinations, a real upstream bug found and worked around, a real kinematic limit confirmed rather than assumed) already cleared that bar; a second full simulator integration wasn't worth the cost for a Low-severity open question this well-evidenced. Isaac Lab remains a live option later if a specific ManiSkill3 limitation actually blocks something. |
 | 2026-08-02 | Scaffolded the real project layout (D-032): `src/atr/`, `configs/`, `data/` — empty on purpose. Moving `spikes/task_schema_draft/`'s schema/oracle code here now would preempt the still-open D-013 teammate review (which explicitly asks whether that code is ready to become committed architecture), so this pass added structure and READMEs only, nothing else. `data/` gitignored except its README, since datasets don't belong in git history. |
 | 2026-08-02 | Triaged 38 Dependabot alerts (D-031) via a local `pip-audit` pass (no GitHub API access in this environment): 9 flagged packages, all transitive. Bumped 8 immediately; the 9th (`setuptools`) broke `sapien` import at first attempt (it dropped `pkg_resources`, which `sapien` 3.0.2 needs) — fixed properly by bumping `sapien` to 3.0.3 too, which no longer needs it, rather than settling for leaving one alert open. All 9 now fixed, full suite re-verified (97 passed). |
