@@ -5,12 +5,12 @@ Exists because of D-022 (ai-notes/decisions.md) -- a confirmed, open, unfixed
 upstream ManiSkill3 bug (haosulab/ManiSkill#1150) where rendered frames from
 this env desync from the actual scene after roughly the second
 render-producing reset in one process. Every render-producing reset in this
-project either stays within that verified-safe budget (vision.py's tests: at
-most 2, in one process, per test run) or -- as here, for representation.py,
+project either stays within that verified-safe budget (clip_feasibility.py's tests: at
+most 2, in one process, per test run) or -- as here, for dinov2_probe.py,
 which needs more than 2 labeled examples -- gets its own fresh process, so
 each capture is always "the first" from the OS's point of view.
 
-Usage: python _capture_episode_subprocess.py --seed N --steps K --out path.npz
+Usage: python capture_episode_subprocess.py --seed N --steps K --out path.npz
 Saves: frame (uint8 HWC), and exists_master_chef_can / exists_potted_meat_can
 (bool) to the given .npz path. `--steps` uses zero actions (the same
 hold-the-keyframe-pose pattern every other file in this project uses, e.g.

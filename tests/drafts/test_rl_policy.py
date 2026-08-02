@@ -15,7 +15,7 @@ pytest.importorskip("mani_skill")
 
 import task_schema_draft  # noqa: E402, F401
 from task_schema_draft.policy_baselines import feasibility_aware_policy, static_policy  # noqa: E402
-from task_schema_draft.rl_policy import ATTEMPT, SKIP, learned_policy, train_q_policy  # noqa: E402
+from task_schema_draft.rl_policy import ATTEMPT, SKIP, learned_policy, train_q_table_canonical  # noqa: E402
 
 
 def _make_env(**kwargs):
@@ -32,7 +32,7 @@ class TestQLearningDiscoversTheFeasibilityRule:
     behavior."""
 
     def test_learns_attempt_when_feasible_skip_when_not(self):
-        q = train_q_policy(n_episodes=120, seed=0)
+        q = train_q_table_canonical(n_episodes=120, seed=0)
         assert q[("place_mug", True)][ATTEMPT] > q[("place_mug", True)][SKIP]
         assert q[("place_bowl", True)][ATTEMPT] > q[("place_bowl", True)][SKIP]
         assert q[("place_bowl", False)][SKIP] > q[("place_bowl", False)][ATTEMPT]
@@ -40,7 +40,7 @@ class TestQLearningDiscoversTheFeasibilityRule:
 
 class TestLearnedPolicyMatchesFeasibilityAwareBehavior:
     def test_same_recall_zero_waste_after_bowl_destroyed(self):
-        q = train_q_policy(n_episodes=120, seed=0)
+        q = train_q_table_canonical(n_episodes=120, seed=0)
         results = {}
         for name, policy in [
             ("static", static_policy),
@@ -59,7 +59,7 @@ class TestLearnedPolicyMatchesFeasibilityAwareBehavior:
         assert results["static"]["wasted_steps"] > 0
 
     def test_both_goals_achieved_with_no_intervention(self):
-        q = train_q_policy(n_episodes=120, seed=0)
+        q = train_q_table_canonical(n_episodes=120, seed=0)
         env = _make_env(intervention_kind="none")
         try:
             env.reset(seed=0)

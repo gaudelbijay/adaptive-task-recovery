@@ -22,15 +22,24 @@ The state a decision is keyed on is (goal_id, feasible) -- `feasible` comes
 from the same privileged-state `goal_feasible()` query
 `feasibility_aware_policy` already uses directly as a rule. The point isn't
 that the agent discovers feasibility from scratch (that's stage 3/4's job,
-vision.py / representation.py) -- it's that, given the same input a human
+clip_feasibility.py / dinov2_probe.py) -- it's that, given the same input a human
 already hand-coded a rule for, a Q-learning agent trained purely on reward
 recovers the same rule on its own, across randomized episodes where
 sometimes attempting is right and sometimes skipping is.
+
+`train_q_table()` is env-agnostic on purpose (D-030): it originally existed
+twice, once here specific to the canonical tabletop env and once again in
+end_to_end.py specific to the ReplicaCAD-humanoid env, differing only in
+which env/goals/attempt function got passed in. Same algorithm, same
+`_wait()` timing-consistency fix needed in both places -- worth one
+parameterized function, not two near-duplicates that could silently drift
+apart.
 """
 
 from __future__ import annotations
 
 import random
+from typing import Callable
 
 import gymnasium as gym
 import numpy as np
@@ -44,7 +53,7 @@ _ALPHA = 0.3  # single-step decisions per goal -- no bootstrapping needed, so no
 _REACH_STEPS = 25  # matches attempt_goal()'s default -- see _wait() below for why this matters
 
 
-def _make_env(intervention_kind: str, onset_step_range: tuple[int, int]):
+def _make_canonical_env(intervention_kind: str, onset_step_range: tuple[int, int]):
     return gym.make(
         "TidyUpTaskSchemaDraft-v1", num_envs=1, obs_mode="state", render_mode=None,
         sim_backend="physx_cpu", control_mode="pd_ee_delta_pos",
@@ -64,28 +73,44 @@ def _wait(env, steps: int = _REACH_STEPS):
     reading "feasible" correctly at check-time, then having the intervention
     fire mid-attempt, achieving False despite a True feasibility label. That
     was a real, systematic source of negative reward bias during training
-    (confirmed: caused the (\"place_bowl\", True) Q-value to converge negative
+    (confirmed: caused the ("place_bowl", True) Q-value to converge negative
     at n_episodes=120), not just noise -- fixed by keeping elapsed time
-    consistent regardless of which action is taken."""
+    consistent regardless of which action is taken. Hit again, independently,
+    building end_to_end.py's training loop before this function existed
+    (D-029) -- one more reason to have exactly one implementation."""
     zero_action = np.zeros(env.action_space.shape, dtype=np.float32)
     for _ in range(steps):
         env.step(zero_action)
 
 
-def train_q_policy(n_episodes: int = 120, seed: int = 0) -> dict:
+def train_q_table(
+    make_env: Callable[[str, tuple[int, int]], "gym.Env"],
+    graph: GoalGraph,
+    tray_slots: list,
+    attempt_goal_fn: Callable = attempt_goal,
+    intervention_kinds: tuple[str, str] = ("none", "bowl_destroyed"),
+    onset_step_bounds: tuple[int, int] = (1, 4),
+    reach_steps: int = _REACH_STEPS,
+    n_episodes: int = 120,
+    seed: int = 0,
+) -> dict:
     """Tabular Q-learning over (goal_id, feasible) -> {SKIP: q, ATTEMPT: q}.
     Trained across randomized episodes (intervention present or not, timing
     varied) so "attempt iff feasible" has to be discovered from reward, not
-    handed to the agent."""
+    handed to the agent.
+
+    `make_env(intervention_kind, onset_step_range) -> env` and `graph` let
+    this run against any TidyUp env/goal-graph combination -- see module
+    docstring for why this is one parameterized function, not one per env.
+    """
     rng = random.Random(seed)
     q: dict[tuple[str, bool], dict[int, float]] = {}
-    graph = canonical_example()
 
     for ep in range(n_episodes):
         epsilon = max(0.05, 1.0 - ep / (n_episodes * 0.6))
-        intervention_kind = rng.choice(["none", "bowl_destroyed"])
-        onset_step = rng.randint(1, 4)
-        env = _make_env(intervention_kind, (onset_step, onset_step + 1))
+        intervention_kind = rng.choice(intervention_kinds)
+        onset_step = rng.randint(*onset_step_bounds)
+        env = make_env(intervention_kind, (onset_step, onset_step + 1))
         try:
             env.reset(seed=rng.randint(0, 2**31 - 1))
             for i, goal in enumerate(graph.goals):
@@ -100,15 +125,24 @@ def train_q_policy(n_episodes: int = 120, seed: int = 0) -> dict:
 
                 if action == SKIP:
                     reward = 0.0
-                    _wait(env)  # keeps elapsed time consistent -- see _wait()'s docstring
+                    _wait(env, reach_steps)  # keeps elapsed time consistent -- see _wait()'s docstring
                 else:
-                    result = attempt_goal(env, goal, _TRAY_SLOTS[i])
+                    result = attempt_goal_fn(env, goal, tray_slots[i], reach_steps)
                     reward = 1.0 if result["achieved"] else -0.1 * result["steps_used"]
 
                 q[key][action] += _ALPHA * (reward - q[key][action])
         finally:
             env.close()
     return q
+
+
+def train_q_table_canonical(n_episodes: int = 120, seed: int = 0) -> dict:
+    """train_q_table() against the canonical tabletop env (tidy_up_env.py) --
+    the specific instance D-025 originally built and tested."""
+    return train_q_table(
+        make_env=_make_canonical_env, graph=canonical_example(), tray_slots=_TRAY_SLOTS,
+        n_episodes=n_episodes, seed=seed,
+    )
 
 
 def learned_policy(env, q_table: dict, graph: GoalGraph = None) -> dict:

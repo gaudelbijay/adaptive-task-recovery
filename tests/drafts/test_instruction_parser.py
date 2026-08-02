@@ -1,4 +1,4 @@
-"""Tests for language.py -- stage 2 of docs/00-project-overview.md's
+"""Tests for instruction_parser.py -- stage 2 of docs/00-project-overview.md's
 build-up order ("parse an actual instruction sentence into a GoalGraph,
 instead of writing one by hand").
 
@@ -15,7 +15,7 @@ import pytest
 pytest.importorskip("mani_skill")  # replicacad_example/_humanoid pull in mani_skill env classes
 
 from task_schema_draft.goal_graph import canonical_example  # noqa: E402
-from task_schema_draft.language import parse_instruction  # noqa: E402
+from task_schema_draft.instruction_parser import parse_instruction  # noqa: E402
 from task_schema_draft.tidy_up_env_replicacad import replicacad_example  # noqa: E402
 from task_schema_draft.tidy_up_env_replicacad_humanoid import (  # noqa: E402
     replicacad_humanoid_example,
@@ -50,7 +50,7 @@ class TestReproducesHandAuthoredGraphs:
 
 
 class TestHeldOutParaphrases:
-    """None of these exact strings were used to write language.py's regexes
+    """None of these exact strings were used to write instruction_parser.py's regexes
     against -- they're phrased differently from every instruction_text
     above (different verb, negation form, conjunction style, punctuation)."""
 

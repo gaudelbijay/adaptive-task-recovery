@@ -39,7 +39,7 @@ different apartment entirely (confirmed by rendering it -- G1 ends up next
 to a couch and a bicycle), and even pinning `build_config_idxs` alone still
 leaves the "which objects are hidden" draw seed-dependent (confirmed: some
 seeds hide `master_chef_can` or `potted_meat_can` outright, at z=-10000,
-with build_config_idxs held fixed). G1's base pose, camera, and vision.py's
+with build_config_idxs held fixed). G1's base pose, camera, and clip_feasibility.py's
 crop regions are all calibrated for one specific resulting layout -- the one
 `reset(seed=0)` happened to produce before this fix existed. Fixed by
 pinning `build_config_idxs`/`init_config_idxs` AND explicitly reseeding
@@ -84,7 +84,7 @@ _LAST_KNOWN_POSITIONS = {
 }
 
 # The specific apartment layout / object arrangement G1's base pose, camera,
-# and vision.py's crop regions are all calibrated against -- see module
+# and clip_feasibility.py's crop regions are all calibrated against -- see module
 # docstring "Scene layout is pinned, not sampled." Found by recording what
 # reset(seed=0) sampled before this fix existed (build_config_idx=59), then
 # searching torch seed values (0-14) at that fixed build/init config for one
@@ -92,13 +92,13 @@ _LAST_KNOWN_POSITIONS = {
 # seed 0 reproduces the exact original layout.
 #
 # D-027: a *second* calibrated layout ("kitchen_sink"), added specifically to
-# answer the caveat that vision.py/representation.py were only ever
+# answer the caveat that clip_feasibility.py/dinov2_probe.py were only ever
 # validated on one scene. build_config_idx=55 chosen the same way as 59 --
 # searched under the real class's actual two-pin torch.manual_seed pattern
 # (D-021's own lesson: a naive single-pin search gives different, wrong
 # results), for a config where both target objects are placed and close
 # together. Only vision/rendering are recalibrated for it (base pose,
-# camera, vision.py's crops) -- reach configs and tray position are NOT,
+# camera, clip_feasibility.py's crops) -- reach configs and tray position are NOT,
 # since arm-reach/grasp was never what this second layout was for; using
 # "kitchen_sink" with the reach-dependent policy baselines is out of scope
 # and untested.
@@ -131,7 +131,7 @@ _SCENE_TORCH_SEED = 0
 # breaks after the 2nd/3rd reset -- exactly this. No maintainer fix exists.
 # This counts render-producing resets in this process and warns past the
 # point that's actually been empirically verified safe, so a silently-wrong
-# render becomes a loud warning instead -- see vision.py and README
+# render becomes a loud warning instead -- see clip_feasibility.py and README
 # "Vision layer."
 _render_producing_reset_count = 0
 # Conservative: fresh-instantiation-each-time testing showed problems as
@@ -228,7 +228,7 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         self._obstacle_remove_step: int | None = None
         self._initial_state: WorldState | None = None
         # Force the calibrated layout regardless of other caller-supplied
-        # values -- G1's base pose, camera, and vision.py's crops are
+        # values -- G1's base pose, camera, and clip_feasibility.py's crops are
         # meaningless on any other layout (see module docstring "Scene
         # layout is pinned"). Which of the two calibrated layouts is up to
         # scene_variant, not the caller's own build_config_idxs.
@@ -269,7 +269,7 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
                     "actual scene (object positions stay correct; the image doesn't) -- "
                     "a known, open, unfixed upstream ManiSkill3 bug on macOS with "
                     "YCB-object scenes (haosulab/ManiSkill#1150), not fixable here. Do "
-                    "not trust vision.py results from this env instance without visually "
+                    "not trust clip_feasibility.py results from this env instance without visually "
                     "verifying the frame first. See D-022 in ai-notes/decisions.md.",
                     stacklevel=2,
                 )
@@ -338,8 +338,8 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
             self._exists["master_chef_can"] = False
             # Removal alone doesn't refresh the render scene graph -- every
             # existing consumer of this env reads privileged state, not
-            # pixels, so this went unnoticed until vision.py needed real
-            # rendered frames to reflect the removal (see vision.py).
+            # pixels, so this went unnoticed until clip_feasibility.py needed real
+            # rendered frames to reflect the removal (see clip_feasibility.py).
             self.scene.update_render()
         elif self.intervention_kind == "temporary_obstacle":
             from mani_skill.utils.building.actors import build_box

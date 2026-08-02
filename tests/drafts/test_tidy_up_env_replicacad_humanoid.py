@@ -60,7 +60,7 @@ class TestTidyUpReplicaCADHumanoidEnv:
         torch's global RNG, not this env's own _episode_rng) -- seed=2
         loaded a different apartment entirely, and some seeds hid target
         objects at z=-10000 outright, even with build_config_idxs pinned
-        alone. G1's base pose, camera, and vision.py's crops are only valid
+        alone. G1's base pose, camera, and clip_feasibility.py's crops are only valid
         for one specific layout, so this must hold regardless of seed."""
         positions_by_seed = {}
         for seed in (0, 2, 15, 42):

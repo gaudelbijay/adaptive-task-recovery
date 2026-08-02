@@ -1,12 +1,12 @@
-"""Tests for vision.py's "kitchen_sink" scene variant (D-027) -- added
-specifically to answer the caveat that vision.py was only ever validated on
-one scene layout ("kitchen_cabinet"). Same underlying claim as
-test_vision.py: does a rendered-frame CLIP judgment match oracle privileged
-state?
+"""Tests for clip_feasibility.py's "kitchen_sink" scene variant (D-027) --
+added specifically to answer the caveat that clip_feasibility.py was only
+ever validated on one scene layout ("kitchen_cabinet"). Same underlying
+claim as test_clip_feasibility.py: does a rendered-frame CLIP judgment
+match oracle privileged state?
 
-Deliberately uses subprocess-isolated capture (`_capture_episode_subprocess.py`,
-the same mechanism representation.py uses), not in-process rendering like
-test_vision.py: test_vision.py already spends the entire per-process
+Deliberately uses subprocess-isolated capture (`capture_episode_subprocess.py`,
+the same mechanism dinov2_probe.py uses), not in-process rendering like
+test_clip_feasibility.py: that file already spends the entire per-process
 render-producing-reset budget D-022 leaves safe (2, in one process) on
 "kitchen_cabinet". Testing a second variant in the same process would push
 past that -- each capture here gets its own fresh subprocess instead, so it
@@ -23,9 +23,9 @@ import pytest
 pytest.importorskip("mani_skill")
 pytest.importorskip("open_clip")
 
-from task_schema_draft.vision import visual_object_exists  # noqa: E402
+from task_schema_draft.clip_feasibility import visual_object_exists  # noqa: E402
 
-_CAPTURE_SCRIPT = Path(__file__).parent.parent.parent / "spikes/task_schema_draft/_capture_episode_subprocess.py"
+_CAPTURE_SCRIPT = Path(__file__).parent.parent.parent / "spikes/task_schema_draft/capture_episode_subprocess.py"
 
 
 def _capture(seed: int, steps: int) -> dict:

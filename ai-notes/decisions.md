@@ -2,6 +2,96 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-030: Professional file/function naming pass, and de-duplicating `train_q_table`
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Renamed several spike files and one duplicated function pair
+  to names that describe what they contain rather than an arbitrary stage
+  label, using `git mv` throughout so history is preserved:
+  `language.py` → `instruction_parser.py`, `vision.py` →
+  `clip_feasibility.py`, `representation.py` → `dinov2_probe.py`, and
+  `_capture_episode_subprocess.py` → `capture_episode_subprocess.py`
+  (dropped the leading underscore — it's invoked directly as a subprocess
+  entry point by `dinov2_probe.py`, not a private helper). Matching test
+  files renamed the same way (`test_vision.py` →
+  `test_clip_feasibility.py`, etc.). Also collapsed a real duplication
+  D-029 introduced: `rl_policy.py`'s Q-learning training loop had been
+  copy-pasted into `end_to_end.py` as
+  `train_q_table_for_replicacad_humanoid()`, differing only in which
+  env/goals/attempt-function got passed in — and D-029's own
+  `_wait()` timing fix had to be rediscovered and reapplied there
+  independently (see D-029), which is exactly the failure mode duplicated
+  logic invites. Replaced both with one parameterized `train_q_table()` in
+  `rl_policy.py` taking `make_env`/`graph`/`tray_slots`/`attempt_goal_fn`/
+  `intervention_kinds`/`onset_step_bounds`, plus thin per-env wrappers
+  (`train_q_table_canonical()`, `train_q_table_replicacad_humanoid()`)
+  that just supply those arguments. `train_q_policy()` renamed to
+  `train_q_table_canonical()` to match.
+- **Reason:** User feedback: file and function names should describe their
+  content professionally, not read as an ordered list of build stages
+  (`vision.py`, `language.py` say nothing about *what's inside* — CLIP
+  zero-shot classification vs. regex instruction parsing — and stage
+  numbering belongs in `docs/00-project-overview.md`'s build-up order, not
+  the filesystem). Fixing the naming surfaced the `train_q_table`
+  duplication along the way; worth fixing at the same time rather than
+  renaming both copies and leaving the drift risk in place.
+- **Consequences:** All imports, test imports, and cross-references in
+  `ai-notes/` and `docs/` updated to match (verified by repo-wide grep for
+  every old name). No behavior change — same algorithm, same test
+  coverage, full suite re-run green after the rename. Found along the way:
+  BSD `sed` (macOS default) silently matches zero occurrences on `\b`
+  word-boundary patterns rather than erroring — GNU-only syntax — so the
+  `.md`-file bulk-replace pass had to be redone without `\b` after an
+  initial silent no-op.
+
+## D-029: Stage 6 — everything combined into one real episode, nothing privileged in the live decision loop
+
+- **Date:** 2026-08-02
+- **Status:** Accepted (toy-scale, one episode type — same caveats as
+  every stage this builds on)
+- **Decision:** Built `end_to_end.py`, completing the build-up order in
+  `docs/00-project-overview.md`. For each goal in a real episode:
+  `parse_instruction()` (D-019/D-026) turns the instruction into a
+  `GoalGraph`; a real rendered frame plus `visual_object_exists()` (D-020)
+  judges feasibility — not a privileged-state read; a Q-table trained by
+  `train_q_table_replicacad_humanoid()` (same algorithm as D-025,
+  retrained for this env's parser-generated goal ids) decides attempt vs.
+  skip from that *perceived* feasibility; `attempt_goal()` executes the
+  decision with real arm motion, unchanged. Result: `potted_meat_can`
+  (perceived feasible, matches oracle) gets attempted and achieved;
+  `master_chef_can` (perceived infeasible after the scripted destruction,
+  matches oracle) gets skipped at zero cost — the same H2 result every
+  earlier stage produced, now with nothing privileged in the live decision
+  path. Training itself still reads privileged state — a deliberate,
+  disclosed choice: training the decision *rule* doesn't need real pixels
+  for this toy case, and training against real rendered rollouts would
+  need hundreds of render-producing resets, which D-022's confirmed
+  upstream bug makes impractical. Found and fixed the same real bug
+  D-025 already found once, hit again by not applying its own fix here:
+  skipping the first goal via exploration shortens elapsed time before the
+  second goal's feasibility check, producing a stale read relative to when
+  the intervention actually fires — confirmed directly (a negative
+  Q-value for a feasible goal, which should never happen), fixed the same
+  way (`_wait()`, keeping elapsed time consistent regardless of action).
+- **Reason:** The last stage named in the build-up order. Worth doing as
+  an actual integration, not just five demonstrations that happen to share
+  a codebase — the interesting failure mode (stale timing assumptions
+  breaking when exploration enters the picture) only showed up once
+  real pieces were actually wired together and exercised end-to-end.
+- **Consequences:** Toy-scale in every way its component stages already
+  were: one instruction, one scene layout (`kitchen_cabinet`, the only one
+  clip_feasibility.py's calibration and attempt_goal's reach configs both cover),
+  two goals, privileged-state training. `dinov2_probe.py`'s DINOv2 probe
+  (D-023) was deliberately not wired into this same live loop — it needs a
+  pre-fit probe from multiple examples, not a single-frame judgment like
+  CLIP, and wiring it in would add complexity disproportionate to what
+  this stage needed to show; it remains a separately-validated alternative
+  perceptual backend. This closes the build-up order from
+  `docs/00-project-overview.md` — everything from here is either genuine
+  scaling work or the still-open teammate review
+  (`ai-notes/review-request-task-schema.md`).
+
 ## D-028: D-024 retried with a proper analytic-Jacobian IK solver — confirmed unreachable, not a solver artifact
 
 - **Date:** 2026-08-01
@@ -50,7 +140,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   ever needs real IK for a *different* object/scene combination where the
   geometry might actually allow it.
 
-## D-027: A second calibrated scene layout for vision.py/representation.py — not a single-scene-only demonstration anymore
+## D-027: A second calibrated scene layout for clip_feasibility.py/dinov2_probe.py — not a single-scene-only demonstration anymore
 
 - **Date:** 2026-08-01
 - **Status:** Accepted (still toy-scale — two scenes, not a distribution)
@@ -67,9 +157,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   coordinates, rather than finding crops by visual inspection alone (the
   original "kitchen_cabinet" method) — needed because `potted_meat_can`
   turned out to be sitting inside a sink basin in this layout, small and
-  easy to miss by eye. `vision.py`'s `_OBJECT_VISUAL_CONFIG` is now keyed
+  easy to miss by eye. `clip_feasibility.py`'s `_OBJECT_VISUAL_CONFIG` is now keyed
   per scene variant; `visual_object_exists()` and
-  `representation.py`'s `collect_labeled_examples()` both take an optional
+  `dinov2_probe.py`'s `collect_labeled_examples()` both take an optional
   `scene_variant` argument, defaulting to `"kitchen_cabinet"`. Verified:
   zero-shot CLIP matches oracle feasibility on "kitchen_sink" the same way
   it did on the original scene (`test_vision_kitchen_sink.py`).
@@ -78,12 +168,12 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   using it with the reach-dependent policy baselines is untested and out
   of scope.
 - **Reason:** Direct answer to the review document's caveat that
-  vision.py/representation.py were validated on a single scene layout only
+  clip_feasibility.py/dinov2_probe.py were validated on a single scene layout only
   — not a full generalization test, but a genuine second data point instead
   of zero.
 - **Consequences:** `test_vision_kitchen_sink.py` uses subprocess-isolated
-  capture (like representation.py), not in-process rendering like
-  test_vision.py — test_vision.py already spends this process's entire
+  capture (like dinov2_probe.py), not in-process rendering like
+  test_clip_feasibility.py — test_clip_feasibility.py already spends this process's entire
   D-022 render-producing-reset budget (2) on "kitchen_cabinet"; testing a
   second variant in the same process would exceed it. Still two scenes, not
   a real distribution over layouts — the "not a generalization test" caveat
@@ -97,7 +187,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   status as D-013 itself — `Goal.condition` is a new schema field, not
   something to accept unilaterally right before asking for exactly that
   review.
-- **Decision:** `language.py` now parses "first put the mug on the tray,
+- **Decision:** `instruction_parser.py` now parses "first put the mug on the tray,
   then put the bowl on the tray" into sequential `Goal.priority` values (0,
   1, ... in order of appearance among order-marked goal clauses; unmarked
   clauses keep priority=0, so every existing instruction_text still parses
@@ -110,7 +200,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   verb ("put"), which is exactly the shape of "if X is Y, put Z on the
   tray" — extracting conditional clauses in a separate pass, before the
   generic splitter runs on what's left, avoids the conflict entirely
-  (see language.py's module docstring for the full explanation).
+  (see instruction_parser.py's module docstring for the full explanation).
 - **Reason:** Direct request to fix the "ordering/priority and conditional
   goals are unimplemented" caveat from `ai-notes/review-request-task-schema.md`.
   Ordering was safe to just build (existing fields, no new schema
@@ -200,8 +290,8 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   "recalibrate a constant."
 - **Consequences:** teleport-on-success remains the manipulation
   abstraction throughout this project, unchanged — grasp mechanics were
-  never load-bearing for any existing result (H2/H3, vision.py,
-  representation.py all operate on privileged/perceptual existence, not
+  never load-bearing for any existing result (H2/H3, clip_feasibility.py,
+  dinov2_probe.py all operate on privileged/perceptual existence, not
   grasp success). If real contact-based confirmation is needed later, the
   actual path is a proper analytic-Jacobian IK solver built on `pinocchio`
   (already installed) against G1's real URDF kinematic chain — not another
@@ -216,7 +306,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Date:** 2026-08-01
 - **Status:** Accepted (toy-scale, single-scene — same caveats as D-020's
   vision layer, see Consequences)
-- **Decision:** Built `representation.py`: `dinov2_embed()` extracts a
+- **Decision:** Built `dinov2_probe.py`: `dinov2_embed()` extracts a
   384-dim CLS-token embedding from DINOv2 ViT-S/14
   (`facebookresearch/dinov2`, self-supervised, no text/labels in its
   training — genuinely different from D-020's CLIP, which is
@@ -229,7 +319,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   ~2 render-producing resets in one process can't be trusted — a real
   obstacle to collecting enough labeled examples for a probe. Worked around
   it rather than either blocking on it or silently risking corrupted data:
-  `_capture_episode_subprocess.py` captures exactly one labeled example per
+  `capture_episode_subprocess.py` captures exactly one labeled example per
   subprocess invocation, so every capture is "the first" render-producing
   reset from the OS's point of view, staying inside the verified-safe zone
   every time. `collect_labeled_examples()` shells out to it per example.
@@ -265,7 +355,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   forced on every reset; unaffected by `sapien.render.clear_cache()`;
   `ambient_light` and light-entity count identical across instantiations
   (ruled out a lighting-value explanation); simple brightness/contrast
-  normalization of the crop does not fix `vision.py`'s resulting
+  normalization of the crop does not fix `clip_feasibility.py`'s resulting
   misclassification; reproduces on **both** `tidy_up_env_replicacad.py` and
   `tidy_up_env_replicacad_humanoid.py` (rules out anything specific to
   either env's own code). Visually confirmed the failure mode is not just
@@ -295,9 +385,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   open bug in a dependency, unfixed even by its own maintainers" — the
   second is a much stronger, more actionable thing to have on record than
   the first.
-- **Consequences:** `vision.py` results are only trustworthy for the first
+- **Consequences:** `clip_feasibility.py` results are only trustworthy for the first
   one or two render-producing resets of these envs in a process — verified
-  by inspecting saved frames directly (`tests/drafts/test_vision.py`'s two
+  by inspecting saved frames directly (`tests/drafts/test_clip_feasibility.py`'s two
   cases both checked this way, see that file's docstring), not merely
   assumed safe. A batch script or notebook that constructs many such env
   instances in a loop and renders each one will hit this and should not
@@ -328,7 +418,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   target objects now land at byte-identical positions across seeds
   {0, 2, 7/15, 42}.
   **Separate finding, not resolved:** while verifying this fix against
-  `vision.py`, rendered frames sometimes came out visibly darker/differently
+  `clip_feasibility.py`, rendered frames sometimes came out visibly darker/differently
   exposed than the known-good look — but this turned out to be unrelated to
   `seed` at all. Creating the *same* env config (`seed=0`, every field
   identical) repeatedly in one Python process gave a correctly-lit render on
@@ -346,7 +436,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Consequences:** Object placement and reachability are now genuinely
   seed-independent in both ReplicaCAD envs — this closes D-018's correction
   note. The rendering/instantiation-order finding is new, real, and
-  unresolved; do not assume `vision.py`'s calibration holds if this env is
+  unresolved; do not assume `clip_feasibility.py`'s calibration holds if this env is
   instantiated with `render_mode` set many times in one process (e.g. a
   batch evaluation loop) without further investigation first.
 
@@ -355,7 +445,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Date:** 2026-07-31
 - **Status:** Accepted (single-scene proof of concept, not a general result —
   see Consequences)
-- **Decision:** Built `vision.py`: `visual_object_exists(frame, object_id)`
+- **Decision:** Built `clip_feasibility.py`: `visual_object_exists(frame, object_id)`
   judges object presence from a rendered camera frame using zero-shot CLIP
   (`open_clip`, ViT-B-32, OpenAI weights — no training), instead of reading
   `WorldState.exists` from the simulator. New dependency, installed clean on
@@ -387,7 +477,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
      seed=2 placed G1 next to a couch and a bicycle, nowhere near the cans.
      Every prior test of that env (D-018) only ever used seed=0, so this was
      never caught until vision work rendered and looked at other seeds.
-     `tests/drafts/test_vision.py` is deliberately seed=0-only because of
+     `tests/drafts/test_clip_feasibility.py` is deliberately seed=0-only because of
      this. Generic prompts ("a photo of a green can") also measurably
      underperformed specific/iconic ones ("a photo of a Spam can") — not a
      bug, but a real, documented CLIP behavior worth knowing.
@@ -414,7 +504,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Date:** 2026-07-30
 - **Status:** Accepted (controlled grammar, not open-ended NLU — scoped
   intentionally, see Consequences)
-- **Decision:** Built `language.py`: `parse_instruction(text, known_objects)`
+- **Decision:** Built `instruction_parser.py`: `parse_instruction(text, known_objects)`
   turns an instruction sentence into a `GoalGraph` via a controlled grammar
   covering the two forms every existing hand-authored graph in this project
   already uses — conjunction ("put X and Y on the tray") and exclusion
@@ -445,7 +535,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   guard-block message. Only `tidy_up_env.py` was switched over; the other
   three environments still build their graphs by hand — the parser already
   reproduces their instruction text exactly (see
-  `tests/drafts/test_language.py`), so switching them over is mechanical,
+  `tests/drafts/test_instruction_parser.py`), so switching them over is mechanical,
   not a further design question. Ordering/priority ("first... then...") and
   conditional goals are explicitly not implemented — no existing instruction
   uses them, and building grammar for them without a driving test case

@@ -1,4 +1,4 @@
-"""Tests for vision.py -- stage 3 of docs/00-project-overview.md's build-up
+"""Tests for clip_feasibility.py -- stage 3 of docs/00-project-overview.md's build-up
 order ("replace the privileged-state oracle with a feasibility judgment
 from images"). Runs the real G1-in-ReplicaCAD-apartment env
 (tidy_up_env_replicacad_humanoid.py), renders an actual camera frame, and
@@ -38,7 +38,7 @@ pytest.importorskip("mani_skill")
 pytest.importorskip("open_clip")
 
 import task_schema_draft  # noqa: E402, F401
-from task_schema_draft.vision import visual_object_exists  # noqa: E402
+from task_schema_draft.clip_feasibility import visual_object_exists  # noqa: E402
 
 def _make_env(seed):
     env = gym.make(

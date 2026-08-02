@@ -32,12 +32,13 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`policy_baselines_replicacad.py`](policy_baselines_replicacad.py) | The same three policies, navigating (not just reaching) to each goal. |
 | [`tidy_up_env_replicacad_humanoid.py`](tidy_up_env_replicacad_humanoid.py) | G1 (fixed-base, no navigation) placed in the same real apartment instead of Fetch — the direct "but this is not a humanoid robot" answer. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1`. |
 | [`policy_baselines_replicacad_humanoid.py`](policy_baselines_replicacad_humanoid.py) | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
-| [`language.py`](language.py) | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
-| [`vision.py`](vision.py) | `visual_object_exists()` — judges object presence from a rendered camera frame using zero-shot CLIP, instead of reading privileged state. Calibrated against `tidy_up_env_replicacad_humanoid.py`. See "Vision layer" below. |
-| [`representation.py`](representation.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. See "Self-supervised representation layer" below. |
-| [`_capture_episode_subprocess.py`](_capture_episode_subprocess.py) | One-shot render capture, run only as a subprocess — works around D-022 (a confirmed upstream ManiSkill3 rendering bug) by making every labeled example the OS's "first" render-producing reset. |
-| [`rl_policy.py`](rl_policy.py) | `train_q_policy()` + `learned_policy()` — tabular Q-learning that discovers "attempt iff feasible" from reward, instead of `feasibility_aware_policy`'s hard-coded rule. See "Learned policy" below. |
+| [`instruction_parser.py`](instruction_parser.py) | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
+| [`clip_feasibility.py`](clip_feasibility.py) | `visual_object_exists()` — judges object presence from a rendered camera frame using zero-shot CLIP, instead of reading privileged state. Calibrated against `tidy_up_env_replicacad_humanoid.py`. See "Vision layer" below. |
+| [`dinov2_probe.py`](dinov2_probe.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. See "Self-supervised representation layer" below. |
+| [`capture_episode_subprocess.py`](capture_episode_subprocess.py) | One-shot render capture, run only as a subprocess — works around D-022 (a confirmed upstream ManiSkill3 rendering bug) by making every labeled example the OS's "first" render-producing reset. |
+| [`rl_policy.py`](rl_policy.py) | `train_q_table()` (env-agnostic; `train_q_table_canonical()` for the tabletop env) + `learned_policy()` — tabular Q-learning that discovers "attempt iff feasible" from reward, instead of `feasibility_aware_policy`'s hard-coded rule. See "Learned policy" below. |
 | [`ik_solver.py`](ik_solver.py) | `solve_right_arm_ik()` + `best_reachable_distance()` — a real analytic-Jacobian IK solver on `pinocchio`, built to retry D-024's grasp confirmation properly. See "Real IK retry" below. |
+| [`end_to_end.py`](end_to_end.py) | `run_end_to_end_episode()` — language parsing, real vision-based feasibility, and a learned policy, combined into one real episode. See "Everything combined" below. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -254,7 +255,7 @@ blocks the substitution at zero recall cost.
 
 ## Language layer (2026-07-30)
 
-`language.py`'s `parse_instruction(text, known_objects)` is stage 2 of the
+`instruction_parser.py`'s `parse_instruction(text, known_objects)` is stage 2 of the
 build-up order in `docs/00-project-overview.md`: turn an instruction
 sentence into a `GoalGraph`, instead of writing one by hand. Controlled
 grammar, not open-ended NLU — covers exactly the two clause forms every
@@ -272,7 +273,7 @@ object-centric scope. An unrecognized clause raises `ValueError` rather than
 being silently dropped: silently ignoring a "do not move X" clause would
 itself be exactly the intent violation this project exists to catch.
 
-Verified three ways (`tests/drafts/test_language.py`):
+Verified three ways (`tests/drafts/test_instruction_parser.py`):
 
 - **Reproduces** all three existing hand-authored graphs (canonical,
   ReplicaCAD, ReplicaCAD-humanoid) from their own `instruction_text`.
@@ -314,7 +315,7 @@ is asking your teammate to weigh in on.
 
 ## Vision layer (2026-07-31)
 
-`vision.py`'s `visual_object_exists(frame, object_id)` is stage 3 of the
+`clip_feasibility.py`'s `visual_object_exists(frame, object_id)` is stage 3 of the
 build-up order in `docs/00-project-overview.md`: judge feasibility from a
 rendered image instead of privileged state, starting with any working
 pretrained model — zero-shot CLIP (`open_clip`, ViT-B-32, OpenAI weights),
@@ -349,7 +350,7 @@ Getting this to work at all took four real findings, none assumed going in:
   loads a different room per seed — rendering seed=2 placed G1 next to a
   couch and a bicycle, nowhere near the cans. Every prior test of that env
   (D-018) only ever used seed=0, so this was never caught until vision work
-  rendered and looked at other seeds. `tests/drafts/test_vision.py` is
+  rendered and looked at other seeds. `tests/drafts/test_clip_feasibility.py` is
   deliberately seed=0-only because of this — see D-020 in
   `ai-notes/decisions.md`.
 
@@ -400,16 +401,16 @@ specifically the YCB-object-loading environments, breaking after the
 count render-producing resets and warn past the point actually verified
 safe (`_render_producing_reset_count` in each file), citing the upstream
 issue directly, converting a silent wrong answer into a loud one.
-`tests/drafts/test_vision.py` keeps exactly two render-producing resets and
+`tests/drafts/test_clip_feasibility.py` keeps exactly two render-producing resets and
 both were visually re-verified against saved frames directly, not just
 trusted from the CLIP score.
 
 ## Self-supervised representation layer (2026-08-01)
 
-`representation.py` is stage 4 of the build-up order in
+`dinov2_probe.py` is stage 4 of the build-up order in
 `docs/00-project-overview.md`: swap in a representation learned from
 unlabeled data, once stage 3 (any working pretrained model) works at all.
-Deliberately a different kind of model from vision.py's CLIP, not just a
+Deliberately a different kind of model from clip_feasibility.py's CLIP, not just a
 bigger one — DINOv2 (`facebookresearch/dinov2`, ViT-S/14) is trained with
 **no text or labels whatsoever**, purely self-supervised on images. It has
 no built-in notion of "coffee can" or "exists" the way CLIP's zero-shot
@@ -426,7 +427,7 @@ representation that was never told what any of these words mean.
 D-022's confirmed upstream rendering bug caps safe render-producing resets
 at roughly 2 per process — nowhere near enough to collect a probing
 dataset. Worked around it rather than blocking on it:
-`_capture_episode_subprocess.py` captures exactly one labeled example and
+`capture_episode_subprocess.py` captures exactly one labeled example and
 exits, so every invocation is the OS's "first" render-producing reset and
 stays inside the verified-safe zone regardless of how many examples get
 collected in total. Slow (~6s/example, since each is a fresh SAPIEN+torch
@@ -464,8 +465,8 @@ through the render camera's own intrinsic/extrinsic matrices to get exact
 pixel coordinates. Needed this time because `potted_meat_can` turned out
 to be sitting inside a sink basin — small, low-contrast, and easy to miss
 by eye at this resolution; `master_chef_can` sits in the open on a
-counter, more like the original scene. `vision.py`'s `_OBJECT_VISUAL_CONFIG`
-is now keyed per scene variant; `representation.py`'s
+counter, more like the original scene. `clip_feasibility.py`'s `_OBJECT_VISUAL_CONFIG`
+is now keyed per scene variant; `dinov2_probe.py`'s
 `collect_labeled_examples()` takes the same `scene_variant` argument.
 
 Result: zero-shot CLIP matches oracle feasibility on "kitchen_sink" the
@@ -474,7 +475,7 @@ Deliberately *not* recalibrated for this layout: reach configs, tray
 position, or the goal graph — this addition is vision/rendering-only;
 using "kitchen_sink" with the reach-dependent policy baselines is
 untested. `test_vision_kitchen_sink.py` uses subprocess-isolated capture
-(like representation.py), not in-process rendering — test_vision.py
+(like dinov2_probe.py), not in-process rendering — test_clip_feasibility.py
 already spends this process's entire D-022 render-budget (2) on the
 original scene, so testing a second variant in the same process would
 exceed it.
@@ -565,9 +566,53 @@ the unreachability finding as regression tests, and the solver itself is
 reusable if this project ever needs real IK for a different object/scene
 combination where the geometry might actually allow it.
 
+## Everything combined (2026-08-02)
+
+D-029: stage 6 of the build-up order, and the last one — combine language,
+vision, and the learned policy into one real episode instead of five
+demonstrations that happen to share a codebase. `end_to_end.py`, for each
+goal: `parse_instruction()` (D-019/D-026) turns the instruction into a
+`GoalGraph`; a real rendered frame plus `visual_object_exists()` (D-020)
+judges feasibility — not a privileged-state read; a Q-table trained the
+same way D-025's was (retrained here for this env's parser-generated goal
+ids, since `place_potted_meat_can`/`place_master_chef_can` aren't the same
+ids as the canonical env's `place_mug`/`place_bowl`) decides attempt vs.
+skip from that *perceived* feasibility; `attempt_goal()` executes the
+decision with real arm motion, unchanged.
+
+Result: matches oracle exactly on a live episode. `potted_meat_can`
+(perceived feasible, matches oracle) gets attempted and achieved.
+`master_chef_can` (perceived infeasible after the scripted destruction,
+matches oracle) gets skipped at zero cost. The same H2 result every
+earlier stage already produced — the point here isn't a new number, it's
+that nothing in the *live* decision path reads privileged state anymore.
+
+Training itself still reads privileged state — disclosed, not hidden.
+Training the decision *rule* ("attempt iff feasible") doesn't need real
+pixels for this toy case; training against real rendered rollouts would
+need hundreds of render-producing resets, which D-022's confirmed upstream
+rendering bug makes impractical. So: cheap privileged-state training,
+genuinely perceptual evaluation.
+
+**Found and fixed the same bug D-025 already found once**, by not
+re-applying its own fix here: skipping the first goal via exploration
+shortens elapsed time before the second goal's feasibility check, which
+can read `feasible=True` correctly at check-time only for the intervention
+to fire mid-attempt. Caught directly, not assumed — `("place_master_chef_can",
+True)` converged to a *negative* Q-value, which should never happen for a
+feasible goal. Fixed the same way (`_wait()`, keeping elapsed time
+consistent regardless of which action gets explored).
+
+**Not wired in:** `dinov2_probe.py`'s DINOv2 probe (D-023) as an
+alternative to CLIP for the live perception step. It needs a probe
+pre-fit on multiple labeled examples, not a single-frame judgment the way
+CLIP's zero-shot scoring is — swapping it in would add real complexity for
+a demonstration that already has what it needs. It remains a
+separately-validated alternative perceptual backend, not integrated here.
+
 ## What this deliberately doesn't cover yet
 
-- ~~Ordering/priority and conditional goals~~ — filled in (D-026): `language.py`
+- ~~Ordering/priority and conditional goals~~ — filled in (D-026): `instruction_parser.py`
   handles both. `Goal.condition` (conditional goals) is a schema change and
   is explicitly PROPOSED, not Accepted — see `ai-notes/review-request-task-schema.md`.
 - **Preferences** (soft, non-binding wishes, as opposed to hard goals/constraints)

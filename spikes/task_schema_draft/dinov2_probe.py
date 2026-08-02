@@ -2,9 +2,9 @@
 representation learned from unlabeled data, once stage 3 (any working
 pretrained visual model) works at all.
 
-Deliberately different from vision.py's approach, not just a bigger model:
+Deliberately different from clip_feasibility.py's approach, not just a bigger model:
 CLIP is trained with *language* supervision (image-text pairs) -- its
-zero-shot judgment in vision.py works by comparing an image against a
+zero-shot judgment in clip_feasibility.py works by comparing an image against a
 hand-written text prompt. DINOv2 (`facebookresearch/dinov2`, ViT-S/14) is
 trained with **no labels or text at all** -- purely self-supervised on
 images. It has no notion of "coffee can" or "existence." The only way to
@@ -17,9 +17,9 @@ Getting labeled examples here is unusually constrained, not incidental:
 D-022 (ai-notes/decisions.md) is a confirmed, open, unfixed upstream
 ManiSkill3 bug where this env's rendered frames desync from the actual
 scene after roughly the second render-producing reset in one process.
-vision.py's tests stay inside that safe budget (2 renders, one process).
+clip_feasibility.py's tests stay inside that safe budget (2 renders, one process).
 A probe needs more examples than that, so `collect_labeled_examples()`
-below spawns a fresh subprocess per example (`_capture_episode_subprocess.py`)
+below spawns a fresh subprocess per example (`capture_episode_subprocess.py`)
 -- each one is always "the first" render-producing reset from the OS's
 point of view, which is the only way to collect more than ~2 examples
 without risking silently-corrupted training data.
@@ -44,9 +44,9 @@ from pathlib import Path
 
 import numpy as np
 
-from task_schema_draft.vision import _OBJECT_VISUAL_CONFIG
+from task_schema_draft.clip_feasibility import _OBJECT_VISUAL_CONFIG
 
-_CAPTURE_SCRIPT = Path(__file__).parent / "_capture_episode_subprocess.py"
+_CAPTURE_SCRIPT = Path(__file__).parent / "capture_episode_subprocess.py"
 
 
 @lru_cache(maxsize=1)

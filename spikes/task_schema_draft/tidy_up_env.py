@@ -17,7 +17,7 @@ detected change implies abandonment":
 
 - `bowl_destroyed` (irreversible): removes blue_bowl mid-episode — the
   place_blue_bowl goal becomes infeasible; place_red_mug does not. (Goal ids
-  come from language.py's parser now, not hand-authored — see goal_graph.py's
+  come from instruction_parser.py's parser now, not hand-authored — see goal_graph.py's
   canonical_example() docstring.)
 - `temporary_obstacle` (reversible/matched control): spawns a distractor
   object near the tray, then removes it again a few steps later — a
@@ -44,7 +44,7 @@ from mani_skill.utils.registration import register_env
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 
 from task_schema_draft.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
-from task_schema_draft.language import parse_instruction
+from task_schema_draft.instruction_parser import parse_instruction
 from task_schema_draft.oracle_feasibility import ObjectState, WorldState, evaluate_goal_graph
 
 _OBJECT_SPECS = {

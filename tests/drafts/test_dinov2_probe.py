@@ -1,8 +1,8 @@
-"""Tests for representation.py -- stage 4 of docs/00-project-overview.md's
+"""Tests for dinov2_probe.py -- stage 4 of docs/00-project-overview.md's
 build-up order ("swap in a representation learned from unlabeled data").
 
 Slow: each example is a subprocess that boots ManiSkill + SAPIEN fresh (see
-representation.py's module docstring for why -- D-022, a confirmed upstream
+dinov2_probe.py's module docstring for why -- D-022, a confirmed upstream
 rendering bug, makes that the only reliable way to collect more than ~2
 labeled examples). Kept to the minimum example count that still gives
 leave-one-out cross-validation something meaningful to hold out.
@@ -14,7 +14,7 @@ pytest.importorskip("mani_skill")
 pytest.importorskip("torch")
 pytest.importorskip("sklearn")
 
-from task_schema_draft.representation import (  # noqa: E402
+from task_schema_draft.dinov2_probe import (  # noqa: E402
     collect_labeled_examples,
     dinov2_embed,
     fit_and_evaluate_probe,
@@ -31,7 +31,7 @@ class TestDinov2Embedding:
 
 
 class TestLinearProbeOnSelfSupervisedFeatures:
-    """Same underlying claim as vision.py's tests -- does a feasibility
+    """Same underlying claim as clip_feasibility.py's tests -- does a feasibility
     signal derived from pixels match privileged state? -- but from a
     representation with no language/label supervision at all, evaluated by
     fitting a probe instead of prompting."""

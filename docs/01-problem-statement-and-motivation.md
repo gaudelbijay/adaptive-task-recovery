@@ -45,7 +45,7 @@ unrequested object, or violate the glass constraint for reward.
   feasibility prediction and held-out-change generalization over pixels trained
   only through task reward and standard supervised features. **First toy-scale
   test (2026-08-01):** see D-023 in `ai-notes/decisions.md` and
-  `spikes/task_schema_draft/representation.py` — a DINOv2 (self-supervised,
+  `spikes/task_schema_draft/dinov2_probe.py` — a DINOv2 (self-supervised,
   no text/label supervision) linear probe separates object-present from
   object-absent at least as well as zero-shot CLIP did (D-020) on the same
   task. Not a comparison against "pixels trained only through task reward,"

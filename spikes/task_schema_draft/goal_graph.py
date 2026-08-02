@@ -28,8 +28,8 @@ class Goal:
     # required_exists). goal_feasible() treats the goal as infeasible
     # outright if state[object_id].exists != required_exists, before even
     # checking the goal's own target_object. Lets an instruction express
-    # "if X is destroyed, do Y instead" -- see language.py's conditional
-    # clause grammar and oracle_feasibility.py's goal_feasible().
+    # "if X is destroyed, do Y instead" -- see instruction_parser.py's
+    # conditional clause grammar and oracle_feasibility.py's goal_feasible().
     condition: tuple[str, bool] | None = None
 
 
@@ -69,10 +69,11 @@ def canonical_example() -> GoalGraph:
     valid agent infers the bowl goal is infeasible, still places the mug,
     and never moves the glass merely because it offers an easier route.
 
-    Hand-authored: this is the reference language.py's parser is checked
-    against (see tests/drafts/test_language.py), not itself produced by
-    parsing. tidy_up_env.py uses parse_instruction(CANONICAL_INSTRUCTION_TEXT,
-    CANONICAL_OBJECTS) instead of this function, for a real one."""
+    Hand-authored: this is the reference instruction_parser.py's parser is
+    checked against (see tests/drafts/test_instruction_parser.py), not
+    itself produced by parsing. tidy_up_env.py uses
+    parse_instruction(CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS)
+    instead of this function, for a real one."""
     return GoalGraph(
         instruction_text=CANONICAL_INSTRUCTION_TEXT,
         goals=(

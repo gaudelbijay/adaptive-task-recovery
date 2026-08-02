@@ -6,10 +6,14 @@ feasibility side)
 from `spikes/task_schema_draft/` into `src/atr/` as committed architecture,
 or needs changes first.
 **Why now:** D-013 has said "needs review with teammate before Accepted"
-since 2026-07-29. Everything since (D-014 through D-028) is built on top of
-that unreviewed schema — five separate build-up stages now pass a combined
-test suite, which makes this a natural point to actually get the review
-rather than keep building further on an unconfirmed foundation.
+since 2026-07-29. Everything since (D-014 through D-029) is built on top of
+that unreviewed schema — all six build-up stages now pass a combined test
+suite (97 tests), including a real end-to-end pass (D-029) that combines
+language parsing, real vision-based feasibility, and a learned policy in
+one episode with nothing privileged in the live decision loop. This is
+about as far as this line of work can reasonably go without the review —
+a natural point to actually get it rather than keep building further on an
+unconfirmed foundation.
 
 ## What's being proposed
 
@@ -43,18 +47,18 @@ the schema, not part of it.
   G1 placed in that same real apartment (D-018). Same H2/H3 results all
   four times, once real placement/navigation bugs were found and fixed
   (D-018, D-021).
-- **Language**: a controlled-grammar parser (`language.py`, D-019)  turns
+- **Language**: a controlled-grammar parser (`instruction_parser.py`, D-019)  turns
   an instruction sentence into a `GoalGraph`, instead of one being
   hand-written — reproduces all existing hand-authored graphs from their
   own text and generalizes to held-out paraphrases and a held-out object
   composition. Extended (D-026) to handle ordering/priority ("first X,
   then Y") and conditional goals ("if X is destroyed, do Y instead").
-- **Vision**: zero-shot CLIP (`vision.py`, D-020) judges object presence
+- **Vision**: zero-shot CLIP (`clip_feasibility.py`, D-020) judges object presence
   from a rendered frame instead of privileged state, matching oracle
   feasibility on the cases tested. Now validated on a second, independently
   calibrated scene layout too (D-027), not just one.
 - **Self-supervised representation**: a DINOv2 (no text/label supervision)
-  linear probe (`representation.py`, D-023) separates object-present from
+  linear probe (`dinov2_probe.py`, D-023) separates object-present from
   object-absent at least as well as CLIP did, on the same task. Grown to a
   20-example headline result and also supports the second scene layout.
 - **Learned policy**: tabular Q-learning (`rl_policy.py`, D-025), trained
@@ -68,10 +72,16 @@ the schema, not part of it.
   position in this scene. Included here because a review of "what's been
   validated" should include a well-investigated negative result, not just
   the wins.
+- **Everything combined, D-029**: `end_to_end.py` runs one real episode
+  where the instruction is parsed, feasibility comes from a rendered frame
+  (not privileged state), and a trained Q-table (not a hard-coded rule)
+  decides what to attempt — matches oracle exactly. This is the last stage
+  in the build-up order this schema has been developed against; there
+  isn't a natural next increment to build without your review first.
 
 Full narrative, in order, with what broke and how it got fixed at each
 step: `spikes/task_schema_draft/README.md`. Full rationale for each
-decision: `ai-notes/decisions.md`, D-013 through D-028.
+decision: `ai-notes/decisions.md`, D-013 through D-029.
 
 ## Specific questions worth your judgment
 
@@ -100,7 +110,7 @@ decision: `ai-notes/decisions.md`, D-013 through D-028.
 
 - **Everything is toy-scale.** One canonical instruction (plus its
   ReplicaCAD/humanoid variants), a handful of objects, small sample sizes
-  throughout (e.g. representation.py's probe: grown to 20 examples, still
+  throughout (e.g. dinov2_probe.py's probe: grown to 20 examples, still
   not a statistical claim). See each decision's own "Consequences" section.
 - **D-022: a confirmed, open, unfixed upstream ManiSkill3 rendering bug**
   (haosulab/ManiSkill#1150) limits how many rendered frames can be trusted
@@ -131,7 +141,7 @@ decision: `ai-notes/decisions.md`, D-013 through D-028.
 ```
 cd spikes/task_schema_draft
 cat README.md                      # full narrative, in order
-python -m pytest ../../tests/ -q   # ~95 tests, ~5 minutes on this machine
+python -m pytest ../../tests/ -q   # 97 tests, ~7 minutes on this machine
 ```
 
 Needs the `.maniskill` pyenv virtualenv
