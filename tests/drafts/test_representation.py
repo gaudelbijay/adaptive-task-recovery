@@ -37,12 +37,16 @@ class TestLinearProbeOnSelfSupervisedFeatures:
     fitting a probe instead of prompting."""
 
     def test_probe_separates_present_from_absent(self):
+        # 6+6, not the 3+3 this started at -- grown per ai-notes/decisions.md
+        # D-026 (a live demonstration run at 10+10 also passed, 100% LOO
+        # accuracy; kept the test itself smaller to bound runtime, ~75s here
+        # vs ~125s at 10+10).
         examples = collect_labeled_examples(
-            "master_chef_can", n_present=3, n_absent=3, seed_start=100
+            "master_chef_can", n_present=6, n_absent=6, seed_start=100
         )
-        assert sum(label for _, label in examples) == 3  # sanity: labels as expected
+        assert sum(label for _, label in examples) == 6  # sanity: labels as expected
         result = fit_and_evaluate_probe(examples)
-        assert result["accuracy"] >= 5 / 6, (
+        assert result["accuracy"] >= 10 / 12, (
             f"leave-one-out accuracy only {result['accuracy']}, "
             f"predictions={result['predictions']} labels={result['labels']}"
         )

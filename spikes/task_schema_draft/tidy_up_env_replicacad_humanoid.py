@@ -90,7 +90,32 @@ _LAST_KNOWN_POSITIONS = {
 # searching torch seed values (0-14) at that fixed build/init config for one
 # that keeps both target objects actually placed (not hidden at z=-10000);
 # seed 0 reproduces the exact original layout.
-_SCENE_BUILD_CONFIG_IDX = 59
+#
+# D-027: a *second* calibrated layout ("kitchen_sink"), added specifically to
+# answer the caveat that vision.py/representation.py were only ever
+# validated on one scene. build_config_idx=55 chosen the same way as 59 --
+# searched under the real class's actual two-pin torch.manual_seed pattern
+# (D-021's own lesson: a naive single-pin search gives different, wrong
+# results), for a config where both target objects are placed and close
+# together. Only vision/rendering are recalibrated for it (base pose,
+# camera, vision.py's crops) -- reach configs and tray position are NOT,
+# since arm-reach/grasp was never what this second layout was for; using
+# "kitchen_sink" with the reach-dependent policy baselines is out of scope
+# and untested.
+_SCENE_CONFIGS = {
+    "kitchen_cabinet": {
+        "build_config_idx": 59,
+        "base_pose": [0.55, 0.23, 0.755],
+        "camera_eye": [1.3, -0.3, 1.6],
+        "camera_target": [0.55, 0.23, 0.8],
+    },
+    "kitchen_sink": {
+        "build_config_idx": 55,
+        "base_pose": [-1.77, -1.03, 0.755],
+        "camera_eye": [-1.3, -0.5, 2.4],
+        "camera_target": [-2.0, -1.3, 0.85],
+    },
+}
 _SCENE_INIT_CONFIG_IDX = 0
 _SCENE_TORCH_SEED = 0
 
@@ -115,12 +140,13 @@ _render_producing_reset_count = 0
 # than assume the more generous case.
 _RENDER_SAFE_LIMIT = 1
 
-# Base position chosen for having real open floor clearance nearby (checked
-# via raycast: only 2 of 12 directional rays hit anything within 0.5m, the
-# most open of five candidates tried — see README) and for having both goal
-# objects within ~0.3m of the chosen standing spot, within this arm's
-# reachable envelope.
-_G1_BASE_POSE = [0.55, 0.23, 0.755]
+# "kitchen_cabinet"'s base position was chosen for having real open floor
+# clearance nearby (checked via raycast: only 2 of 12 directional rays hit
+# anything within 0.5m, the most open of five candidates tried — see
+# README) and for having both goal objects within ~0.3m of the chosen
+# standing spot, within this arm's reachable envelope. "kitchen_sink"'s
+# base position (D-027) was raycast-checked the same way but is NOT
+# reach-calibrated -- see _SCENE_CONFIGS above.
 
 # Reach targets don't need to be precise -- a successful attempt teleports
 # the object onto the tray regardless of exact final tcp position, same
@@ -143,7 +169,9 @@ _NEUTRAL_QPOS = np.zeros(25, dtype=np.float32)
 def replicacad_humanoid_example() -> GoalGraph:
     """Same schema shape as goal_graph.canonical_example() / replicacad_example()
     — two goals, one never-move constraint, one maintain-orientation
-    constraint — instantiated on real objects reachable from _G1_BASE_POSE."""
+    constraint — instantiated on real objects reachable from the
+    "kitchen_cabinet" scene's base position (the only variant reach configs
+    exist for)."""
     return GoalGraph(
         instruction_text=(
             "Put the potted meat can and the master chef can on the tray, "
@@ -174,7 +202,8 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         # SceneManipulationEnv's own default camera is tuned for its usual
         # fetch/panda setup and doesn't frame G1's fixed standing spot well
         # (confirmed by inspecting a rendered frame — mostly ceiling/floor).
-        pose = sapien_utils.look_at([1.3, -0.3, 1.6], [0.55, 0.23, 0.8])
+        cfg = _SCENE_CONFIGS[self._scene_variant]
+        pose = sapien_utils.look_at(cfg["camera_eye"], cfg["camera_target"])
         return CameraConfig("render_camera", pose, 512, 512, 1, 0.01, 100)
 
     def __init__(
@@ -183,12 +212,14 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         intervention_kind: Literal["chef_can_destroyed", "temporary_obstacle", "none"] = "chef_can_destroyed",
         onset_step_range: tuple[int, int] = (4, 6),
         obstacle_duration_steps: int = 10,
+        scene_variant: Literal["kitchen_cabinet", "kitchen_sink"] = "kitchen_cabinet",
         **kwargs,
     ):
         self.intervention_kind = intervention_kind
         self.onset_step_range = onset_step_range
         self.obstacle_duration_steps = obstacle_duration_steps
         self.goal_graph = replicacad_humanoid_example()
+        self._scene_variant = scene_variant
         self._exists: dict[str, bool] = {}
         self._onset_step: int | None = None
         self._elapsed_control_steps = 0
@@ -196,10 +227,12 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         self._obstacle = None
         self._obstacle_remove_step: int | None = None
         self._initial_state: WorldState | None = None
-        # Force the calibrated layout regardless of caller-supplied values --
-        # G1's base pose, camera, and vision.py's crops are meaningless on
-        # any other layout (see module docstring "Scene layout is pinned").
-        kwargs["build_config_idxs"] = [_SCENE_BUILD_CONFIG_IDX]
+        # Force the calibrated layout regardless of other caller-supplied
+        # values -- G1's base pose, camera, and vision.py's crops are
+        # meaningless on any other layout (see module docstring "Scene
+        # layout is pinned"). Which of the two calibrated layouts is up to
+        # scene_variant, not the caller's own build_config_idxs.
+        kwargs["build_config_idxs"] = [_SCENE_CONFIGS[scene_variant]["build_config_idx"]]
         kwargs["init_config_idxs"] = [_SCENE_INIT_CONFIG_IDX]
         super().__init__(
             *args, robot_uids="unitree_g1_simplified_upper_body_with_head_camera",
@@ -269,7 +302,7 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
                 del self.agent.keyframes["rest"]
         with torch.device(self.device):
             self.agent.robot.set_qpos(self.agent.keyframes["standing"].qpos)
-            self.agent.robot.set_pose(sapien.Pose(p=_G1_BASE_POSE))
+            self.agent.robot.set_pose(sapien.Pose(p=_SCENE_CONFIGS[self._scene_variant]["base_pose"]))
 
         seed = int(self._episode_rng.randint(0, 2**31 - 1))
         rng = np.random.default_rng(seed)

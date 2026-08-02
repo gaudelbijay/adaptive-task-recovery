@@ -6,7 +6,7 @@ feasibility side)
 from `spikes/task_schema_draft/` into `src/atr/` as committed architecture,
 or needs changes first.
 **Why now:** D-013 has said "needs review with teammate before Accepted"
-since 2026-07-29. Everything since (D-014 through D-025) is built on top of
+since 2026-07-29. Everything since (D-014 through D-028) is built on top of
 that unreviewed schema — five separate build-up stages now pass a combined
 test suite, which makes this a natural point to actually get the review
 rather than keep building further on an unconfirmed foundation.
@@ -22,8 +22,14 @@ simulator-independent implementation of feasibility and constraint-violation
 checking against that schema. `intent_guard.py` blocks actions that would
 violate a constraint unless a real goal requires them.
 
-That's the entire proposal. Everything else in `spikes/task_schema_draft/`
-is evidence for or against it, not part of the schema itself.
+That's the entire proposal, plus one addition since the first draft of
+this document: `Goal.condition: tuple[str, bool] | None` (D-026) — gates
+whether a goal is "in play" at all this episode, for "if X is destroyed,
+do Y instead" instructions. Flagged the same way D-013's original fields
+are — PROPOSED, not Accepted, needing exactly this review.
+
+Everything else in `spikes/task_schema_draft/` is evidence for or against
+the schema, not part of it.
 
 ## What's been validated against it
 
@@ -37,24 +43,35 @@ is evidence for or against it, not part of the schema itself.
   G1 placed in that same real apartment (D-018). Same H2/H3 results all
   four times, once real placement/navigation bugs were found and fixed
   (D-018, D-021).
-- **Language**: a controlled-grammar parser (`language.py`, D-019) turns
+- **Language**: a controlled-grammar parser (`language.py`, D-019)  turns
   an instruction sentence into a `GoalGraph`, instead of one being
   hand-written — reproduces all existing hand-authored graphs from their
   own text and generalizes to held-out paraphrases and a held-out object
-  composition.
+  composition. Extended (D-026) to handle ordering/priority ("first X,
+  then Y") and conditional goals ("if X is destroyed, do Y instead").
 - **Vision**: zero-shot CLIP (`vision.py`, D-020) judges object presence
   from a rendered frame instead of privileged state, matching oracle
-  feasibility on the cases tested.
+  feasibility on the cases tested. Now validated on a second, independently
+  calibrated scene layout too (D-027), not just one.
 - **Self-supervised representation**: a DINOv2 (no text/label supervision)
   linear probe (`representation.py`, D-023) separates object-present from
-  object-absent at least as well as CLIP did, on the same task.
+  object-absent at least as well as CLIP did, on the same task. Grown to a
+  20-example headline result and also supports the second scene layout.
 - **Learned policy**: tabular Q-learning (`rl_policy.py`, D-025), trained
   on real environment rollouts, discovers "attempt iff feasible" from
   reward alone and matches the hand-coded rule exactly.
+- **Real IK, tried and honestly reported as insufficient**: D-024/D-028
+  built a proper analytic-Jacobian IK solver (`ik_solver.py`, on
+  `pinocchio`, verified against ManiSkill's own kinematics) to attempt real
+  contact-based grasp confirmation. Confirmed, not guessed: neither target
+  object is within real reach of G1's arm from any reasonable standing
+  position in this scene. Included here because a review of "what's been
+  validated" should include a well-investigated negative result, not just
+  the wins.
 
 Full narrative, in order, with what broke and how it got fixed at each
 step: `spikes/task_schema_draft/README.md`. Full rationale for each
-decision: `ai-notes/decisions.md`, D-013 through D-025.
+decision: `ai-notes/decisions.md`, D-013 through D-028.
 
 ## Specific questions worth your judgment
 
@@ -63,11 +80,19 @@ decision: `ai-notes/decisions.md`, D-013 through D-025.
    that's all any worked example so far has needed. Does your side of the
    work (representation/feasibility) need anything the schema doesn't
    currently express?
-2. **Priorities and dependencies are schema fields nobody has exercised.**
-   `Goal.priority` and `Goal.depends_on` exist per docs/04's requirement but
-   every example so far has equal-priority, independent goals. Worth a real
-   example that uses them before trusting the fields are shaped right?
-3. **Is toy-scale, single-instruction, single-scene evidence enough to
+2. **Is `Goal.condition` (D-026) the right shape for conditional goals?**
+   It's a single (object_id, required_exists) pair checked against
+   privileged state — the simplest thing that could support "if X is
+   destroyed, do Y instead". Does it need to reference another *goal's*
+   feasibility instead of an object's existence directly, or support more
+   than one condition, or something else entirely? This is the one piece
+   of schema surface added since the first draft of this document, and
+   it's the one most worth your scrutiny specifically.
+3. **`Goal.depends_on` is still an unexercised schema field.**
+   `Goal.priority` now has a real example (D-026); `depends_on` (ordering
+   dependencies between goals, not scoring priority) still doesn't. Worth
+   a real example that uses it before trusting the field is shaped right?
+4. **Is toy-scale, single-instruction, two-scene evidence enough to
    promote this to `src/`?** Or does moving it there imply a confidence
    level none of this actually supports yet?
 
@@ -75,30 +100,38 @@ decision: `ai-notes/decisions.md`, D-013 through D-025.
 
 - **Everything is toy-scale.** One canonical instruction (plus its
   ReplicaCAD/humanoid variants), a handful of objects, small sample sizes
-  throughout (e.g. representation.py's probe: 8 examples). None of this is
-  a statistical claim — see each decision's own "Consequences" section.
-- **Ordering/priority and conditional goals are unimplemented**, not just
-  untested — `language.py` has no grammar for them (D-019).
+  throughout (e.g. representation.py's probe: grown to 20 examples, still
+  not a statistical claim). See each decision's own "Consequences" section.
 - **D-022: a confirmed, open, unfixed upstream ManiSkill3 rendering bug**
   (haosulab/ManiSkill#1150) limits how many rendered frames can be trusted
   per process for the real-scene envs. Guarded with a runtime warning, not
-  fixed — can't be fixed here.
-- **D-024: real contact/tactile grasp confirmation was attempted and found
-  infeasible** with current tooling (G1's reach can't get close enough to
-  the object for real contact; a closed-loop IK solver built to fix this
-  converged unreliably). `teleport-on-success` remains the manipulation
-  abstraction everywhere — no existing result depends on real grasp
-  precision, but this is a real, acknowledged gap, not a hidden one.
-- **The vision/representation work is calibrated to one specific scene
-  layout** (D-021 pinned it deliberately, for reasons specific to G1's
-  placement) — not a generalization test.
+  fixed — genuinely can't be fixed here (it's in a dependency, not this
+  project's code).
+- **D-024/D-028: real contact/tactile grasp confirmation was attempted
+  twice and confirmed infeasible**, not just "not yet working." The second
+  attempt used a proper analytic-Jacobian IK solver (verified against
+  ManiSkill's own kinematics, fully deterministic) with a wide
+  random-restart search across candidate base positions — neither target
+  object comes within real contact range of G1's arm from any reasonable
+  standing position in this scene. `teleport-on-success` remains the
+  manipulation abstraction everywhere — no existing result depends on real
+  grasp precision, but this is a real, now well-confirmed gap, not a
+  hidden one.
+- **The vision/representation work is calibrated to two specific scene
+  layouts, not a distribution over layouts** (D-021 pinned scene layout
+  deliberately, for reasons specific to G1's placement; D-027 added a
+  second one specifically so this wasn't validated on only one) — still
+  not a generalization test in any statistical sense.
+- **`Goal.condition` (D-026) is new schema surface, added since this
+  document was first written, and is explicitly not yet reviewed** — see
+  question 2 above.
 
 ## How to look at this yourself
 
 ```
 cd spikes/task_schema_draft
 cat README.md                      # full narrative, in order
-python -m pytest ../../tests/ -q   # 79 tests, ~4 minutes on this machine
+python -m pytest ../../tests/ -q   # ~95 tests, ~5 minutes on this machine
 ```
 
 Needs the `.maniskill` pyenv virtualenv

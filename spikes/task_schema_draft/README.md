@@ -37,6 +37,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`representation.py`](representation.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. See "Self-supervised representation layer" below. |
 | [`_capture_episode_subprocess.py`](_capture_episode_subprocess.py) | One-shot render capture, run only as a subprocess — works around D-022 (a confirmed upstream ManiSkill3 rendering bug) by making every labeled example the OS's "first" render-producing reset. |
 | [`rl_policy.py`](rl_policy.py) | `train_q_policy()` + `learned_policy()` — tabular Q-learning that discovers "attempt iff feasible" from reward, instead of `feasibility_aware_policy`'s hard-coded rule. See "Learned policy" below. |
+| [`ik_solver.py`](ik_solver.py) | `solve_right_arm_ik()` + `best_reachable_distance()` — a real analytic-Jacobian IK solver on `pinocchio`, built to retry D-024's grasp confirmation properly. See "Real IK retry" below. |
 
 ## The two interventions (matched, per docs/04)
 
@@ -293,6 +294,24 @@ graphs by hand; the parser already reproduces their instruction text
 exactly, so switching them over is mechanical, not a further design
 question.
 
+**Ordering/priority and conditional goals, added 2026-08-01 (D-026).**
+"First put the mug on the tray, then put the bowl on the tray" assigns
+sequential `Goal.priority` in order of appearance among order-marked
+clauses; unmarked clauses keep priority=0, so nothing existing changed.
+"If the blue bowl is destroyed, put the backup bowl on the tray instead"
+sets a new field, `Goal.condition = (trigger_object_id, required_exists)`
+— checked by `oracle_feasibility.py`'s `goal_feasible()` before the goal's
+own target object even matters. Real design snag, found by testing: the
+generic clause splitter breaks any comma right before a recognized verb
+("put"), which is exactly the shape of "if X is Y, put Z on the tray" — so
+conditional clauses get extracted in a separate pass *before* the generic
+splitter runs on whatever's left, rather than being just another branch in
+the normal clause classifier. `Goal.condition` is a schema change, and is
+explicitly marked PROPOSED, not Accepted — same "needs review" status
+D-013 itself has (see `ai-notes/review-request-task-schema.md`); adding it
+doesn't get to unilaterally settle the exact question that review request
+is asking your teammate to weigh in on.
+
 ## Vision layer (2026-07-31)
 
 `vision.py`'s `visual_object_exists(frame, object_id)` is stage 3 of the
@@ -422,6 +441,44 @@ intervention has fired. 100% accuracy on 8 easy, low-noise examples is the
 minimum bar this stage needed to clear, not evidence the representation
 generalizes to new objects, layouts, or lighting.
 
+Grown to a 20-example headline result (D-026 changelog, same 100% LOO
+accuracy) — the test itself stays smaller (6+6) to bound runtime.
+
+## Second scene layout (2026-08-01)
+
+D-027: a second calibrated apartment layout, "kitchen_sink"
+(`build_config_idx=55`), added directly in response to the "not a
+generalization test" caveat above — one scene is still not a real
+distribution, but it's a genuine second data point instead of none.
+Selected via `tidy_up_env_replicacad_humanoid.py`'s new `scene_variant`
+constructor argument (`"kitchen_cabinet"` default, so every existing call
+site is unaffected). Found the same way `build_config_idx=59` originally
+was — but this time searched under the class's *real* two-pin
+`torch.manual_seed` pattern from the start (D-021's own lesson: a naive
+single-pin search gives different, wrong answers, learned once already and
+nearly repeated here).
+
+Calibration used a more precise method than the original scene's
+(which found crops by eye): projected each object's known world position
+through the render camera's own intrinsic/extrinsic matrices to get exact
+pixel coordinates. Needed this time because `potted_meat_can` turned out
+to be sitting inside a sink basin — small, low-contrast, and easy to miss
+by eye at this resolution; `master_chef_can` sits in the open on a
+counter, more like the original scene. `vision.py`'s `_OBJECT_VISUAL_CONFIG`
+is now keyed per scene variant; `representation.py`'s
+`collect_labeled_examples()` takes the same `scene_variant` argument.
+
+Result: zero-shot CLIP matches oracle feasibility on "kitchen_sink" the
+same way it did on "kitchen_cabinet" (`test_vision_kitchen_sink.py`).
+Deliberately *not* recalibrated for this layout: reach configs, tray
+position, or the goal graph — this addition is vision/rendering-only;
+using "kitchen_sink" with the reach-dependent policy baselines is
+untested. `test_vision_kitchen_sink.py` uses subprocess-isolated capture
+(like representation.py), not in-process rendering — test_vision.py
+already spends this process's entire D-022 render-budget (2) on the
+original scene, so testing a second variant in the same process would
+exceed it.
+
 ## Learned policy (2026-08-01)
 
 `rl_policy.py` is stage 5 of the build-up order in
@@ -466,26 +523,76 @@ learning on real rollouts, cheaply — not a general RL result. Extending
 this to a real state space (vision/representation-derived feasibility
 instead of privileged-state, more goals, ordering) is future work.
 
+## Real IK retry (2026-08-01)
+
+D-028: retried D-024's real contact/tactile grasp confirmation, this time
+with a proper tool. D-024's finite-difference IK was unreliable — the same
+starting state converged to 11cm from the target on one run and 57cm on
+another, no code difference. `ik_solver.py` replaces it with a real
+analytic Jacobian, computed by `pinocchio` directly against G1's URDF
+kinematic chain (`pin.computeFrameJacobian`), stepped via damped
+least-squares — standard, numerically stable IK, not a numerical
+approximation of one.
+
+Verified before trusting it for anything, not assumed: pinocchio's
+forward kinematics for `right_tcp_link`, in the URDF's own local frame,
+matches `agent.right_tcp.pose.sp.p - agent.robot.pose.sp.p` (ManiSkill's
+world tcp minus world base) to 5 decimal places — confirms G1's base has
+zero rotation when placed via `sapien.Pose(p=...)`, and that pinocchio's
+joint ordering lines up with `agent.body_joints` index-for-index (both
+come from the same URDF).
+
+Result: **fully deterministic** — identical distance across 5 repeated
+runs on the same input, unlike the original attempt. Searched with
+random-restart initialization (10+ restarts) across 30+ candidate base
+positions (raycast floor-clearance-checked, same method as D-018), and
+found neither `potted_meat_can` nor `master_chef_can` ever comes within
+~13cm of the tcp — not joint-limit bound (checked directly: no arm joint
+sits at its limit at convergence). Closer base positions than the
+original made the residual distance *worse*, not better — moving in
+forces awkward elbow/shoulder angles rather than helping. The two objects
+are also ~0.6m apart, wider than the arm's functional reach envelope from
+any single standing spot, so no repositioning brings *both* within range
+at once.
+
+This is now a confirmed structural limit — arm length vs. object
+separation, checked from every reasonable standing position with a
+solver that's actually trustworthy — not an open question a better solver
+might still resolve. `teleport-on-success` remains unchanged everywhere.
+`ik_solver.py` is kept as a real, tested module (not thrown away) —
+`test_ik_solver.py` locks in both the kinematics-matching verification and
+the unreachability finding as regression tests, and the solver itself is
+reusable if this project ever needs real IK for a different object/scene
+combination where the geometry might actually allow it.
+
 ## What this deliberately doesn't cover yet
 
-- **Ordering/priority and conditional goals.** docs/04 asks language
-  templates to support these; no existing instruction needs them yet, so
-  no grammar was added for them — would be speculative without a driving
-  test case.
-- **Priorities/dependencies as anything other than a schema field.** The
-  dataclasses have `priority` and `depends_on` fields per docs/04's
-  requirement, but this one example doesn't exercise them (both goals are
-  equal-priority, no dependency between them) — worth a second example that
-  does, once this schema shape gets buy-in.
+- ~~Ordering/priority and conditional goals~~ — filled in (D-026): `language.py`
+  handles both. `Goal.condition` (conditional goals) is a schema change and
+  is explicitly PROPOSED, not Accepted — see `ai-notes/review-request-task-schema.md`.
+- **Preferences** (soft, non-binding wishes, as opposed to hard goals/constraints)
+  — docs/04 asks for these too; no schema field exists for them, and adding
+  one is a schema decision of the same size as `Goal.condition` was —
+  not attempted without a driving case, same discipline as everything else here.
+- **`depends_on` (goal ordering dependencies, distinct from `priority`) is
+  still just a schema field.** No example exercises "goal B can't be
+  attempted until goal A completes" specifically — worth a real example
+  once this schema shape gets buy-in.
 - ~~Actual goal completion~~ — filled in: `goal_achieved()` checks placement
   (object resting within the tray's footprint), used by `policy_baselines.py`.
   Still simplified: a successful attempt teleports the object onto the tray
   rather than re-running a full physical grasp-place sequence (see
   `policy_baselines.py`'s scope note) — real placement precision/collision
-  between multiple placed objects isn't tested.
+  between multiple placed objects isn't tested. D-024/D-028 tried to add
+  real contact-based grasp *confirmation* on top of this teleport
+  abstraction and found it's not achievable from G1's current position —
+  see "Real IK retry" above; this remains simplified everywhere.
 - ~~Held-out paraphrases/compositions~~ — filled in for the language layer
   (see above). Still not exercised for anything downstream of parsing
   (vision, policy) — those don't exist yet either.
+- ~~Single scene layout for vision/representation~~ — partially filled in
+  (D-027): a second calibrated layout exists now, but two scenes is still
+  not a real distribution over layouts.
 
 ## How to run it
 

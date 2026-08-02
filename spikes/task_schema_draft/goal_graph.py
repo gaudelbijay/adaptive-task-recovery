@@ -22,6 +22,15 @@ class Goal:
     target_object: str
     priority: int = 0
     depends_on: tuple[str, ...] = ()
+    # PROPOSED extension (D-026, ai-notes/decisions.md), not yet reviewed --
+    # same "needs review" status as the rest of this schema (D-013). Gates
+    # whether this goal is "in play" at all this episode: (object_id,
+    # required_exists). goal_feasible() treats the goal as infeasible
+    # outright if state[object_id].exists != required_exists, before even
+    # checking the goal's own target_object. Lets an instruction express
+    # "if X is destroyed, do Y instead" -- see language.py's conditional
+    # clause grammar and oracle_feasibility.py's goal_feasible().
+    condition: tuple[str, bool] | None = None
 
 
 @dataclass(frozen=True)

@@ -35,12 +35,17 @@ def main():
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--steps", type=int, default=0, help="zero-action steps before capture")
     parser.add_argument("--out", type=str, required=True)
+    parser.add_argument(
+        "--scene-variant", type=str, default="kitchen_cabinet",
+        help='"kitchen_cabinet" (original) or "kitchen_sink" (D-027)',
+    )
     args = parser.parse_args()
 
     env = gym.make(
         "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode="rgb_array", sim_backend="physx_cpu", control_mode="pd_joint_pos",
         intervention_kind="chef_can_destroyed", onset_step_range=(2, 3),
+        scene_variant=args.scene_variant,
     )
     env.reset(seed=args.seed)
     zero_action = np.zeros(env.action_space.shape, dtype=np.float32)

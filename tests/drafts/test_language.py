@@ -103,6 +103,78 @@ class TestHeldOutComposition:
         )
 
 
+class TestOrderingAndPriority:
+    """D-026: order markers (first/then/next/finally/...) assign
+    Goal.priority in order of appearance; goals without a marker default to
+    priority=0, unchanged from before this was added."""
+
+    def test_first_then_assigns_sequential_priority(self):
+        text = (
+            "First put the red mug on the tray, then put the blue bowl on "
+            "the tray, keep the medicine upright, and do not move the glass."
+        )
+        parsed = parse_instruction(text, CANONICAL_OBJECTS)
+        priorities = {g.target_object: g.priority for g in parsed.goals}
+        assert priorities["red_mug"] < priorities["blue_bowl"]
+
+    def test_no_marker_keeps_default_priority_zero(self):
+        parsed = parse_instruction(canonical_example().instruction_text, CANONICAL_OBJECTS)
+        assert all(g.priority == 0 for g in parsed.goals)
+
+    def test_next_marker_also_recognized(self):
+        # Order markers apply to goal clauses only -- Constraint has no
+        # priority field, so an order marker before "keep X upright" would
+        # have nowhere to go; this only exercises "next" on goals.
+        text = "First put the red mug on the tray, next put the blue bowl on the tray, keep the medicine upright, and do not move the glass."
+        parsed = parse_instruction(text, CANONICAL_OBJECTS)
+        priorities = {g.target_object: g.priority for g in parsed.goals}
+        assert priorities["red_mug"] < priorities["blue_bowl"]
+
+
+class TestConditionalGoals:
+    """D-026 (PROPOSED, not yet reviewed): "if X is Y, do Z instead" sets
+    Goal.condition = (trigger_object_id, required_exists)."""
+
+    def test_negative_trigger_state(self):
+        text = "Put the red mug on the tray. If the blue bowl is destroyed, put the backup bowl on the tray instead."
+        known = {"red_mug", "blue_bowl", "backup_bowl"}
+        parsed = parse_instruction(text, known)
+        by_object = {g.target_object: g for g in parsed.goals}
+        assert by_object["backup_bowl"].condition == ("blue_bowl", False)
+        assert by_object["red_mug"].condition is None
+
+    def test_positive_trigger_state(self):
+        text = "If the cracker box is present, put the red mug on the tray."
+        known = {"red_mug", "cracker_box"}
+        parsed = parse_instruction(text, known)
+        assert parsed.goals[0].condition == ("cracker_box", True)
+
+    def test_comma_then_phrasing(self):
+        text = "If the blue bowl is destroyed, then put the backup bowl on the tray instead."
+        known = {"blue_bowl", "backup_bowl"}
+        parsed = parse_instruction(text, known)
+        assert parsed.goals[0].condition == ("blue_bowl", False)
+
+    def test_conditional_clause_embedded_mid_instruction(self):
+        """The real bug this grammar had to work around: a comma right
+        before "put" ordinarily starts a new clause (per every other test
+        in this file), but here it's internal to one conditional clause and
+        must not be split apart from it."""
+        text = (
+            "Put the red mug on the tray, if the blue bowl is destroyed put "
+            "the backup bowl on the tray instead, keep the medicine upright, "
+            "and do not move the glass."
+        )
+        known = {"red_mug", "blue_bowl", "backup_bowl", "medicine_bottle", "glass"}
+        parsed = parse_instruction(text, known)
+        by_object = {g.target_object: g for g in parsed.goals}
+        assert by_object["backup_bowl"].condition == ("blue_bowl", False)
+        assert by_object["red_mug"].condition is None
+        assert {(c.kind, c.target_object) for c in parsed.constraints} == {
+            ("maintain_orientation", "medicine_bottle"), ("never_move", "glass"),
+        }
+
+
 class TestFailsLoudlyRatherThanSilently:
     def test_unrecognized_clause_raises(self):
         with pytest.raises(ValueError, match="unrecognized clause"):

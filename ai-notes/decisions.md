@@ -2,6 +2,130 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-028: D-024 retried with a proper analytic-Jacobian IK solver — confirmed unreachable, not a solver artifact
+
+- **Date:** 2026-08-01
+- **Status:** Accepted — D-024's grasp-confirmation gap remains, but now
+  backed by a much stronger negative result, plus a real, reusable,
+  validated IK tool (`ik_solver.py`) for future use
+- **Decision:** D-024's finite-difference IK was unreliable (11cm one run,
+  57cm another, identical inputs). Rebuilt it properly on `pinocchio`
+  against G1's actual URDF (`ik_solver.py`): a real analytic Jacobian via
+  `pin.computeFrameJacobian`, damped least-squares (not plain
+  pseudo-inverse, more stable near singularities). Verified before
+  trusting it: pinocchio's local-frame forward kinematics for
+  `right_tcp_link` matches `agent.right_tcp.pose.sp.p - agent.robot.pose.sp.p`
+  to 5 decimal places (G1's base has zero rotation when placed via
+  `sapien.Pose(p=...)`, confirmed not assumed). Result: **fully
+  deterministic** (identical distance across 5 repeated runs, unlike the
+  finite-difference version) and, searched with random-restart
+  initialization across a wide, floor-clearance-checked set of candidate
+  base positions (32 candidates at 4 radii × 8 angles around each object,
+  plus the original position), **cannot bring the tcp within ~13cm of
+  either target object** in the "kitchen_cabinet" scene. Not joint-limit
+  bound (checked directly — no arm joint sits at its limit at convergence).
+  Real, physical, contact-force-verified grasp needs roughly <5cm (D-024's
+  own finding: zero contact force registered even at ~10-11cm). Also
+  found: the two objects are ~0.6m apart, wider than the arm's functional
+  reach envelope from any single standing position — no repositioning can
+  bring *both* within range simultaneously, and closer positions than the
+  original (raycast-clearance-checked, tried directly) made the residual
+  distance *worse*, not better, since they force awkward elbow/shoulder
+  angles.
+- **Reason:** Direct follow-up to D-024 per explicit request, using a
+  principled tool (real analytic IK) instead of retrying the same
+  unreliable technique. Distinguishing "the solver was bad" from "the
+  target is genuinely out of reach" required building the better solver
+  first — couldn't have concluded this with confidence from D-024's
+  evidence alone.
+- **Consequences:** Real contact/tactile grasp confirmation remains
+  unimplemented for these specific objects from this specific base
+  position — teleport-on-success is unchanged, same as D-024 concluded.
+  What's different now: this is a confirmed structural limit (arm length
+  vs. object separation, checked from every reasonable standing position),
+  not an open question that a better solver might still resolve.
+  `ik_solver.py` is kept as a real, tested, reusable module (D-028's own
+  tests verify it against ManiSkill's kinematics and lock in this
+  unreachability finding as a regression test) — useful if this project
+  ever needs real IK for a *different* object/scene combination where the
+  geometry might actually allow it.
+
+## D-027: A second calibrated scene layout for vision.py/representation.py — not a single-scene-only demonstration anymore
+
+- **Date:** 2026-08-01
+- **Status:** Accepted (still toy-scale — two scenes, not a distribution)
+- **Decision:** Added "kitchen_sink", a second calibrated apartment layout
+  (`build_config_idx=55`, found searching under the *real* two-pin
+  `torch.manual_seed` pattern D-021 established — a naive single-pin search
+  gives different, wrong results, the same lesson D-021 already learned
+  applied here again) to `tidy_up_env_replicacad_humanoid.py`'s new
+  `_SCENE_CONFIGS` dict, selected via a `scene_variant` constructor
+  argument (default `"kitchen_cabinet"`, so every existing call site and
+  test is unaffected). Camera and crop calibration used a more precise
+  method this time: projected each object's known world position through
+  the render camera's own intrinsic/extrinsic matrices to get exact pixel
+  coordinates, rather than finding crops by visual inspection alone (the
+  original "kitchen_cabinet" method) — needed because `potted_meat_can`
+  turned out to be sitting inside a sink basin in this layout, small and
+  easy to miss by eye. `vision.py`'s `_OBJECT_VISUAL_CONFIG` is now keyed
+  per scene variant; `visual_object_exists()` and
+  `representation.py`'s `collect_labeled_examples()` both take an optional
+  `scene_variant` argument, defaulting to `"kitchen_cabinet"`. Verified:
+  zero-shot CLIP matches oracle feasibility on "kitchen_sink" the same way
+  it did on the original scene (`test_vision_kitchen_sink.py`).
+  Deliberately *not* recalibrated for this layout: reach configs, tray
+  position, or the goal graph — "kitchen_sink" is vision/rendering-only;
+  using it with the reach-dependent policy baselines is untested and out
+  of scope.
+- **Reason:** Direct answer to the review document's caveat that
+  vision.py/representation.py were validated on a single scene layout only
+  — not a full generalization test, but a genuine second data point instead
+  of zero.
+- **Consequences:** `test_vision_kitchen_sink.py` uses subprocess-isolated
+  capture (like representation.py), not in-process rendering like
+  test_vision.py — test_vision.py already spends this process's entire
+  D-022 render-producing-reset budget (2) on "kitchen_cabinet"; testing a
+  second variant in the same process would exceed it. Still two scenes, not
+  a real distribution over layouts — the "not a generalization test" caveat
+  is weaker now, not gone.
+
+## D-026: Ordering/priority and conditional goals — language grammar and a proposed schema extension
+
+- **Date:** 2026-08-01
+- **Status:** Ordering/priority: Accepted (uses existing schema fields, no
+  new decision needed). Conditional goals: Proposed, same "needs review"
+  status as D-013 itself — `Goal.condition` is a new schema field, not
+  something to accept unilaterally right before asking for exactly that
+  review.
+- **Decision:** `language.py` now parses "first put the mug on the tray,
+  then put the bowl on the tray" into sequential `Goal.priority` values (0,
+  1, ... in order of appearance among order-marked goal clauses; unmarked
+  clauses keep priority=0, so every existing instruction_text still parses
+  identically). Also added a conditional-goal pattern: "if the blue bowl is
+  destroyed, put the backup bowl on the tray instead" sets a new,
+  PROPOSED `Goal.condition: tuple[str, bool] | None` field — (object_id,
+  required_exists) — checked in `goal_feasible()` before the goal's own
+  target object even matters. Real design problem found and solved: the
+  generic clause splitter breaks any comma immediately before a recognized
+  verb ("put"), which is exactly the shape of "if X is Y, put Z on the
+  tray" — extracting conditional clauses in a separate pass, before the
+  generic splitter runs on what's left, avoids the conflict entirely
+  (see language.py's module docstring for the full explanation).
+- **Reason:** Direct request to fix the "ordering/priority and conditional
+  goals are unimplemented" caveat from `ai-notes/review-request-task-schema.md`.
+  Ordering was safe to just build (existing fields, no new schema
+  surface). Conditional goals needed a real judgment call: build it
+  properly and test it, but don't quietly promote it to "accepted" schema
+  status when the entire point of the review request is to gate exactly
+  this kind of decision — so it's built, tested, and honest about still
+  needing that review, not either skipped or smuggled in as settled.
+- **Consequences:** `docs/04`'s "preferences" (soft, non-binding wishes)
+  remain entirely unimplemented — no schema field exists for them, adding
+  one is a similarly-sized schema decision, not attempted here without a
+  driving case. `ai-notes/review-request-task-schema.md` updated to flag
+  `Goal.condition` as a second thing needing your teammate's review, not
+  just D-013's original fields.
+
 ## D-025: First learned policy — tabular Q-learning discovers the feasibility rule from reward, not from being told it
 
 - **Date:** 2026-08-01
@@ -83,6 +207,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   (already installed) against G1's real URDF kinematic chain — not another
   attempt at finite-difference numerical IK, which is what proved
   unreliable here.
+  **Follow-up (D-028, 2026-08-01):** built exactly that proper solver and
+  retried. Confirms this is a genuine kinematic limit, not a solver
+  problem — see D-028.
 
 ## D-023: First self-supervised representation layer — DINOv2 linear probe, worked around a confirmed dependency bug rather than blocking on it
 

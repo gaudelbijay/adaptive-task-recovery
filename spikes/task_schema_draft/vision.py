@@ -30,15 +30,16 @@ Four real findings from getting this to work at all (measured, not assumed):
    to actually look at a frame after a removal. Fixed by adding
    `self.scene.update_render()` to that branch, matching the pattern the
    `temporary_obstacle` branch already used.
-4. **G1's hardcoded base pose and camera are calibrated for exactly one
-   apartment layout.** `ReplicaCADSetTableTrain` loads a different room per
-   seed -- rendering seed=2 for this check landed G1 next to a couch and a
-   bicycle, nowhere near the cans. Every prior test of this env (D-018) only
-   ever used seed=0, so this went unnoticed until vision work rendered and
-   looked at other seeds. Not fixed here -- a scene-layout generalization
-   problem, out of scope for this stage. tests/drafts/test_vision.py is
-   deliberately seed=0-only because of this; see D-020 in
-   ai-notes/decisions.md.
+4. **G1's hardcoded base pose and camera were originally calibrated for
+   exactly one apartment layout.** `ReplicaCADSetTableTrain` loads a
+   different room per seed -- rendering seed=2 for this check landed G1
+   next to a couch and a bicycle, nowhere near the cans. Every prior test
+   of this env (D-018) only ever used seed=0, so this went unnoticed until
+   vision work rendered and looked at other seeds. Fixed at the
+   scene-layout level in D-021 (pinning, not sampling); a *second*
+   calibrated layout ("kitchen_sink") was added in D-027 specifically so
+   this module's crop/prompt calibration isn't validated on only one scene
+   -- see `_OBJECT_VISUAL_CONFIG` below, now keyed per scene variant.
 
 Generic object descriptions ("a photo of a green can") also underperformed
 specific/iconic ones ("a photo of a Spam can") by a wide margin -- CLIP's
@@ -66,17 +67,38 @@ class VisualObjectConfig:
     negative_prompt: str = "a photo of an empty cabinet with nothing on it"
 
 
-# Calibrated against tidy_up_env_replicacad_humanoid.py's fixed camera
-# (_default_human_render_camera_configs, look_at([1.3,-0.3,1.6], [0.55,0.23,0.8]))
-# at 512x512. Crop pixels found by saving a frame and inspecting it directly,
-# not computed from 3D geometry -- see module docstring.
-_OBJECT_VISUAL_CONFIG: dict[str, VisualObjectConfig] = {
-    "master_chef_can": VisualObjectConfig(
-        crop=(180, 380, 260, 460), positive_prompt="a photo of a coffee can",
-    ),
-    "potted_meat_can": VisualObjectConfig(
-        crop=(180, 380, 60, 260), positive_prompt="a photo of a Spam can",
-    ),
+# Calibrated per scene variant (tidy_up_env_replicacad_humanoid.py's
+# _SCENE_CONFIGS) at 512x512, each against that variant's own fixed camera.
+# Crop pixels found by saving a frame and either inspecting it directly or
+# (kitchen_sink) projecting the object's known world position through the
+# camera's own intrinsic/extrinsic matrices and cropping around that pixel
+# -- not a read of live 3D position at call time, so it doesn't leak
+# privileged state; it's camera calibration, done once, same as
+# kitchen_cabinet's crops were (found by inspection instead, since that
+# camera's framing was simple enough not to need projection math).
+_OBJECT_VISUAL_CONFIG: dict[str, dict[str, VisualObjectConfig]] = {
+    "kitchen_cabinet": {
+        "master_chef_can": VisualObjectConfig(
+            crop=(180, 380, 260, 460), positive_prompt="a photo of a coffee can",
+        ),
+        "potted_meat_can": VisualObjectConfig(
+            crop=(180, 380, 60, 260), positive_prompt="a photo of a Spam can",
+        ),
+    },
+    # D-027: master_chef_can sits in the open on a counter here; potted_meat_can
+    # sits inside a sink basin, which is why its crop/prompt needed a
+    # steeper camera angle and different negative prompt to separate at all
+    # -- see ai-notes/decisions.md D-027 for the calibration process.
+    "kitchen_sink": {
+        "master_chef_can": VisualObjectConfig(
+            crop=(265, 365, 305, 405), positive_prompt="a photo of a blue can",
+            negative_prompt="a photo of an empty countertop",
+        ),
+        "potted_meat_can": VisualObjectConfig(
+            crop=(139, 239, 146, 246), positive_prompt="a photo of a Spam can",
+            negative_prompt="a photo of an empty sink",
+        ),
+    },
 }
 
 
@@ -108,18 +130,26 @@ def clip_margin(image: np.ndarray, positive_prompt: str, negative_prompt: str) -
     return sims[0] - sims[1]
 
 
-def visual_object_exists(frame: np.ndarray, object_id: str) -> bool:
+def visual_object_exists(
+    frame: np.ndarray, object_id: str, scene_variant: str = "kitchen_cabinet",
+) -> bool:
     """Zero-shot judgment of whether `object_id` is visible in `frame`,
-    using the calibrated crop/prompt in _OBJECT_VISUAL_CONFIG. Raises for
-    objects that don't have a calibrated config -- there is no generic
-    fallback, per this module's docstring finding that the generic prompt
-    template measurably doesn't work."""
-    if object_id not in _OBJECT_VISUAL_CONFIG:
+    using the calibrated crop/prompt in _OBJECT_VISUAL_CONFIG[scene_variant].
+    Raises for objects/variants that don't have a calibrated config -- there
+    is no generic fallback, per this module's docstring finding that the
+    generic prompt template measurably doesn't work."""
+    if scene_variant not in _OBJECT_VISUAL_CONFIG:
         raise ValueError(
-            f"no calibrated visual config for {object_id!r}; known objects: "
-            f"{sorted(_OBJECT_VISUAL_CONFIG)}"
+            f"no calibrated visual config for scene_variant={scene_variant!r}; "
+            f"known variants: {sorted(_OBJECT_VISUAL_CONFIG)}"
         )
-    cfg = _OBJECT_VISUAL_CONFIG[object_id]
+    variant_config = _OBJECT_VISUAL_CONFIG[scene_variant]
+    if object_id not in variant_config:
+        raise ValueError(
+            f"no calibrated visual config for {object_id!r} in scene_variant={scene_variant!r}; "
+            f"known objects: {sorted(variant_config)}"
+        )
+    cfg = variant_config[object_id]
     y0, y1, x0, x1 = cfg.crop
     crop = frame[y0:y1, x0:x1]
     margin = clip_margin(crop, cfg.positive_prompt, cfg.negative_prompt)

@@ -33,7 +33,20 @@ WorldState = dict[str, ObjectState]
 def goal_feasible(goal: Goal, state: WorldState) -> bool:
     """A goal is infeasible iff its target object no longer exists. Does not
     check reachability/graspability — that's a controller-level concern
-    (docs/04), kept separate on purpose."""
+    (docs/04), kept separate on purpose.
+
+    PROPOSED extension (D-026): if `goal.condition` is set -- (object_id,
+    required_exists) -- the goal is treated as infeasible outright unless
+    that condition currently holds, independent of the goal's own target
+    object. Lets "if X is destroyed, do Y instead" express Y as simply not
+    in play until X's fate is known, rather than needing a separate
+    goal-dependency mechanism."""
+    if goal.condition is not None:
+        condition_object, required_exists = goal.condition
+        condition_state = state.get(condition_object)
+        condition_exists = condition_state is not None and condition_state.exists
+        if condition_exists != required_exists:
+            return False
     obj = state.get(goal.target_object)
     return obj is not None and obj.exists
 

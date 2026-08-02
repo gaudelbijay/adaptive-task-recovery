@@ -7,8 +7,8 @@ cases" guidance.
 
 import numpy as np
 
-from task_schema_draft.goal_graph import canonical_example
-from task_schema_draft.oracle_feasibility import ObjectState, evaluate_goal_graph, goal_achieved
+from task_schema_draft.goal_graph import Goal, canonical_example
+from task_schema_draft.oracle_feasibility import ObjectState, evaluate_goal_graph, goal_achieved, goal_feasible
 
 
 def _state(**objects: tuple[bool, tuple[float, float, float] | None, float | None]) -> dict:
@@ -59,6 +59,33 @@ class TestBowlDestroyedIntervention:
         result = evaluate_goal_graph(graph, initial_state=initial, current_state=after)
         assert result["goal_feasibility"] == {"place_mug": True, "place_bowl": False}
         assert not any(result["constraint_violations"].values())
+
+
+class TestConditionalGoal:
+    """PROPOSED extension (D-026, not yet reviewed): Goal.condition gates
+    whether a goal is "in play" at all, independent of its own target
+    object -- e.g. a fallback goal that only matters once the thing it's
+    a fallback *for* is gone."""
+
+    _fallback = Goal(
+        id="place_backup_bowl", predicate="on_tray", target_object="backup_bowl",
+        condition=("blue_bowl", False),  # only in play once blue_bowl is gone
+    )
+
+    def test_fallback_goal_infeasible_while_trigger_object_exists(self):
+        state = _nominal_state()
+        state.update(_state(backup_bowl=(True, (0.2, 0.2, 0.03), None)))
+        assert goal_feasible(self._fallback, state) is False  # blue_bowl still exists -- condition not met
+
+    def test_fallback_goal_feasible_once_trigger_object_destroyed(self):
+        state = _nominal_state()
+        state.update(_state(blue_bowl=(False, None, None), backup_bowl=(True, (0.2, 0.2, 0.03), None)))
+        assert goal_feasible(self._fallback, state) is True
+
+    def test_fallback_goal_still_infeasible_if_its_own_object_also_gone(self):
+        state = _nominal_state()
+        state.update(_state(blue_bowl=(False, None, None), backup_bowl=(False, None, None)))
+        assert goal_feasible(self._fallback, state) is False  # condition met, but nothing to place either
 
 
 class TestConstraintViolations:

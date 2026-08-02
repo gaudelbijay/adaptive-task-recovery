@@ -79,14 +79,18 @@ def dinov2_embed(crop: np.ndarray) -> np.ndarray:
 
 def collect_labeled_examples(
     object_id: str, n_present: int, n_absent: int, seed_start: int = 0,
+    scene_variant: str = "kitchen_cabinet",
 ) -> list[tuple[np.ndarray, bool]]:
     """Spawns one subprocess per example (see module docstring for why) and
     returns [(crop, exists_label), ...]. `n_present` examples come from
     steps=0 (before the scripted intervention fires); `n_absent` from
     steps=6 (after it fires and only affects master_chef_can -- so this only
     makes sense called with object_id="master_chef_can" for the absent
-    half; potted_meat_can never goes absent in this env's intervention)."""
-    cfg = _OBJECT_VISUAL_CONFIG[object_id]
+    half; potted_meat_can never goes absent in this env's intervention).
+    `scene_variant` (D-027): "kitchen_cabinet" (original) or "kitchen_sink"
+    (second calibrated layout, added so this isn't validated on only one
+    scene) -- see tidy_up_env_replicacad_humanoid.py's _SCENE_CONFIGS."""
+    cfg = _OBJECT_VISUAL_CONFIG[scene_variant][object_id]
     y0, y1, x0, x1 = cfg.crop
     examples: list[tuple[np.ndarray, bool]] = []
     plan = [(0, n_present)] + ([(6, n_absent)] if n_absent > 0 else [])
@@ -98,6 +102,7 @@ def collect_labeled_examples(
                 [
                     sys.executable, str(_CAPTURE_SCRIPT),
                     "--seed", str(seed), "--steps", str(steps), "--out", str(out_path),
+                    "--scene-variant", scene_variant,
                 ],
                 check=True, capture_output=True,
             )
