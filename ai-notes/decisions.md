@@ -2,6 +2,50 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-031: Dependabot vulnerability triage — all 9 flagged packages fixed, one required a `sapien` bump first
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** GitHub flagged 38 Dependabot alerts (28 high) after the
+  D-030 push. Ran `pip-audit` against `requirements-maniskill.lock.txt`
+  locally (no `gh`/GitHub-API auth available in this environment) and
+  confirmed 50 known-CVE entries across 9 packages: `click`, `GitPython`,
+  `idna`, `lxml`, `pillow`, `Pygments`, `requests`, `setuptools`, `urllib3`
+  — all transitive dependencies, none of them `mani_skill`/`sapien`/`torch`
+  or other packages this project's own code imports directly. Bumped 8 of
+  the 9 immediately (`click` 8.3.1→8.4.2, `GitPython` 3.1.46→3.1.57, `idna`
+  3.11→3.18, `lxml` 6.0.2→6.1.1, `pillow` 12.1.1→12.3.0, `Pygments`
+  2.19.2→2.20.0, `requests` 2.32.5→2.34.2, `urllib3` 2.6.3→2.7.0). The
+  9th, `setuptools` (81.0.0→83.0.0 fixes PYSEC-2026-3447), broke test
+  collection outright at first attempt: confirmed directly, by downloading
+  and inspecting the wheel rather than assuming, that setuptools removed
+  `pkg_resources` entirely as of 82.0.0, and `sapien` 3.0.2 — a core,
+  load-bearing dependency of every environment in this project — imports
+  `pkg_resources` at module load time (`ModuleNotFoundError` before a
+  single test could run). Checked for a real fix rather than settling for
+  the tradeoff: `sapien` 3.0.3 (one patch release ahead, released after
+  3.0.2) drops the `pkg_resources` import entirely (confirmed by
+  inspecting its wheel too — zero references, vs. 3 in 3.0.2), pulling in
+  `importlib_resources` instead. Bumped both `sapien` and `setuptools`
+  together; full suite re-run clean (97 passed, 417s). All 9 packages now
+  fixed, lock file regenerated.
+- **Reason:** Same standard as D-022 elsewhere in this project — check
+  whether an apparent dead end is actually one (a newer patch release existed
+  the whole time) before settling for a disclosed-but-unfixed gap. The
+  first pass here nearly shipped `setuptools` held back at 81.0.0 as a
+  "genuine tradeoff"; it wasn't one, it was an incomplete search — the
+  actual fix was a one-patch-version `sapien` bump, no different in kind
+  from D-030's own dependency work.
+- **Consequences:** Zero open Dependabot-flagged packages in the lock
+  file as of this entry. `importlib_resources==7.1.0` added as a new
+  transitive dependency (pulled in by `sapien` 3.0.3). GitHub's Dependabot
+  UI wasn't directly queryable in this environment (`gh` CLI not
+  installed, no `GITHUB_TOKEN`) — this triage was done by auditing the
+  lock file locally with `pip-audit` instead; the original 38/28-high
+  count is GitHub's own report, not independently re-verified against
+  Dependabot's exact dedup/scoring logic, though the 9-package/50-CVE
+  `pip-audit` result is consistent with it in substance.
+
 ## D-030: Professional file/function naming pass, and de-duplicating `train_q_table`
 
 - **Date:** 2026-08-02
