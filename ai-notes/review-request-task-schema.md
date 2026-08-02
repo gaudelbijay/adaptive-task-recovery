@@ -150,7 +150,17 @@ setup notes if you're on a different machine.
 
 ## Also worth knowing before you dig in
 
-`ai-notes/status.md`, `todo.md`, and `recent_changes.md` have not been
-touched since 2026-07-26 and do not reflect any of D-013 through D-025 —
-the root-level `STATUS.md` is what's actually been kept current. Worth
-reconciling those, separately from this review.
+`spikes/task_schema_draft/` also just went through a professional file/
+function renaming pass (D-030) — `language.py` → `instruction_parser.py`,
+`vision.py` → `clip_feasibility.py`, `representation.py` →
+`dinov2_probe.py`, and a `train_q_table_for_replicacad_humanoid()` /
+`train_q_policy()` duplication collapsed into one shared `train_q_table()`.
+No behavior change, full suite re-verified green after it — flagging only
+so file names in this document match what you'll actually see if you
+pulled an older mental model of the layout.
+
+`ai-notes/status.md`, `todo.md`, and `recent_changes.md` were stale
+(untouched since 2026-07-26) as of the first draft of this document; they've
+since been consolidated into short stubs pointing at the root-level
+`STATUS.md`, which is what's actually kept current. Nothing left to
+reconcile there.
