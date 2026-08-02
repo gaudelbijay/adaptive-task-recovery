@@ -1,7 +1,7 @@
 ---
 title: Adaptive Policy and Intent Preservation
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Adaptive Policy and Intent Preservation
@@ -44,6 +44,16 @@ the static policy's wasted attempt on the now-infeasible goal (D-014 in
 `ai-notes/decisions.md`). Toy scale only — see that file's scope notes. This
 does not yet establish the "adaptation headroom" #4 is meant to define; it's
 a single hand-authored scenario, not a swept evaluation.
+
+**A learned variant of #4, closer to what "adaptive" is meant to mean
+(2026-08-01):** `spikes/task_schema_draft/rl_policy.py` (D-025) replaces
+`feasibility_aware_policy`'s hard-coded "attempt iff feasible" rule with a
+tabular Q-learning agent trained on real environment rollouts (~19s, CPU
+only) — still conditioned on privileged/oracle feasibility labels, not
+learned beliefs, so still #4 in this list rather than #3, but the *policy*
+itself is now learned rather than hand-coded. Matches
+`feasibility_aware_policy`'s behavior exactly once trained. Still toy scale
+(2 goals, 3 meaningful states) — see D-025's own "Consequences" note.
 
 ## Strategy adaptation
 

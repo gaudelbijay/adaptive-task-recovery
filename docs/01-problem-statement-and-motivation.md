@@ -1,7 +1,7 @@
 ---
 title: Problem Statement and Motivation
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Problem Statement and Motivation
@@ -43,19 +43,38 @@ unrequested object, or violate the glass constraint for reward.
 
 - **H1 — representation:** self-supervised visual representations improve
   feasibility prediction and held-out-change generalization over pixels trained
-  only through task reward and standard supervised features.
+  only through task reward and standard supervised features. **First toy-scale
+  test (2026-08-01):** see D-023 in `ai-notes/decisions.md` and
+  `spikes/task_schema_draft/representation.py` — a DINOv2 (self-supervised,
+  no text/label supervision) linear probe separates object-present from
+  object-absent at least as well as zero-shot CLIP did (D-020) on the same
+  task. Not a comparison against "pixels trained only through task reward,"
+  which doesn't exist yet, and not held-out-change generalization (both
+  models were only tested on the same object/scene they were calibrated
+  against) — an existence proof that the representation *can* support this
+  judgment, not a test of the comparative claim H1 actually makes.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
   `ai-notes/decisions.md` and `spikes/task_schema_draft/policy_baselines.py`
   — a hand-authored single scenario, not evidence for the general claim, but
   the first time this hypothesis has been run rather than just stated.
+  Since then: confirmed with the same result across four robot/scene
+  combinations (D-016–D-018, D-021), and — closer to what H2 actually asks —
+  a tabular Q-learning policy (D-025) *discovers* "condition on feasibility"
+  from reward alone, rather than having it hand-coded, and matches the
+  hard-coded policy's behavior exactly. Still toy-scale (privileged-state
+  feasibility, 2-goal instructions); still not the general claim.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and
   `spikes/task_schema_draft/intent_guard.py` — blocks one hand-authored
   constraint violation at zero recall cost; does not yet test the harder
   recall/safety trade-off the hypothesis is actually about (see R-010).
+  Confirmed with the same result across the same four robot/scene
+  combinations as H2 (D-016–D-018, D-021). The recall/safety trade-off gap
+  R-010 flags is still open as of 2026-08-01 — nothing built since has
+  addressed it.
 - **H4 — compositional generalization:** factorized goal and change
   representations transfer better to unseen goal-change combinations than a
   monolithic policy.

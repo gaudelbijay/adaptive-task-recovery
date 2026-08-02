@@ -1,7 +1,7 @@
 ---
 title: Project Overview
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Adaptive Task Recovery

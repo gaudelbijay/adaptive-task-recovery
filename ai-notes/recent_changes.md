@@ -1,34 +1,9 @@
 # Recent Changes
 
-Newest entries go first.
+**Superseded — see [`../STATUS.md`](../STATUS.md)'s "Recent changes"
+table for the current, newest-first change log.**
 
-## 2026-07-26
-
-- Adopted a two-person execution plan: shared benchmark foundation, Person A on
-  representations/language/feasibility, Person B on RL/humanoid execution, and
-  shared integration and evaluation.
-- Added parallel model-selection and simulator spikes plus staged oracle-to-learned
-  belief integration gates.
-- Confirmed the simulated humanoid as the required target embodiment.
-- Added an embodiment/skill interface and required separate measurement of
-  high-level reasoning errors and low-level humanoid execution failures.
-- Replaced the humanoid failure-detection and recovery question with
-  feasibility-aware vision-language RL after irreversible world changes.
-- Reframed recovery as intent-preserving strategy adaptation rather than world
-  restoration.
-- Added self-supervised visual representations, per-goal feasibility,
-  uncertainty, goal graphs, and an intent guard to the planned architecture.
-- Replaced simulator-specific, failure-taxonomy, and recovery-policy documents
-  with benchmark, world-change/feasibility, and adaptive-policy documents.
-- Revised metrics, baselines, roadmap, risks, glossary, and reading queue.
-- Marked ManiSkill as one candidate among humanoid-capable simulators.
-- Flagged the existing architecture image as superseded and removed it from the README.
-
-## 2026-07-24
-
-- Added the initial simulation-only humanoid recovery plan and project trackers.
-
-## Entry format
-
-Use dated, newest-first bullets for changes to direction, capability,
-reproducibility, results, or next steps. Do not paste raw diffs.
+This file drifted stale (last real update: 2026-07-26) while
+`STATUS.md`'s own changelog table was the one actually kept current
+through D-009–D-028. Consolidated on 2026-08-01 rather than caught up and
+left to drift again — one change log, not two competing ones.

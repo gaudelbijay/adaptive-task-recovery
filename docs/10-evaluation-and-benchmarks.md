@@ -1,7 +1,7 @@
 ---
 title: Evaluation and Benchmarks
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Evaluation and Benchmarks
@@ -38,11 +38,20 @@ evaluation so controller reliability does not obscure the research result.
 - oracle-state and oracle-feasibility policies;
 - full self-supervised feasibility-conditioned agent with intent guard.
 
-**Toy-scale first instances (2026-07-29):** "static language-conditioned
-policy" and "oracle-feasibility policies" both have first hand-authored
-implementations in `spikes/task_schema_draft/policy_baselines.py` (D-014) —
-a single scenario, not a benchmark run against the other required baselines
-above.
+**Toy-scale first instances (2026-07-29, extended through 2026-08-01):**
+"static language-conditioned policy" and "oracle-feasibility policies"
+both have first hand-authored implementations in
+`spikes/task_schema_draft/policy_baselines.py` (D-014) — a single
+scenario, confirmed with the same result across four robot/scene
+combinations since (D-016–D-018, D-021), not a benchmark run against the
+other required baselines above. "Oracle-feasibility policy" also now has a
+*learned* variant (`rl_policy.py`, D-025) — tabular Q-learning that
+discovers the same policy from reward instead of having it hard-coded,
+still using privileged/oracle feasibility as its input, so still not the
+"full self-supervised feasibility-conditioned agent" this list's last
+entry describes. None of the other required baselines (domain-randomized,
+frame-difference detector, task-reward-only encoder, symbolic replanner)
+have first instances yet.
 
 ## Core ablations
 

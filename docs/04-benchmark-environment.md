@@ -1,7 +1,7 @@
 ---
 title: Benchmark Environment and Task Design
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Benchmark Environment and Task Design
@@ -20,29 +20,47 @@ reputation. ManiSkill, Isaac Lab, or another humanoid-capable platform may be th
 final environment. A household or grid-world environment may provide a cheaper
 logic testbed, but cannot satisfy the project's humanoid evaluation requirement.
 
-**ManiSkill3 spike (2026-07-28):** see [spikes/maniskill_humanoid_spike/README.md](../spikes/maniskill_humanoid_spike/README.md)
+**ManiSkill3 spike (2026-07-28, extended through 2026-08-01):** see
+[spikes/maniskill_humanoid_spike/README.md](../spikes/maniskill_humanoid_spike/README.md)
 for results scored against the requirements above. Summary: humanoid support,
 deterministic seeding, privileged state, object-level interventions (removal
 + mid-episode addition of new geometry), RGB-D observations, and basic
 reach/grasp manipulation all check out on non-CUDA dev hardware. One
 platform gap found: `mplib`-dependent canned motion planning doesn't build
 on Apple Silicon macOS (worked around via a `pinocchio`-based IK
-controller). Natural-language task generation isn't a simulator capability
-either way. Navigation is now also checked (2026-07-30, D-017): ManiSkill3
-exposes a real mobile robot (`fetch`) and a real furnished scene
-(`ReplicaCADSetTableTrain`), but reliable navigation needed a path planner
-we built ourselves (`spikes/task_schema_draft/navigation.py`) — a naive
-controller gets stuck on real walls. Isaac Lab hasn't been spiked yet — see
-D-006/D-009/D-010/D-011/D-017 in `ai-notes/decisions.md`.
+controller — later built into a proper analytic-Jacobian solver,
+`spikes/task_schema_draft/ik_solver.py`, D-028). Natural-language task
+generation isn't a simulator capability either way. Navigation is also
+checked (2026-07-30, D-017): ManiSkill3 exposes a real mobile robot
+(`fetch`) and a real furnished scene (`ReplicaCADSetTableTrain`), but
+reliable navigation needed a path planner we built ourselves
+(`spikes/task_schema_draft/navigation.py`) — a naive controller gets stuck
+on real walls. A confirmed, open, unfixed upstream rendering bug was also
+found (D-022, `haosulab/ManiSkill#1150`) that limits how many rendered
+frames can be trusted per process on macOS for real-scene environments —
+guarded around, not a blocker, but a real platform cost to know about.
+Isaac Lab still hasn't been spiked — I-003 in `ai-notes/issues_and_risks.md`
+now leans toward "the ManiSkill3 evidence is sufficient to formally select
+it" being the more defensible call, given how much validated,
+ManiSkill3-specific work now exists (D-006/D-009–D-011/D-017/D-020/D-022/D-028
+in `ai-notes/decisions.md`), but that's still an open decision, not made
+here.
 
 ## Task schema
 
-**Draft implementation (2026-07-29):** see [spikes/task_schema_draft/README.md](../spikes/task_schema_draft/README.md)
+**Draft implementation (2026-07-29, extended through 2026-08-01):** see
+[spikes/task_schema_draft/README.md](../spikes/task_schema_draft/README.md)
 for a concrete, runnable, tested version of the schema below, built around
 this project's own worked example from docs/01 (mug/bowl/tray/medicine/glass).
-Not committed — a starting point for review (D-013 in `ai-notes/decisions.md`).
-It now also includes a first toy-scale test of H2 (static vs
-oracle-feasibility policy baselines, D-014) — see
+Not committed — a starting point for review (D-013 in `ai-notes/decisions.md`,
+still needing that review — see `ai-notes/review-request-task-schema.md`).
+Since the first draft: toy-scale tests of H2 and H3 (D-014/D-015), confirmed
+embodiment-agnostic across four robot/scene combinations (D-016–D-018,
+D-021), and one full pass through this project's build-up order — language
+parsing (D-019, extended with ordering/priority/conditional goals in D-026,
+the last a PROPOSED schema addition needing the same review), zero-shot
+vision (D-020), a self-supervised representation (D-023), and a learned
+policy (D-025) — see
 [docs/07-adaptive-policy-design.md](07-adaptive-policy-design.md) "Policy
 variants."
 

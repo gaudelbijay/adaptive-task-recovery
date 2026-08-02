@@ -1,7 +1,7 @@
 ---
 title: Roadmap and Milestones
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-01
 ---
 
 # Roadmap and Milestones
@@ -30,6 +30,19 @@ beliefs replace the oracle incrementally rather than at the end.
 
 **Exit:** one deterministic humanoid episode can be replayed, rendered, and
 scored, with high- and low-level outcomes logged separately.
+
+**Status as of 2026-08-01:** substantially demonstrated in `spikes/`, not
+formally exited. A deterministic G1-humanoid episode can be replayed,
+rendered, and scored (D-016, D-018, D-021 — reproducibility now a
+regression test) with goal-feasibility/constraint outcomes logged
+(`evaluate_goal_graph()`). What's *not* done: a clean separation of
+high-level (goal/feasibility) and low-level (skill execution) outcome
+logging as originally envisioned — `steps_used`/`wasted_steps` is a proxy,
+not that split, since `teleport-on-success` (see
+`spikes/task_schema_draft/README.md`) abstracts low-level execution away
+almost everywhere. Formal exit also requires the `src/atr/` scaffold and
+schema contracts this phase calls for, neither of which exists yet — see
+`ai-notes/review-request-task-schema.md` for what's actually gating that.
 
 ## Phase 1 — benchmark and oracle
 

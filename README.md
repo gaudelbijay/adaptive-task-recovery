@@ -8,11 +8,22 @@ revise its strategy to achieve as much of the original intent as possible.
 
 ## Research question
 
+A robot gets an instruction with more than one goal. Partway through, the
+world changes in a way that can't be undone — something breaks, disappears,
+or a path closes. Can the robot tell which goals are still possible, still
+do whichever of them remain achievable, and never fake success by doing
+something it was never asked to do?
+
 > Can a vision-language reinforcement learning agent, equipped with
 > self-supervised visual representations, learn to identify which
 > language-specified goals remain feasible after unforeseen and irreversible
 > world changes, and adapt its task strategy to maximize goal achievement
 > without violating the original intent?
+
+See [`docs/00-project-overview.md`](docs/00-project-overview.md) for the
+full breakdown, including the build-up order this project actually follows
+(language, then vision, then self-supervised representations, then a
+learned policy — one capability at a time, each checked before the next).
 
 Examples include an object becoming unavailable, a container breaking, a route
 becoming blocked, or a limited resource being consumed. These changes make the
@@ -37,11 +48,20 @@ out multi-goal, visually observable, object-centric tasks. The feasibility and
 intent modules are embodiment-agnostic, while a humanoid control layer provides
 navigation, reaching, grasping, and safe whole-body skills. A simpler embodiment
 may be used for early research debugging, but humanoid evaluation is a required
-project milestone. The repository is currently in **Pre-Phase 0**: the revised
-research design is documented, and a simulator-selection spike is underway
-(`spikes/maniskill_humanoid_spike/`) — no project architecture or experiments
-exist yet. See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for
-the study design.
+project milestone.
+
+The repository is still formally **Pre-Phase 0** — `src/atr/` doesn't exist yet,
+and nothing has been promoted out of `spikes/` — but the spike work there
+(`spikes/task_schema_draft/`) is substantial and tested: a goal-graph schema,
+oracle feasibility, an intent guard, confirmed embodiment-agnostic across four
+robot/scene combinations (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD
+apartment with a mobile Fetch robot, and G1 placed in that same apartment), plus
+one working build-up-order pass through language parsing, zero-shot vision,
+self-supervised representations, and a learned (Q-learning) policy — over 90
+tests passing. None of it is committed architecture: the schema it's all built
+on needs teammate review before promotion (see
+[`ai-notes/review-request-task-schema.md`](ai-notes/review-request-task-schema.md)).
+See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study design.
 
 ## Roadmap
 
