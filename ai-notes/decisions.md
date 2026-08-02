@@ -2,6 +2,43 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-035: Architecture diagram redrawn with module boundaries and ownership
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Replaced the stale `media/architecture-diagram.drawio` (added
+  2026-07-25, one day before the research reframing — described the
+  superseded humanoid failure-detection/recovery architecture, and
+  `docs/03-system-architecture.md` had said as much, unaddressed, since
+  2026-07-26) with a Mermaid diagram embedded directly in
+  `docs/03-system-architecture.md`. Shows the same modules the file's
+  existing pseudocode names (`VisualEncoder`, `InstructionEncoder`,
+  `ChangeModel`, `FeasibilityModel`, `AdaptivePolicy`, `IntentGuard`,
+  `HumanoidSkillInterface`), grouped into three swimlanes — Person A,
+  Person B, Shared — matching `docs/08-training-pipeline.md`'s existing
+  "Contributors and handoff contract" exactly, plus dotted edges marking
+  where privileged oracle state is allowed to flow (labels/eval only,
+  never a live decision input) per this same doc's own design principles.
+  Old `.drawio`/`.svg`/`.png` files kept in `media/` as historical
+  reference only, not deleted; `media/README.md` updated to point to
+  `docs/03` as authoritative.
+- **Reason:** Mermaid renders natively on GitHub and inside this file
+  itself, stays plain-text/diffable/version-controlled, and can't drift
+  out of sync with the prose next to it the way a separate binary
+  `.drawio` export already had (silently, for a week, since nothing
+  caught it). A dedicated diagramming tool wasn't available in this
+  environment either way. Ownership folded into the same diagram rather
+  than added as a separate one, since `STATUS.md`'s todo asked for
+  "ownership and module boundaries" together, and they're genuinely the
+  same picture, not two.
+- **Consequences:** `docs/03-system-architecture.md` is now the single
+  source of truth for both the module graph and who owns what; `README.md`
+  links to it. Diagram content still describes the *conceptual*
+  architecture from `docs/00`/`docs/03`, not current implementation
+  status — added a note in `docs/03` pointing to `STATUS.md`/
+  `ai-notes/decisions.md` for that, rather than overloading one diagram
+  with both.
+
 ## D-034: Measured CLIP-vs-DINOv2 comparison recorded — evidence for I-004, deliberately not a selection
 
 - **Date:** 2026-08-02

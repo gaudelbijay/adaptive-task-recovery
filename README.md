@@ -41,6 +41,9 @@ and constraints, and choose an acceptable partial or alternative completion.
 - A benchmark with controlled irreversible changes and held-out changes
 - Evaluation against static-policy, replanning, and representation baselines
 
+See [`docs/03-system-architecture.md`](docs/03-system-architecture.md) for
+the module-boundary and ownership diagram behind the list above.
+
 ## Scope and status
 
 The first version is simulation-only and targets a **simulated humanoid** carrying
@@ -50,8 +53,9 @@ navigation, reaching, grasping, and safe whole-body skills. A simpler embodiment
 may be used for early research debugging, but humanoid evaluation is a required
 project milestone.
 
-The repository is still formally **Pre-Phase 0** — `src/atr/` doesn't exist yet,
-and nothing has been promoted out of `spikes/` — but the spike work there
+The repository is still formally **Pre-Phase 0** — `src/atr/` is scaffolded
+but empty (D-032), and nothing has been promoted out of `spikes/` — but the
+spike work there
 (`spikes/task_schema_draft/`) is substantial and tested: a goal-graph schema,
 oracle feasibility, an intent guard, confirmed embodiment-agnostic across four
 robot/scene combinations (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD

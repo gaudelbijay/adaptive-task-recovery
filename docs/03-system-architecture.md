@@ -1,13 +1,19 @@
 ---
 title: System Architecture
 status: draft
-last_updated: 2026-07-26
+last_updated: 2026-08-02
 ---
 
 # System Architecture
 
-The existing image in `media/` describes the superseded humanoid-recovery
-architecture and must be redrawn before it is linked from the README.
+**Redrawn 2026-08-02 (D-035):** the diagram below is the current,
+authoritative architecture — module boundaries and ownership together,
+matching the split in `docs/08-training-pipeline.md`'s "Contributors and
+handoff contract". It replaces the old `media/architecture-diagram.drawio`
+image, which described the pre-reframing humanoid-recovery architecture
+and predates the current research question by a day (see
+`media/README.md`); that image is kept only as historical reference and is
+not linked from the README.
 
 ## Design principles
 
@@ -33,6 +39,62 @@ AdaptivePolicy(state, GoalGraph, beliefs) -> CandidateAction
 IntentGuard(candidate, state, GoalGraph) -> Action | reject | abstain
 HumanoidSkillInterface(Action, proprioception) -> whole-body commands
 ```
+
+## Module boundaries and ownership
+
+```mermaid
+flowchart TB
+    subgraph A["Person A — representation, language, feasibility"]
+        direction TB
+        IE["InstructionEncoder<br/>text → GoalGraph"]
+        VE["VisualEncoder<br/>o_t, history → VisualState"]
+        CM["ChangeModel<br/>history, VisualState → ChangeBelief"]
+        FM["FeasibilityModel<br/>VisualState, ChangeBelief, GoalGraph<br/>→ FeasibilityBeliefs"]
+        VE --> CM --> FM
+    end
+
+    subgraph B["Person B — policy, guard, humanoid execution"]
+        direction TB
+        AP["AdaptivePolicy<br/>state, GoalGraph, beliefs → CandidateAction"]
+        IG["IntentGuard<br/>candidate, state, GoalGraph<br/>→ Action | reject | abstain"]
+        HSI["HumanoidSkillInterface<br/>Action, proprioception<br/>→ whole-body commands"]
+        AP --> IG --> HSI
+    end
+
+    subgraph S["Shared — schemas, benchmark, oracle, integration tests, eval"]
+        direction TB
+        GG[("GoalGraph schema")]
+        OF[("Oracle feasibility<br/>+ interventions")]
+        EV[("Evaluation harness<br/>+ logging")]
+    end
+
+    IE --> GG
+    GG --> FM
+    GG --> AP
+    FM --> AP
+    OF -. "labels / eval only —<br/>never a live decision input" .-> FM
+    OF -. "labels / eval only" .-> EV
+    HSI -. "skill outcomes" .-> EV
+    IG -. "violations" .-> EV
+```
+
+Ownership matches `docs/08-training-pipeline.md`'s contract exactly: Person
+A owns the `ObservationWindow + instruction -> AgentBelief` path (encoders
+through feasibility), Person B owns `AgentBelief + available skills ->
+guarded SkillCall` (policy through execution), and both jointly own the
+shared row — schemas, benchmark, oracle, integration tests, end-to-end
+evaluation. The dotted "labels / eval only" edges are the same design
+principle stated above under "Design principles": privileged simulator
+state feeds the oracle and evaluation paths, never the live
+`FeasibilityModel`/`AdaptivePolicy` decision path.
+
+Current implementation status (not shown above, changes faster than the
+module diagram should): every module here has at least a toy-scale,
+tested spike implementation in `spikes/task_schema_draft/` — see
+`STATUS.md` for the up-to-date mapping and `ai-notes/decisions.md`
+D-013–D-030 for what was actually built. None of it has moved into
+`src/atr/` yet; that's gated on the D-013 schema review
+(`ai-notes/review-request-task-schema.md`), not on this diagram.
 
 The `GoalGraph` captures goal predicates, dependencies, exclusions, priorities,
 and hard constraints. Feasibility is probabilistic and per goal. The adaptive
