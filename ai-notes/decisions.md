@@ -2,6 +2,38 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-032: `src/atr/`, `configs/`, `data/` scaffolded — structure only, no code migrated
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Created the directory structure the `STATUS.md` todo has
+  named since the project's reframing: `src/atr/` (with an `__init__.py`
+  and README explaining why it's empty), `configs/`, and `data/`
+  (`scripts/` and `tests/` already existed). Deliberately did **not**
+  move any code out of `spikes/task_schema_draft/` — not `goal_graph.py`,
+  not `oracle_feasibility.py`, nothing. `data/` added to `.gitignore`
+  (all but its own README) since datasets don't belong in git history.
+  `pyproject.toml` left untouched — no packaging config added for an
+  empty package; that's a decision to make once there's real code to
+  package, not before.
+- **Reason:** `ai-notes/review-request-task-schema.md` (sent this same
+  day, D-030's follow-up) explicitly asks the teammate whether D-013's
+  schema is "ready to move from `spikes/task_schema_draft/` into
+  `src/atr/` as committed architecture, or needs changes first." Moving
+  the code into `src/atr/` before that review lands would answer the
+  review's own central question by fait accompli, undermining the point
+  of having sent it. Confirmed directly with the user before proceeding
+  rather than assuming scope, since this was a genuine fork with a real
+  consequence either way, not a judgment call between two reasonable
+  interior details.
+- **Consequences:** `src/atr/` is import-empty; nothing in this project
+  currently runs from it. Once the D-013 review resolves (accepted
+  as-is, accepted with changes, or sent back), the reviewed pieces move
+  here for real, at which point `pyproject.toml` needs an actual `atr`
+  package entry and the interface-versioning todo (goal graphs,
+  feasibility beliefs, skills, logs) becomes concrete rather than
+  hypothetical.
+
 ## D-031: Dependabot vulnerability triage — all 9 flagged packages fixed, one required a `sapien` bump first
 
 - **Date:** 2026-08-02

@@ -222,3 +222,7 @@ __marimo__/
 
 # Local Claude configuration
 .claude/
+
+# Datasets -- don't belong in git history (see data/README.md)
+data/*
+!data/README.md
