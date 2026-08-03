@@ -2,6 +2,52 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-044: First queryable dataset-split registry (`src/atr/evaluation/splits.py`)
+
+- **Date:** 2026-08-03
+- **Status:** Accepted
+- **Decision:** Built `src/atr/evaluation/splits.py`: `InstructionSpec`
+  (`instruction_text`, `known_objects`, `split`) plus `TRAIN`,
+  `HELD_OUT_PARAPHRASE`, `HELD_OUT_COMPOSITION` tuples and a `SPLITS`
+  dict, satisfying docs/04's "hold out paraphrases and compositions"
+  requirement and docs/10's "predeclare primary metrics and splits" —
+  both previously true only as literal strings inside
+  `test_instruction_parser.py`'s test-function bodies, with no way for
+  anything else to enumerate them programmatically. Every string is
+  copied verbatim from those already-validated test cases — nothing
+  new/unvalidated added. Deliberately pure data with no simulator
+  dependency: does NOT carry each spec's expected `GoalGraph`, since
+  computing that for the ReplicaCAD-object specs would mean importing
+  spike env files (mani_skill-dependent), the same backwards-dependency
+  problem every promotion since D-037 has avoided. Added
+  `tests/drafts/test_splits.py` (13 tests, zero mani_skill dependency)
+  checking every spec parses without raising, and — for the 4
+  canonical-object specs specifically — that they match
+  `canonical_example()`'s semantics exactly (checkable with zero
+  mani_skill dependency, unlike the ReplicaCAD-object specs). Verified
+  in the same throwaway no-mani_skill venv used to validate D-043's
+  `fast-checks` job: 30 passed, 17 skipped (was 17 passed, 17 skipped
+  before this) — real, additional coverage in the reliable CI tier, not
+  just claimed.
+- **Reason:** Considered refactoring `test_instruction_parser.py` itself
+  to import these strings instead of independently defining them, to
+  eliminate the literal-string duplication entirely — decided against it.
+  D-040's duplication was real, executable *decision logic* that
+  silently drifted (one bug-fix landing in one of four copies); these
+  are stable string literals describing fixed reference examples, a
+  meaningfully lower-risk kind of duplication where a same-content
+  registry entry and test both changing correctly by hand is a
+  reasonable bar, and refactoring an already-passing, already-reviewed
+  test file carried more churn risk than the duplication it would have
+  removed. Not every duplication is worth the same fix.
+- **Consequences:** Any future evaluation code (the D-042 harness, a
+  later benchmark runner) can now enumerate specs by split
+  programmatically instead of re-deriving them from test files. Still
+  missing: held-out scene-layout and held-out-intervention splits
+  (only two scene layouts and two intervention kinds exist at all right
+  now, per D-027/D-020 — not enough to meaningfully hold one out yet).
+  Full suite re-verified green.
+
 ## D-043: First GitHub Actions CI workflow — one verified-reliable job, one honestly-unverified job
 
 - **Date:** 2026-08-02
