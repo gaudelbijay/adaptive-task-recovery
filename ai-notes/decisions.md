@@ -2,6 +2,64 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-042: First real evaluation harness — paired seeds, bootstrap CIs (docs/10's statistical protocol, implemented for the first time)
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Built `src/atr/evaluation/harness.py`:
+  `run_episode(env_factory, policy_fn, seed)`, `bootstrap_ci(values,
+  n_resamples, ci)` (percentile bootstrap), and `compare_policies
+  (env_factory, policies, seeds, metrics)` — runs every policy against
+  the *same* seeds (paired, per docs/10-evaluation-and-benchmarks.md's
+  "Statistical protocol: ...paired episode seeds across methods,
+  bootstrap confidence intervals") and reports `(mean, lo, hi)` per
+  metric per policy. Env-agnostic and policy-agnostic, same
+  parameterization discipline as D-040/D-041 — takes `env_factory` and a
+  `{name: policy_fn}` mapping, works with any TidyUp env variant and any
+  policy unmodified. Verified the statistics themselves with pure-function
+  tests against known distributions (constant values → zero-width
+  interval, wider `ci` → superset interval, deterministic given a seed)
+  before trusting it against real episodes.
+  Then actually ran it — the real deliverable, not just infrastructure:
+  compared `static_policy` vs `feasibility_aware_policy` vs
+  `learned_policy` on the canonical env, `bowl_destroyed` intervention,
+  30 paired seeds, 2000 bootstrap resamples — H2's original claim (D-014),
+  finally run with the statistical protocol docs/10 actually specifies
+  instead of a single seed=0 comparison. Result:
+  `wasted_steps` = static 25.0 [25.0, 25.0] vs. feasibility_aware/learned
+  0.0 [0.0, 0.0] each; `goals_achieved` = 1.0 [1.0, 1.0] for all three.
+  **Every interval collapsed to a single point — zero variance across
+  all 30 seeds, for every metric, every policy.** Reported honestly
+  rather than as a stronger result than it is: this toy setup (fixed
+  intervention, fixed onset window, fully deterministic policies) simply
+  has no outcome variance across seeds at this scale, so a correctly-
+  implemented bootstrap CI has nothing to show yet. It will matter once
+  applied to a comparison with genuine stochasticity — a wider onset
+  window that changes which goal the intervention catches mid-attempt,
+  or (once promoted) a perceptual policy whose CLIP/DINOv2 judgments
+  carry real, non-zero error variance across seeds.
+- **Reason:** docs/10 has specified this exact statistical protocol
+  since the project's early design phase; every comparison actually run
+  since (D-014, D-016–D-018, D-021, D-025, D-029) used a single seed and
+  asserted a point result — real evidence for a toy case, but not what
+  the project's own evaluation design says a benchmark comparison needs.
+  Building the harness and immediately running it against an existing
+  comparison (rather than leaving it as untested infrastructure) is what
+  surfaced the zero-variance finding — an argument for always running
+  new tooling against something real before calling it done, not a
+  reason regretted after the fact.
+- **Consequences:** `src/atr/evaluation/` now has real statistical
+  machinery, reusable for whichever comparison gets run next (any
+  promoted or spike policy, any env variant). Does **not** implement
+  docs/10's full required-baselines list or ablation suite — those need
+  baselines (domain-randomized policy, frame-difference detector,
+  symbolic replanner) that don't exist yet; this is the statistical
+  layer underneath whichever comparison runs, not the comparisons
+  themselves. The zero-variance finding is a real, disclosed limit of
+  the current toy scale, not a harness bug (confirmed via the
+  known-distribution unit tests, which do show real, non-degenerate
+  intervals).
+
 ## D-041: Q-learning promoted to `src/atr/policies/q_learning.py`, fixing an internal inconsistency D-040's pattern exposed
 
 - **Date:** 2026-08-02

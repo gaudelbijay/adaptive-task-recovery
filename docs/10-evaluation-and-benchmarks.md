@@ -1,7 +1,7 @@
 ---
 title: Evaluation and Benchmarks
 status: draft
-last_updated: 2026-08-01
+last_updated: 2026-08-02
 ---
 
 # Evaluation and Benchmarks
@@ -69,6 +69,23 @@ have first instances yet.
 Predeclare primary metrics and splits. Use paired episode seeds across methods,
 bootstrap confidence intervals, and effect sizes. Correct or clearly label
 multiple exploratory comparisons. Publish per-seed results and failure cases.
+
+**First real implementation, 2026-08-02 (D-042,
+`src/atr/evaluation/harness.py`):** `compare_policies()` runs paired
+seeds across policies and reports bootstrap confidence intervals per
+metric — env/policy-agnostic, works against any TidyUp variant. Applied
+immediately to H2's original static-vs-feasibility-aware comparison
+(D-014): 30 paired seeds, canonical env, `bowl_destroyed` intervention.
+Every interval collapsed to a single point — zero outcome variance
+across all 30 seeds, for every metric, every policy. Reported as what it
+is: this toy setup (fixed intervention, fixed onset window, fully
+deterministic policies) has no real variance to measure at this scale,
+confirmed not a harness bug via separate unit tests against known
+distributions. The statistical machinery is real and ready; the current
+comparisons just aren't stochastic enough yet to need it. Will start
+mattering once either intervention timing is randomized across a window
+that changes outcomes, or a perceptual policy (real CLIP/DINOv2 error
+variance, not privileged-state ground truth) is what's compared.
 
 ## Critical controls
 
