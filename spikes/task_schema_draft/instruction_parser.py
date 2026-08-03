@@ -50,7 +50,7 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
-from task_schema_draft.goal_graph import Constraint, Goal, GoalGraph
+from atr.language.goal_graph import Constraint, Goal, GoalGraph
 
 _ORDER_MARKERS = ("first", "second", "third", "then", "next", "finally", "after that")
 _ORDER_PATTERN = "|".join(_ORDER_MARKERS)

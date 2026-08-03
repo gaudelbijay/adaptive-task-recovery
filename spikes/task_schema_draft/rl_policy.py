@@ -44,8 +44,8 @@ from typing import Callable
 import gymnasium as gym
 import numpy as np
 
-from task_schema_draft.goal_graph import GoalGraph, canonical_example
-from task_schema_draft.oracle_feasibility import goal_feasible
+from atr.language.goal_graph import GoalGraph, canonical_example
+from atr.feasibility.oracle import goal_feasible
 from task_schema_draft.policy_baselines import _TRAY_SLOTS, _summarize, attempt_goal
 
 SKIP, ATTEMPT = 0, 1

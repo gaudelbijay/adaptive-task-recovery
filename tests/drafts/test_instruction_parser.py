@@ -14,7 +14,7 @@ import pytest
 
 pytest.importorskip("mani_skill")  # replicacad_example/_humanoid pull in mani_skill env classes
 
-from task_schema_draft.goal_graph import canonical_example  # noqa: E402
+from atr.language.goal_graph import canonical_example  # noqa: E402
 from task_schema_draft.instruction_parser import parse_instruction  # noqa: E402
 from task_schema_draft.tidy_up_env_replicacad import replicacad_example  # noqa: E402
 from task_schema_draft.tidy_up_env_replicacad_humanoid import (  # noqa: E402

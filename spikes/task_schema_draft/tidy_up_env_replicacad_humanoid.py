@@ -66,8 +66,8 @@ from mani_skill.sensors.camera import CameraConfig
 from mani_skill.utils import sapien_utils
 from mani_skill.utils.registration import register_env
 
-from task_schema_draft.goal_graph import Constraint, Goal, GoalGraph
-from task_schema_draft.oracle_feasibility import ObjectState, WorldState, evaluate_goal_graph
+from atr.language.goal_graph import Constraint, Goal, GoalGraph
+from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
 
 _OBJECT_ALIASES = {
     "potted_meat_can": "env-0_010_potted_meat_can-1",

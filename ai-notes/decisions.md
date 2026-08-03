@@ -2,6 +2,99 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-037: D-013's schema review self-resolved and promoted to `src/atr/`
+
+- **Date:** 2026-08-02
+- **Status:** Accepted — but see "Reason" below on what kind of Accepted
+  this is
+- **Decision:** Resolved all four open questions in
+  `ai-notes/review-request-task-schema.md` and promoted the reviewed core
+  — `Goal`/`Constraint`/`GoalGraph`, oracle feasibility, and the intent
+  guard — from `spikes/task_schema_draft/` into `src/atr/`
+  (`language/goal_graph.py`, `feasibility/oracle.py`,
+  `constraints/intent_guard.py`), closing D-013's "needs review with
+  teammate" status.
+  - **Q1 (goal/constraint shape):** accepted as-is. `on_tray`/
+    `never_move`/`maintain_orientation` cover every worked example so
+    far; `Literal` types + `constraint_violated()`'s loud `ValueError` on
+    an unknown kind make extending safe later, so nothing was added
+    speculatively now.
+  - **Q2 (`Goal.condition` shape):** accepted as-is, kept scoped to
+    object existence. Deliberately not extended to reference another
+    goal's feasibility — that's what Q3's fix gives the schema instead,
+    keeping `condition` (object existence) and `depends_on` (goal
+    completion) complementary rather than one field doing both jobs.
+  - **Q3 (`Goal.depends_on` unexercised):** actually fixed, not just
+    decided. Confirmed it was genuine dead schema surface — defined since
+    D-013's first draft, read by zero functions. Built
+    `goal_dependencies_satisfied(goal, achieved_goal_ids) -> bool`
+    (`src/atr/feasibility/oracle.py`) as a function deliberately separate
+    from `goal_feasible()`: "infeasible" (can never be achieved) and
+    "dependency not yet satisfied" (would succeed later) are different
+    claims, and folding the second into the first would make a policy
+    report a perfectly reachable goal as permanently infeasible just
+    because its prerequisite hadn't completed yet. Added
+    `dependent_goals_example()` (`src/atr/language/goal_graph.py`, reuses
+    `canonical_example()`'s real objects so it runs against the existing
+    `tidy_up_env.py` scene, no new env needed) and wired the gate into
+    `feasibility_aware_policy()`
+    (`spikes/task_schema_draft/policy_baselines.py`). Verified two ways:
+    pure-function tests
+    (`tests/drafts/test_oracle_feasibility.py::TestGoalDependency`) and a
+    real live-env demonstration
+    (`tests/drafts/test_policy_baselines.py::TestGoalDependencyGating`) —
+    `place_bowl` (depends on `place_mug`) gets blocked when `red_mug` is
+    destroyed, even though `place_bowl`'s own target (`blue_bowl`) is
+    untouched and independently feasible; the dependency, not
+    feasibility, is what stops it. Found along the way, not previously
+    known: `Goal.priority` is *set* by `instruction_parser.py` but read
+    by zero functions either — harmless today (goal execution order
+    already matches tuple order, which priority is derived from by
+    construction), but worth knowing before anything assumes priority is
+    independently load-bearing.
+  - **Q4 (is toy-scale evidence enough to promote):** yes. Six build-up
+    stages, four robot/scene combinations, two vision scene layouts, 103
+    tests (was 97; +4 from Q3's fix, +2 net elsewhere), a real end-to-end
+    pipeline with nothing privileged in the live decision loop (D-029).
+    Promotion changes *where the code lives and its accept status*, not
+    the evidence's underlying scale — every toy-scale caveat in the
+    review request still applies verbatim after promotion.
+  - **Mechanics:** `git mv` for all three files (history preserved);
+    `pyproject.toml`'s `[tool.setuptools.packages.find]` extended to
+    `where = ["src", "spikes"]` (was `["spikes"]` only) and the
+    distribution renamed `atr-spikes` → `adaptive-task-recovery` (it now
+    packages committed architecture, not only spikes); every import
+    across `spikes/task_schema_draft/*.py` and `tests/drafts/*.py`
+    updated from `task_schema_draft.{goal_graph,oracle_feasibility,
+    intent_guard}` to `atr.{language.goal_graph,feasibility.oracle,
+    constraints.intent_guard}` (mechanical, verified by repo-wide grep
+    returning zero old-style references); reinstalled editable, full
+    suite re-verified green (103 passed) on a clean run started only
+    after every change landed (an earlier concurrent run showed one
+    failure — traced to overlapping with the file migration mid-run, not
+    a real regression, and not trusted as evidence either way).
+- **Reason:** The user directed resolving this without further delay
+  ("let's do teammate's work by ourself... let's fix and let's move on")
+  rather than leaving the project blocked on a review that had already
+  been sent. **This is explicitly not the same epistemic event as
+  independent review** — the project owner and I resolving four questions
+  together is not a second person with their own judgment evaluating the
+  work. `ai-notes/review-request-task-schema.md` was updated with a
+  prominent status banner saying exactly this, not silently marked
+  resolved. If the actual teammate reviews this later and disagrees with
+  any call made here, that's a real reopening of this decision, not a
+  formality — worth remembering the next time this file is read as
+  settled history.
+- **Consequences:** D-013 closed. `src/atr/` is no longer empty — see its
+  updated README for what's there and what stayed in
+  `spikes/task_schema_draft/` (everything that's evidence *for* the
+  schema, not part of it: the parser, both vision backends, the learned
+  policy, the end-to-end pipeline — none of those made their own
+  promotion case yet). `ai-notes/issues_and_risks.md`,
+  `docs/01-problem-statement-and-motivation.md`, and
+  `docs/07-adaptive-policy-design.md` updated to point at the new
+  `src/atr/` paths instead of the old `spikes/task_schema_draft/` ones.
+
 ## D-036: CLIP/DINOv2 made CUDA-aware with CPU fallback; ManiSkill sim backend deliberately left CPU-only
 
 - **Date:** 2026-08-02

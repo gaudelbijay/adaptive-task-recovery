@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from task_schema_draft.goal_graph import Constraint, Goal, GoalGraph
+from atr.language.goal_graph import Constraint, Goal, GoalGraph
 
 
 @dataclass
@@ -49,6 +49,33 @@ def goal_feasible(goal: Goal, state: WorldState) -> bool:
             return False
     obj = state.get(goal.target_object)
     return obj is not None and obj.exists
+
+
+def goal_dependencies_satisfied(goal: Goal, achieved_goal_ids: set[str] | frozenset[str]) -> bool:
+    """True iff every id in `goal.depends_on` is already in
+    `achieved_goal_ids` -- a hard prerequisite gate.
+
+    Deliberately a separate function from `goal_feasible()`, not folded
+    into it (D-037, resolving the D-013 review's open question 3):
+    "infeasible" means "can never be achieved this episode" (existence-
+    based), while "dependency not yet satisfied" means "not actionable
+    *yet*, would succeed if attempted later" -- conflating the two would
+    make a policy report a perfectly reachable goal as permanently
+    infeasible the moment its prerequisite happens not to be done yet.
+    Also distinct from `Goal.priority` (an ordering *hint* nothing
+    currently reads -- goal execution order in every existing policy is
+    already just `GoalGraph.goals` tuple order) and from `Goal.condition`
+    (D-026, gates on another *object's* existence, not on another goal's
+    completion).
+
+    `achieved_goal_ids` is the caller's responsibility to accumulate --
+    this function only knows about one goal's declared dependencies, not
+    the graph or world state. See `policy_baselines.py`'s
+    `feasibility_aware_policy()` for the reference caller: it threads an
+    `achieved_ids` set through a single sequential pass over
+    `graph.goals`, exactly matching every existing policy's execution
+    model (no replanning, no revisiting a skipped goal later)."""
+    return all(dep_id in achieved_goal_ids for dep_id in goal.depends_on)
 
 
 def goal_achieved(

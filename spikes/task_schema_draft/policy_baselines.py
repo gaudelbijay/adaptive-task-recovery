@@ -23,9 +23,14 @@ from __future__ import annotations
 import numpy as np
 import sapien
 
-from task_schema_draft.goal_graph import Goal, GoalGraph, canonical_example
-from task_schema_draft.intent_guard import validate_action
-from task_schema_draft.oracle_feasibility import constraint_violated, goal_achieved, goal_feasible
+from atr.language.goal_graph import Goal, GoalGraph, canonical_example
+from atr.constraints.intent_guard import validate_action
+from atr.feasibility.oracle import (
+    constraint_violated,
+    goal_achieved,
+    goal_dependencies_satisfied,
+    goal_feasible,
+)
 
 _TRAY_POSITION = np.array([0.4, 0.0, 0.005])
 _TRAY_HALF_SIZES = (0.15, 0.2, 0.005)
@@ -96,15 +101,25 @@ def static_policy(env, graph: GoalGraph = None) -> dict:
 
 def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
     """Checks goal_feasible() (a privileged-state query, ~zero cost) before
-    committing to the physical attempt; skips infeasible goals immediately."""
+    committing to the physical attempt; skips infeasible goals immediately.
+    Also gates on goal_dependencies_satisfied() (D-037): a goal whose
+    depends_on prerequisite hasn't been achieved yet in this same
+    sequential pass is skipped too, same as an infeasible one -- see that
+    function's docstring for why this is a separate check from feasibility,
+    not the same one. No-op for every goal with empty depends_on (every
+    goal in canonical_example()), so this is backward compatible."""
     graph = graph or canonical_example()
     per_goal = {}
+    achieved_ids: set[str] = set()
     for i, goal in enumerate(graph.goals):
         state = env.unwrapped._world_state()
-        if not goal_feasible(goal, state):
+        if not goal_feasible(goal, state) or not goal_dependencies_satisfied(goal, achieved_ids):
             per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
             continue
-        per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
+        result = attempt_goal(env, goal, _TRAY_SLOTS[i])
+        per_goal[goal.id] = result
+        if result["achieved"]:
+            achieved_ids.add(goal.id)
     return _summarize(per_goal)
 
 

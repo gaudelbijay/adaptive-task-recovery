@@ -13,9 +13,9 @@ from __future__ import annotations
 import numpy as np
 import sapien
 
-from task_schema_draft.goal_graph import Goal, GoalGraph
-from task_schema_draft.intent_guard import validate_action
-from task_schema_draft.oracle_feasibility import constraint_violated, goal_achieved, goal_feasible
+from atr.language.goal_graph import Goal, GoalGraph
+from atr.constraints.intent_guard import validate_action
+from atr.feasibility.oracle import constraint_violated, goal_achieved, goal_feasible
 from task_schema_draft.tidy_up_env_replicacad_humanoid import (
     _LAST_KNOWN_POSITIONS,
     _NEUTRAL_QPOS,

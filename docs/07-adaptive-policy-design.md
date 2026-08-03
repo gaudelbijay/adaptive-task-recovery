@@ -79,7 +79,8 @@ The intent guard validates candidate high-level choices and, where possible,
 primitive actions. It must distinguish an explicitly allowed substitute from a
 semantically convenient but unauthorized replacement.
 
-**First toy instance (2026-07-29):** `spikes/task_schema_draft/intent_guard.py`'s
+**First toy instance (2026-07-29):** `src/atr/constraints/intent_guard.py`'s
+(promoted from `spikes/task_schema_draft/`, D-037)
 `validate_action()` is the smallest possible version of this — it rejects a
 candidate action targeting a `never_move`-constrained object unless a real
 goal in the graph requires touching it, exactly the "unauthorized

@@ -68,7 +68,8 @@ unrequested object, or violate the glass constraint for reward.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and
-  `spikes/task_schema_draft/intent_guard.py` — blocks one hand-authored
+  `src/atr/constraints/intent_guard.py` (promoted from `spikes/task_schema_draft/`,
+  D-037) — blocks one hand-authored
   constraint violation at zero recall cost; does not yet test the harder
   recall/safety trade-off the hypothesis is actually about (see R-010).
   Confirmed with the same result across the same four robot/scene

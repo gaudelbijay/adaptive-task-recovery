@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from task_schema_draft.goal_graph import Goal, GoalGraph
-from task_schema_draft.intent_guard import validate_action
+from atr.language.goal_graph import Goal, GoalGraph
+from atr.constraints.intent_guard import validate_action
 from task_schema_draft.navigation import build_occupancy_grid, plan_path
-from task_schema_draft.oracle_feasibility import constraint_violated, goal_achieved, goal_feasible
+from atr.feasibility.oracle import constraint_violated, goal_achieved, goal_feasible
 from task_schema_draft.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Covers spawn (-1, 0) plus every goal/constraint object position used in

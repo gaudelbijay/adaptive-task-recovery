@@ -43,9 +43,9 @@ from mani_skill.utils.building.ground import build_ground
 from mani_skill.utils.registration import register_env
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 
-from task_schema_draft.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
+from atr.language.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
 from task_schema_draft.instruction_parser import parse_instruction
-from task_schema_draft.oracle_feasibility import ObjectState, WorldState, evaluate_goal_graph
+from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
 
 _OBJECT_SPECS = {
     # name: (half_sizes, color, initial_pos)

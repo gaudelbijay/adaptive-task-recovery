@@ -92,9 +92,14 @@ Current implementation status (not shown above, changes faster than the
 module diagram should): every module here has at least a toy-scale,
 tested spike implementation in `spikes/task_schema_draft/` — see
 `STATUS.md` for the up-to-date mapping and `ai-notes/decisions.md`
-D-013–D-030 for what was actually built. None of it has moved into
-`src/atr/` yet; that's gated on the D-013 schema review
-(`ai-notes/review-request-task-schema.md`), not on this diagram.
+D-013–D-037 for what was actually built. The goal-graph/oracle-feasibility/
+intent-guard core of `InstructionEncoder`, `FeasibilityModel`, and
+`IntentGuard` moved into `src/atr/` 2026-08-02 (D-037) — see that
+decision and `ai-notes/review-request-task-schema.md`'s status banner
+before treating that as more settled than it is (self-resolved, not
+independently reviewed). `VisualEncoder`, `ChangeModel`, `AdaptivePolicy`,
+and `HumanoidSkillInterface` remain spike-stage in
+`spikes/task_schema_draft/`, not yet promoted.
 
 The `GoalGraph` captures goal predicates, dependencies, exclusions, priorities,
 and hard constraints. Feasibility is probabilistic and per goal. The adaptive

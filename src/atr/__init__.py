@@ -1,11 +1,14 @@
-"""Committed project architecture -- currently empty on purpose.
+"""Committed project architecture.
 
-Per D-006, no simulator-specific architecture gets committed here before
-the simulator/schema selection it names is actually settled, and per
-D-013, `spikes/task_schema_draft/`'s goal-graph schema (which everything
-else would be built on) is explicitly proposed, not accepted -- see
-`ai-notes/review-request-task-schema.md`. This package is scaffolding for
-what moves here once that review lands, not a partial migration.
+D-013's core schema (`Goal`/`Constraint`/`GoalGraph`, oracle feasibility,
+the intent guard) was accepted and promoted here 2026-08-02 (D-037) --
+see `ai-notes/decisions.md` for the review resolution and
+`ai-notes/review-request-task-schema.md` for what was actually asked.
+Everything else that built on that schema (language parsing, vision-based
+feasibility, self-supervised representations, the learned policy, the
+end-to-end pipeline) remains evidence *for* the schema, not part of it,
+and stays in `spikes/task_schema_draft/` until its own case for
+promotion is made.
 """
 
 from __future__ import annotations

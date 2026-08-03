@@ -1,12 +1,16 @@
-# Task schema + intervention set — DRAFT
+# Task schema + intervention set — evidence for `src/atr/`'s promoted core
 
-**What this is:** a concrete, runnable proposal for the "Shared: select the
-task family and irreversible/reversible intervention set" item in
-`STATUS.md` — the single biggest bottleneck right now, since the oracle
-feasibility checker, dataset splits, Person A's model work, and the
-versioned interfaces all depend on it. **This is a draft for review, not a
-committed benchmark environment** — nothing here should be read as final
-until you and your teammate have looked at it.
+**What this is:** the environments, policies, language/vision/
+representation layers, and learned policy that were built to test D-013's
+task schema. **The schema itself — `Goal`/`Constraint`/`GoalGraph`, oracle
+feasibility, the intent guard — has been reviewed and promoted to
+[`src/atr/`](../../src/atr/) (D-037, 2026-08-02).** Read
+[`ai-notes/review-request-task-schema.md`](../../ai-notes/review-request-task-schema.md)'s
+status banner before treating that as equivalent to independent review —
+it was self-resolved by the project owner, not evaluated by the teammate
+it was written for. Everything in *this* directory remains what it always
+was: evidence for or against that schema, not part of it, and none of it
+has made its own case for promotion yet.
 
 ## The idea in one sentence
 
@@ -20,11 +24,11 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 
 | File | What it is |
 |---|---|
-| [`goal_graph.py`](goal_graph.py) | `Goal`, `Constraint`, `GoalGraph` dataclasses matching docs/04's "atomic goals, priorities, dependencies, and hard constraints." `canonical_example()` builds the docs/01 instruction as data. |
-| [`oracle_feasibility.py`](oracle_feasibility.py) | Pure functions: `goal_feasible()` (exists-based, never attempted-motion-based — see "Humanoid validity requirements" in docs/04) and `constraint_violated()` (position-drift / orientation checks), plus `evaluate_goal_graph()` combining both. No simulator dependency — testable in isolation. |
-| [`tidy_up_env.py`](tidy_up_env.py) | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the above to real privileged state. Registered as `TidyUpTaskSchemaDraft-v1`. |
+| [`../../src/atr/language/goal_graph.py`](../../src/atr/language/goal_graph.py) *(promoted, D-037)* | `Goal`, `Constraint`, `GoalGraph` dataclasses matching docs/04's "atomic goals, priorities, dependencies, and hard constraints." `canonical_example()` builds the docs/01 instruction as data; `dependent_goals_example()` exercises `Goal.depends_on`. |
+| [`../../src/atr/feasibility/oracle.py`](../../src/atr/feasibility/oracle.py) *(promoted, D-037)* | Pure functions: `goal_feasible()` (exists-based, never attempted-motion-based — see "Humanoid validity requirements" in docs/04), `goal_dependencies_satisfied()` (D-037), and `constraint_violated()` (position-drift / orientation checks), plus `evaluate_goal_graph()` combining the feasibility/violation checks. No simulator dependency — testable in isolation. |
+| [`tidy_up_env.py`](tidy_up_env.py) | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the schema above to real privileged state. Registered as `TidyUpTaskSchemaDraft-v1`. |
 | [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? Also `naive_substitution_policy()`, used by the intent guard test below. |
-| [`intent_guard.py`](intent_guard.py) | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
+| [`../../src/atr/constraints/intent_guard.py`](../../src/atr/constraints/intent_guard.py) *(promoted, D-037)* | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
 | [`tidy_up_env_humanoid.py`](tidy_up_env_humanoid.py) | The same scene and interventions, on a Unitree G1 upper body instead of the panda arm — proves `goal_graph`/`oracle_feasibility`/`intent_guard` are genuinely embodiment-agnostic, not accidentally panda-specific. Registered as `TidyUpTaskSchemaDraft-Humanoid-v1`. |
 | [`policy_baselines_humanoid.py`](policy_baselines_humanoid.py) | The same `static_policy` / `feasibility_aware_policy` / `naive_substitution_policy`, adapted to the humanoid's joint-space-only control (see below). |
 | [`tidy_up_env_replicacad.py`](tidy_up_env_replicacad.py) | The same goals/interventions on a **real** furnished apartment (ManiSkill3's own `ReplicaCADSetTableTrain` scene builder, real YCB objects) with a mobile Fetch robot, instead of a hand-built scene. Registered as `TidyUpTaskSchemaDraft-ReplicaCAD-v1`. |
@@ -612,17 +616,24 @@ separately-validated alternative perceptual backend, not integrated here.
 
 ## What this deliberately doesn't cover yet
 
-- ~~Ordering/priority and conditional goals~~ — filled in (D-026): `instruction_parser.py`
-  handles both. `Goal.condition` (conditional goals) is a schema change and
-  is explicitly PROPOSED, not Accepted — see `ai-notes/review-request-task-schema.md`.
+- ~~Ordering/priority and conditional goals~~ — filled in (D-026):
+  `instruction_parser.py` handles both. `Goal.condition` (conditional
+  goals) reviewed and accepted as-is (D-037, kept scoped to object
+  existence — see `ai-notes/review-request-task-schema.md`).
 - **Preferences** (soft, non-binding wishes, as opposed to hard goals/constraints)
   — docs/04 asks for these too; no schema field exists for them, and adding
   one is a schema decision of the same size as `Goal.condition` was —
   not attempted without a driving case, same discipline as everything else here.
-- **`depends_on` (goal ordering dependencies, distinct from `priority`) is
-  still just a schema field.** No example exercises "goal B can't be
-  attempted until goal A completes" specifically — worth a real example
-  once this schema shape gets buy-in.
+- ~~`depends_on` (goal ordering dependencies, distinct from `priority`) is
+  still just a schema field~~ — filled in (D-037):
+  `goal_dependencies_satisfied()` in `src/atr/feasibility/oracle.py`,
+  exercised by `dependent_goals_example()` and wired into
+  `policy_baselines.py`'s `feasibility_aware_policy()`. Verified live: a
+  goal gets blocked by an unmet prerequisite even when its own target
+  object is independently feasible. Also found while fixing this:
+  `Goal.priority` is set by the parser but read by nothing — harmless
+  today (execution order already matches it by construction), but worth
+  knowing.
 - ~~Actual goal completion~~ — filled in: `goal_achieved()` checks placement
   (object resting within the tray's footprint), used by `policy_baselines.py`.
   Still simplified: a successful attempt teleports the object onto the tray

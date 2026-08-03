@@ -1,38 +1,41 @@
 # `src/atr/`
 
-Committed project architecture. **Currently empty on purpose** -- not
-unfinished, not forgotten.
+Committed project architecture. As of 2026-08-02 (D-037), no longer empty:
+D-013's core schema has been reviewed and promoted here.
 
-## Why empty
+## What's here
 
-Everything the project has actually built so far lives in
-[`spikes/task_schema_draft/`](../../spikes/task_schema_draft/), by design
-(see D-006 and D-013 in [`ai-notes/decisions.md`](../../ai-notes/decisions.md)):
+| Module | Contents | Promoted from |
+|---|---|---|
+| [`language/goal_graph.py`](language/goal_graph.py) | `Goal`, `Constraint`, `GoalGraph` dataclasses, `canonical_example()`, `dependent_goals_example()` | `spikes/task_schema_draft/goal_graph.py` |
+| [`feasibility/oracle.py`](feasibility/oracle.py) | `goal_feasible`, `goal_achieved`, `goal_dependencies_satisfied`, `constraint_violated`, `evaluate_goal_graph` | `spikes/task_schema_draft/oracle_feasibility.py` |
+| [`constraints/intent_guard.py`](constraints/intent_guard.py) | `validate_action` | `spikes/task_schema_draft/intent_guard.py` |
 
-- D-006 says no simulator-specific architecture gets committed here until
-  the simulator selection question (I-003) is actually settled.
-- D-013's goal-graph schema -- the foundation everything else (language
-  parsing, vision-based feasibility, the learned policy, the end-to-end
-  pipeline) is built on -- is explicitly **proposed, not accepted**. It's
-  currently out for review; see
-  [`ai-notes/review-request-task-schema.md`](../../ai-notes/review-request-task-schema.md).
+This is exactly D-013's original proposal (goal/constraint schema, oracle
+feasibility, intent guard) plus the two schema questions that came up
+during review and got resolved rather than deferred: `Goal.condition`
+(D-026, kept as-is) and `Goal.depends_on` (D-037, was dead schema surface
+until this promotion — see `goal_dependencies_satisfied()`'s docstring).
 
-Moving code here before that review lands would answer the review's own
-central question ("is this ready to become committed architecture?") by
-fiat, which defeats the point of asking it.
+## Review status — read before trusting this as "reviewed"
 
-## What this directory is for
+**Self-resolved by the project owner (D-037), not independently reviewed
+by the teammate this schema was actually written for.** See
+[`ai-notes/review-request-task-schema.md`](../../ai-notes/review-request-task-schema.md)
+for the full resolution of each open question, and its status banner for
+what "self-resolved" does and doesn't mean here. Toy-scale evidence
+throughout — promotion changed where this code lives and its accept
+status, not the underlying evidence's scale. See
+`ai-notes/decisions.md` D-013–D-037 for the full history.
 
-Once the schema review resolves (accepted as-is, accepted with changes,
-or sent back for rework), the reviewed pieces of `spikes/task_schema_draft/`
-move here as the real, versioned, `src/`-layout package -- alongside the
-sibling directories this same scaffolding pass added:
-[`configs/`](../../configs/) for experiment configuration and
-[`data/`](../../data/) for datasets, matching the existing
-[`scripts/`](../../scripts/) and [`tests/`](../../tests/).
+## What's still in `spikes/task_schema_draft/`, not here
 
-## What this directory is not
+Everything that's *evidence for or against* the schema above, not part of
+it: the controlled-grammar instruction parser, zero-shot CLIP and DINOv2
+vision backends, the tabular Q-learning policy, the end-to-end pipeline,
+and every environment variant. None of that has made its own case for
+promotion yet — see that directory's README for the full narrative.
 
-Not a second copy of the spike code, not a place to duplicate anything
-while the review is pending. If you're looking for the actual working
-implementation today, it's in `spikes/task_schema_draft/`.
+[`configs/`](../../configs/) and [`data/`](../../data/) (added alongside
+this package, D-032) are still empty — nothing here yet needs
+configuration or a real dataset.

@@ -9,8 +9,8 @@ pytest.importorskip("mani_skill")
 import gymnasium as gym  # noqa: E402
 
 import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-v1)
-from task_schema_draft.goal_graph import canonical_example  # noqa: E402
-from task_schema_draft.intent_guard import validate_action  # noqa: E402
+from atr.language.goal_graph import canonical_example  # noqa: E402
+from atr.constraints.intent_guard import validate_action  # noqa: E402
 from task_schema_draft.policy_baselines import naive_substitution_policy  # noqa: E402
 
 

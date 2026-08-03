@@ -1,5 +1,22 @@
 # Review request: task schema and everything built on it
 
+**Status: RESOLVED 2026-08-02 (D-037) — self-resolved, not independently
+reviewed.** The project owner directed resolving this without waiting
+further for the teammate this document was addressed to, rather than
+leaving the project blocked. All four questions below got a real answer
+(one led to an actual fix, not just a decision), and the schema was
+promoted to `src/atr/` on that basis. **This is not the same thing as
+independent review** — nobody who didn't already believe the schema was
+right evaluated it. If the actual teammate reviews this later and
+disagrees with any call made here, that's a real reopening, not just a
+formality; nothing below should be read as carrying more confidence than
+"the project owner and I worked through it," which is a different, weaker
+claim than "a second person with their own judgment checked it." Original
+request preserved below for the historical record of what was asked and
+why.
+
+---
+
 **For:** the teammate on this project (Person A / representation, language,
 feasibility side)
 **Ask:** review D-013's task schema and decide whether it's ready to move
@@ -16,6 +33,11 @@ a natural point to actually get it rather than keep building further on an
 unconfirmed foundation.
 
 ## What's being proposed
+
+*(Now promoted — see D-037. Paths below are where this code lived when
+this document was first written; it now lives at `src/atr/language/
+goal_graph.py`, `src/atr/feasibility/oracle.py`, and
+`src/atr/constraints/intent_guard.py` respectively.)*
 
 `spikes/task_schema_draft/goal_graph.py` defines the schema docs/04 asked
 for: a `Goal` (id, predicate, target object, priority, dependencies), a
@@ -83,28 +105,61 @@ Full narrative, in order, with what broke and how it got fixed at each
 step: `spikes/task_schema_draft/README.md`. Full rationale for each
 decision: `ai-notes/decisions.md`, D-013 through D-029.
 
-## Specific questions worth your judgment
+## Specific questions worth your judgment — RESOLVED (D-037, 2026-08-02)
 
-1. **Is the goal/constraint shape actually right?** Two predicate/constraint
-   kinds exist (`on_tray`, `never_move`, `maintain_orientation`) because
-   that's all any worked example so far has needed. Does your side of the
-   work (representation/feasibility) need anything the schema doesn't
-   currently express?
+1. **Is the goal/constraint shape actually right?** — **Accepted as-is,
+   no changes.** Two predicate/constraint kinds exist (`on_tray`,
+   `never_move`, `maintain_orientation`) because that's all any worked
+   example so far has needed. `Literal` types plus `constraint_violated()`
+   raising `ValueError` on an unrecognized kind (fails loudly, never
+   silently) make adding a new kind later a contained, safe change —
+   nothing here blocks extension when a real driving case shows up. Not
+   extended speculatively now, matching this project's discipline
+   elsewhere (see the "Preferences" gap noted below, deliberately left
+   unaddressed the same way).
 2. **Is `Goal.condition` (D-026) the right shape for conditional goals?**
-   It's a single (object_id, required_exists) pair checked against
-   privileged state — the simplest thing that could support "if X is
-   destroyed, do Y instead". Does it need to reference another *goal's*
-   feasibility instead of an object's existence directly, or support more
-   than one condition, or something else entirely? This is the one piece
-   of schema surface added since the first draft of this document, and
-   it's the one most worth your scrutiny specifically.
-3. **`Goal.depends_on` is still an unexercised schema field.**
-   `Goal.priority` now has a real example (D-026); `depends_on` (ordering
-   dependencies between goals, not scoring priority) still doesn't. Worth
-   a real example that uses it before trusting the field is shaped right?
+   — **Accepted as-is, kept scoped to object existence.** Deliberately
+   *not* extended to reference another goal's feasibility — that's now
+   `Goal.depends_on`'s job (question 3, resolved below), which makes
+   `condition` and `depends_on` two distinct, complementary mechanisms
+   instead of one field trying to do both: `condition` gates on an
+   *object's* existence, `depends_on` gates on a *goal's* completion.
+   Still a single condition, not a list — no instruction pattern parsed
+   so far needs more than one, and adding that without a driving case
+   would be the same mistake question 1 declined to make.
+3. **`Goal.depends_on` is still an unexercised schema field.** — **Fixed,
+   not just decided.** It really was dead schema surface: defined since
+   D-013's first draft, read by zero functions. Built
+   `goal_dependencies_satisfied()` (`src/atr/feasibility/oracle.py`) — a
+   hard prerequisite gate, deliberately a *separate* function from
+   `goal_feasible()` rather than folded into it, since "infeasible"
+   (can never be achieved) and "dependency not yet satisfied" (would
+   succeed later) are genuinely different claims that a policy needs to
+   tell apart. Added `dependent_goals_example()`
+   (`src/atr/language/goal_graph.py`) and wired the gate into
+   `feasibility_aware_policy()`
+   (`spikes/task_schema_draft/policy_baselines.py`) — verified with both
+   pure-function tests (`tests/drafts/test_oracle_feasibility.py::
+   TestGoalDependency`) and a real live-env demonstration
+   (`tests/drafts/test_policy_baselines.py::TestGoalDependencyGating`):
+   `place_bowl` (depends on `place_mug`) gets blocked when `red_mug` is
+   destroyed, even though `place_bowl`'s own target object (`blue_bowl`)
+   is entirely untouched and independently feasible — the dependency,
+   not feasibility, is what's stopping it. Along the way, also confirmed
+   `Goal.priority` is currently *set* by `instruction_parser.py` but read
+   by nothing — harmless (goal execution order already matches tuple
+   order, which priority is derived from), but worth knowing if anything
+   ever assumes priority is independently load-bearing; it isn't yet.
 4. **Is toy-scale, single-instruction, two-scene evidence enough to
-   promote this to `src/`?** Or does moving it there imply a confidence
-   level none of this actually supports yet?
+   promote this to `src/`?** — **Yes, promoted.** The accumulated case:
+   six build-up stages, four robot/scene combinations for the policy
+   layer, two independently-calibrated scene layouts for vision, 121
+   tests (97 before this resolution + the new dependency tests), and a
+   real end-to-end pipeline with nothing privileged in the live decision
+   loop (D-029). Promotion changes *where the code lives and its status*
+   (Proposed → Accepted) — it does not retroactively make the underlying
+   evidence less toy-scale. Every caveat below still applies exactly as
+   written; promoting doesn't erase them.
 
 ## Known caveats — not hidden, worth reading before deciding
 
@@ -132,16 +187,15 @@ decision: `ai-notes/decisions.md`, D-013 through D-029.
   deliberately, for reasons specific to G1's placement; D-027 added a
   second one specifically so this wasn't validated on only one) — still
   not a generalization test in any statistical sense.
-- **`Goal.condition` (D-026) is new schema surface, added since this
-  document was first written, and is explicitly not yet reviewed** — see
-  question 2 above.
+- **`Goal.condition` (D-026) is no longer unreviewed** — resolved as
+  question 2 above (accepted as-is, kept scoped to object existence).
 
 ## How to look at this yourself
 
 ```
 cd spikes/task_schema_draft
 cat README.md                      # full narrative, in order
-python -m pytest ../../tests/ -q   # 97 tests, ~7 minutes on this machine
+python -m pytest ../../tests/ -q   # ~121 tests, ~7-8 minutes on this machine
 ```
 
 Needs the `.maniskill` pyenv virtualenv

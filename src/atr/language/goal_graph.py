@@ -62,6 +62,32 @@ CANONICAL_INSTRUCTION_TEXT = (
 CANONICAL_OBJECTS = frozenset({"red_mug", "blue_bowl", "medicine_bottle", "glass"})
 
 
+def dependent_goals_example() -> GoalGraph:
+    """Exercises `Goal.depends_on` -- part of D-013's schema from the
+    start, but never read by any function until `oracle_feasibility.py`'s
+    `goal_dependencies_satisfied()` (D-037; see
+    ai-notes/review-request-task-schema.md question 3). Reuses
+    canonical_example()'s real objects (red_mug, blue_bowl) so it runs
+    against the same tidy_up_env.py scene: an artificial but genuine hard
+    ordering, place_bowl can't be attempted until place_mug is actually
+    *achieved* -- not just feasible, and not just earlier by tuple order
+    (every goal already is that, by construction; depends_on is a
+    strictly stronger guarantee than Goal.priority, which no code
+    currently reads either -- see goal_dependencies_satisfied()'s
+    docstring)."""
+    return GoalGraph(
+        instruction_text="Put the red mug on the tray, then the blue bowl.",
+        goals=(
+            Goal(id="place_mug", predicate="on_tray", target_object="red_mug", priority=0),
+            Goal(
+                id="place_bowl", predicate="on_tray", target_object="blue_bowl",
+                priority=1, depends_on=("place_mug",),
+            ),
+        ),
+        constraints=(),
+    )
+
+
 def canonical_example() -> GoalGraph:
     """The project's own worked example — docs/01-problem-statement-and-motivation.md
     "Example": "Put the red mug and blue bowl on the tray, keep the medicine

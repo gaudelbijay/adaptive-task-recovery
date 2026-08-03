@@ -40,8 +40,8 @@ from mani_skill.utils.registration import register_env
 from mani_skill.utils.scene_builder.kitchen_counter import KitchenCounterSceneBuilder
 from mani_skill.utils.structs.types import GPUMemoryConfig, SceneConfig, SimConfig
 
-from task_schema_draft.goal_graph import canonical_example
-from task_schema_draft.oracle_feasibility import ObjectState, WorldState, evaluate_goal_graph
+from atr.language.goal_graph import canonical_example
+from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
 
 _COUNTER_Z = 0.75
 

@@ -11,7 +11,7 @@ no actual goal in the graph requires touching.
 
 from __future__ import annotations
 
-from task_schema_draft.goal_graph import GoalGraph
+from atr.language.goal_graph import GoalGraph
 
 
 def validate_action(target_object: str, graph: GoalGraph) -> tuple[bool, str]:

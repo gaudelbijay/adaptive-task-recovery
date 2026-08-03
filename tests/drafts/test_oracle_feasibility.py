@@ -7,8 +7,14 @@ cases" guidance.
 
 import numpy as np
 
-from task_schema_draft.goal_graph import Goal, canonical_example
-from task_schema_draft.oracle_feasibility import ObjectState, evaluate_goal_graph, goal_achieved, goal_feasible
+from atr.language.goal_graph import Goal, canonical_example, dependent_goals_example
+from atr.feasibility.oracle import (
+    ObjectState,
+    evaluate_goal_graph,
+    goal_achieved,
+    goal_dependencies_satisfied,
+    goal_feasible,
+)
 
 
 def _state(**objects: tuple[bool, tuple[float, float, float] | None, float | None]) -> dict:
@@ -86,6 +92,33 @@ class TestConditionalGoal:
         state = _nominal_state()
         state.update(_state(blue_bowl=(False, None, None), backup_bowl=(False, None, None)))
         assert goal_feasible(self._fallback, state) is False  # condition met, but nothing to place either
+
+
+class TestGoalDependency:
+    """D-037, resolving the D-013 review's open question 3: Goal.depends_on
+    was defined from the start but never read by any function. A hard
+    prerequisite gate, distinct from Goal.priority (nothing reads it) and
+    Goal.condition (gates on object existence, not another goal's
+    completion) -- see goal_dependencies_satisfied()'s own docstring."""
+
+    def test_dependent_goals_example_matches_its_own_description(self):
+        graph = dependent_goals_example()
+        mug, bowl = graph.goals
+        assert mug.depends_on == ()
+        assert bowl.depends_on == ("place_mug",)
+
+    def test_goal_with_no_dependencies_is_always_satisfied(self):
+        mug = dependent_goals_example().goals[0]
+        assert goal_dependencies_satisfied(mug, achieved_goal_ids=set()) is True
+
+    def test_goal_blocked_until_its_dependency_is_achieved(self):
+        bowl = dependent_goals_example().goals[1]
+        assert goal_dependencies_satisfied(bowl, achieved_goal_ids=set()) is False
+        assert goal_dependencies_satisfied(bowl, achieved_goal_ids={"place_mug"}) is True
+
+    def test_unrelated_achieved_ids_do_not_satisfy_a_real_dependency(self):
+        bowl = dependent_goals_example().goals[1]
+        assert goal_dependencies_satisfied(bowl, achieved_goal_ids={"some_other_goal"}) is False
 
 
 class TestConstraintViolations:

@@ -53,18 +53,19 @@ navigation, reaching, grasping, and safe whole-body skills. A simpler embodiment
 may be used for early research debugging, but humanoid evaluation is a required
 project milestone.
 
-The repository is still formally **Pre-Phase 0** — `src/atr/` is scaffolded
-but empty (D-032), and nothing has been promoted out of `spikes/` — but the
-spike work there
-(`spikes/task_schema_draft/`) is substantial and tested: a goal-graph schema,
-oracle feasibility, an intent guard, confirmed embodiment-agnostic across four
+The repository is in **Phase 0**. The core task schema — `Goal`/`Constraint`/
+`GoalGraph`, oracle feasibility, the intent guard — is accepted and promoted
+to [`src/atr/`](src/atr/) (D-037). **Read the review's status banner before
+treating that as settled**: it was self-resolved by the project owner, not
+independently reviewed by the teammate it was written for — see
+[`ai-notes/review-request-task-schema.md`](ai-notes/review-request-task-schema.md).
+Everything else remains spike work in `spikes/task_schema_draft/`, substantial
+and tested but not yet promoted: confirmed embodiment-agnostic across four
 robot/scene combinations (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD
 apartment with a mobile Fetch robot, and G1 placed in that same apartment), plus
 one working build-up-order pass through language parsing, zero-shot vision,
-self-supervised representations, and a learned (Q-learning) policy — over 90
-tests passing. None of it is committed architecture: the schema it's all built
-on needs teammate review before promotion (see
-[`ai-notes/review-request-task-schema.md`](ai-notes/review-request-task-schema.md)).
+self-supervised representations, and a learned (Q-learning) policy — 103
+tests passing.
 See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study design.
 
 ## Roadmap

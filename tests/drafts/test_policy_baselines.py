@@ -10,6 +10,7 @@ pytest.importorskip("mani_skill")
 import gymnasium as gym  # noqa: E402
 
 import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-v1)
+from atr.language.goal_graph import dependent_goals_example  # noqa: E402
 from task_schema_draft.policy_baselines import feasibility_aware_policy, static_policy  # noqa: E402
 
 
@@ -65,6 +66,43 @@ class TestPolicyComparisonAfterBowlDestroyed:
                 env.close()
         assert results["static"]["goals_achieved"] == results["feasibility_aware"]["goals_achieved"]
         assert results["feasibility_aware"]["total_steps"] < results["static"]["total_steps"]
+
+
+class TestGoalDependencyGating:
+    """D-037, resolving the D-013 review's open question 3 with a real
+    live-env demonstration, not just a pure-function test: place_bowl
+    (dependent_goals_example()) depends_on place_mug. Directly removes
+    red_mug the same way tidy_up_env.py's own bowl_destroyed intervention
+    removes blue_bowl (see that file's _trigger_intervention) -- no new
+    intervention_kind needed for this."""
+
+    def test_dependent_goal_blocked_when_its_prerequisite_can_never_complete(self):
+        env = _make_env(intervention_kind="none")
+        try:
+            env.reset(seed=0)
+            env.unwrapped._objects["red_mug"].remove_from_scene()
+            env.unwrapped._exists["red_mug"] = False
+            result = feasibility_aware_policy(env, graph=dependent_goals_example())
+        finally:
+            env.close()
+        # place_bowl's own target (blue_bowl) still exists -- goal_feasible()
+        # alone would say yes. It's blocked because place_mug, its
+        # depends_on prerequisite, can never be achieved (red_mug is gone).
+        assert result["per_goal"]["place_mug"]["achieved"] is False
+        assert result["per_goal"]["place_bowl"]["skipped"] is True
+        assert result["per_goal"]["place_bowl"]["achieved"] is False
+        assert result["wasted_steps"] == 0
+
+    def test_dependent_goal_proceeds_once_its_prerequisite_is_achieved(self):
+        env = _make_env(intervention_kind="none")
+        try:
+            env.reset(seed=0)
+            result = feasibility_aware_policy(env, graph=dependent_goals_example())
+        finally:
+            env.close()
+        assert result["per_goal"]["place_mug"]["achieved"]
+        assert result["per_goal"]["place_bowl"]["skipped"] is False
+        assert result["per_goal"]["place_bowl"]["achieved"]
 
 
 class TestPolicyComparisonNoIntervention:
