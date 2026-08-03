@@ -45,6 +45,7 @@ from pathlib import Path
 import numpy as np
 
 from task_schema_draft.clip_feasibility import _OBJECT_VISUAL_CONFIG
+from task_schema_draft.device_utils import resolve_torch_device
 
 _CAPTURE_SCRIPT = Path(__file__).parent / "capture_episode_subprocess.py"
 
@@ -53,9 +54,10 @@ _CAPTURE_SCRIPT = Path(__file__).parent / "capture_episode_subprocess.py"
 def _dinov2_model():
     import torch
 
+    device = resolve_torch_device()
     model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14", verbose=False)
-    model.eval()
-    return model
+    model.eval().to(device)
+    return model, device
 
 
 def dinov2_embed(crop: np.ndarray) -> np.ndarray:
@@ -64,17 +66,17 @@ def dinov2_embed(crop: np.ndarray) -> np.ndarray:
     import torch
     from PIL import Image
 
-    model = _dinov2_model()
+    model, device = _dinov2_model()
     # DINOv2 wants a multiple of the 14px patch size; 224 is its standard
     # pretraining resolution.
     img = Image.fromarray(crop).resize((224, 224))
-    x = torch.from_numpy(np.array(img)).float().permute(2, 0, 1).unsqueeze(0) / 255.0
-    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+    x = torch.from_numpy(np.array(img)).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
+    mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
+    std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
     x = (x - mean) / std
     with torch.no_grad():
         embedding = model(x)
-    return embedding[0].numpy()
+    return embedding[0].cpu().numpy()
 
 
 def collect_labeled_examples(

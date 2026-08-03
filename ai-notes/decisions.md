@@ -2,6 +2,47 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-036: CLIP/DINOv2 made CUDA-aware with CPU fallback; ManiSkill sim backend deliberately left CPU-only
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Two different things were bundled under "make it CUDA-based
+  with a CPU fallback," and they needed different answers, so this entry
+  covers both. (1) `clip_feasibility.py` and `dinov2_probe.py` now resolve
+  a real `torch.device` (`spikes/task_schema_draft/device_utils.py`,
+  `resolve_torch_device()`: CUDA when `torch.cuda.is_available()`, CPU
+  otherwise) and move both the model and every input tensor to it — model
+  loading and every inference call, not just some of them. Verified on
+  this CPU-only machine: `resolve_torch_device()` correctly returns `cpu`,
+  and all CLIP/DINOv2/end-to-end tests still pass (9/9), so the fallback
+  path is exercised for real, not just written and assumed. (2) The
+  ManiSkill env `sim_backend` (`tidy_up_env.py` and its three siblings) is
+  **deliberately left hardcoded to `"physx_cpu"`, not resolved via CUDA
+  availability** — checked the actual guard code before assuming this was
+  the same kind of fallback: every one of these envs raises `RuntimeError`
+  unconditionally in `_initialize_episode` if `self.scene.gpu_sim_enabled`,
+  because object add/remove — the mechanism every intervention in this
+  project uses — is unsupported under GPU-batched (`physx_cuda`) sim,
+  regardless of what hardware is available (same limitation D-012 already
+  found and guarded for the older `maniskill_humanoid_spike`). CPU sim
+  here is a correctness requirement, not a missing optimization; wiring in
+  `resolve_torch_device()`-style auto-selection would make every episode
+  fail loudly on a CUDA machine instead of running correctly, the opposite
+  of the intended fix.
+- **Reason:** Written for a future 4-GPU-cluster target the user named
+  without asking for compute-budget arithmetic now — the actual ask was
+  that code default to CUDA and fall back to CPU, not that this project
+  provision hardware today. Checking each call site's actual constraint
+  before applying that pattern uniformly caught a real place where it
+  would have been wrong to apply, rather than assuming "CUDA-if-available"
+  is always the right default everywhere torch appears.
+- **Consequences:** `clip_feasibility.py`/`dinov2_probe.py` will use a GPU
+  automatically the day this runs on one, with zero code changes needed.
+  `ik_solver.py` (pinocchio) and `rl_policy.py` (a plain dict Q-table, no
+  tensors) were checked and have no GPU-relevant code path — left as-is,
+  not silently skipped. Full suite re-verified green after this change
+  (see this session's test run).
+
 ## D-035: Architecture diagram redrawn with module boundaries and ownership
 
 - **Date:** 2026-08-02

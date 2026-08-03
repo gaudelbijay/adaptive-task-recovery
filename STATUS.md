@@ -28,7 +28,12 @@ required a spike step, and seven weeks of ManiSkill3-specific evidence
 (D-009 through D-032) already cleared that bar. Still open: pretrained
 model selection (I-004, now backed by a measured CLIP-vs-DINOv2 comparison
 — D-034, `ai-notes/model-comparison-clip-vs-dinov2.md` — but deliberately
-not decided, pending D-013's review) and compute planning.
+not decided, pending D-013's review) and further compute planning. **CLIP/
+DINOv2 made CUDA-aware with CPU fallback 2026-08-02 (D-036)** — runs on a
+GPU automatically when one's available, no code changes needed; ManiSkill
+sim backend deliberately left CPU-only (object add/remove is unsupported
+under GPU-batched sim, unconditionally — a correctness requirement, not a
+performance fallback).
 
 **Team model:** two contributors. Phase 0 and benchmark construction are shared.
 Person A then leads representation/language/feasibility; Person B leads
@@ -55,6 +60,7 @@ policy/humanoid execution. Interfaces, integration, and evaluation remain shared
 
 | Date | Change |
 |---|---|
+| 2026-08-02 | Made `clip_feasibility.py`/`dinov2_probe.py` CUDA-aware with CPU fallback (D-036, `device_utils.py`'s `resolve_torch_device()`) — both models and every input tensor now move to CUDA automatically when available, verified falling back correctly to CPU on this dev machine (97/97 tests still pass). Checked before applying the same pattern to the ManiSkill env `sim_backend`: found every env here has a hard, unconditional `RuntimeError` guard against GPU-batched sim (object add/remove — every intervention's mechanism — doesn't work under `physx_cuda` regardless of hardware), so `sim_backend="physx_cpu"` stayed hardcoded there on purpose — auto-selecting CUDA would break every episode, not speed it up. |
 | 2026-08-02 | Redrew the architecture diagram (D-035): the old `media/architecture-diagram.drawio` described the pre-reframing humanoid-recovery architecture and had been flagged as stale, unaddressed, since 2026-07-26 — replaced with a Mermaid diagram directly in `docs/03-system-architecture.md`, showing module boundaries and ownership together (Person A / Person B / Shared swimlanes, matching `docs/08`'s existing contributors contract) rather than as two separate diagrams. Renders natively on GitHub, stays diffable as plain text. Old drawio/svg/png kept in `media/` as historical reference only. |
 | 2026-08-02 | Recorded a measured CLIP-vs-DINOv2 comparison for I-004 (D-034, `ai-notes/model-comparison-clip-vs-dinov2.md`) against `docs/08`'s actual selection criteria: latency and memory measured directly (isolated per-model subprocess — CLIP ViT-B-32 151.3M params/~33ms/call/~1287MB peak-RSS delta vs. DINOv2 ViT-S/14 22.1M params/~15ms/call/~178MB delta), licensing verified against each project's actual LICENSE file (both MIT/Apache-2.0, not a differentiator — caught that DINOv2's original 2023 release was more restrictive before Meta relicensed it), and one direct DINOv2 calibration run (100% LOO accuracy, Brier 0.0001 on 12 examples, caveated hard since the pinned scene layout makes within-class embeddings near-duplicates). Deliberately stops short of selecting either model — I-004's own mitigation note says wait for the schema review, so this is evidence recorded for whenever that decision actually gets made, not a decision itself. |
 | 2026-08-02 | Formally selected ManiSkill3 as the primary simulator (D-033), closing I-003 without spiking Isaac Lab for comparison. D-006 only required a spike step, and seven weeks of continuous, working ManiSkill3-specific evidence (D-009 through D-032 — humanoid support, four robot/scene combinations, a real upstream bug found and worked around, a real kinematic limit confirmed rather than assumed) already cleared that bar; a second full simulator integration wasn't worth the cost for a Low-severity open question this well-evidenced. Isaac Lab remains a live option later if a specific ManiSkill3 limitation actually blocks something. |

@@ -57,6 +57,8 @@ from functools import lru_cache
 
 import numpy as np
 
+from task_schema_draft.device_utils import resolve_torch_device
+
 
 @dataclass(frozen=True)
 class VisualObjectConfig:
@@ -106,10 +108,11 @@ _OBJECT_VISUAL_CONFIG: dict[str, dict[str, VisualObjectConfig]] = {
 def _clip_model():
     import open_clip
 
+    device = resolve_torch_device()
     model, _, preprocess = open_clip.create_model_and_transforms("ViT-B-32-quickgelu", pretrained="openai")
     tokenizer = open_clip.get_tokenizer("ViT-B-32-quickgelu")
-    model.eval()
-    return model, preprocess, tokenizer
+    model.eval().to(device)
+    return model, preprocess, tokenizer, device
 
 
 def clip_margin(image: np.ndarray, positive_prompt: str, negative_prompt: str) -> float:
@@ -118,9 +121,9 @@ def clip_margin(image: np.ndarray, positive_prompt: str, negative_prompt: str) -
     import torch
     from PIL import Image
 
-    model, preprocess, tokenizer = _clip_model()
-    img = preprocess(Image.fromarray(image)).unsqueeze(0)
-    tok = tokenizer([positive_prompt, negative_prompt])
+    model, preprocess, tokenizer, device = _clip_model()
+    img = preprocess(Image.fromarray(image)).unsqueeze(0).to(device)
+    tok = tokenizer([positive_prompt, negative_prompt]).to(device)
     with torch.no_grad():
         img_f = model.encode_image(img)
         txt_f = model.encode_text(tok)
