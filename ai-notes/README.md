@@ -27,4 +27,4 @@ as superseded rather than silently removed.
 - Record decisions that would be expensive or confusing to revisit in
   `decisions.md`.
 - Close resolved risks instead of deleting their history.
-- Use dates in `YYYY-MM-DD` format.
+- Use dates in `YYYY-MM-DD` format..
