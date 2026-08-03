@@ -2,6 +2,58 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-043: First GitHub Actions CI workflow — one verified-reliable job, one honestly-unverified job
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Added `.github/workflows/ci.yml` with two jobs, deliberately
+  not one, because they have genuinely different reliability guarantees:
+  - **`fast-checks`** (blocks merges): installs only `numpy`+`gymnasium`+
+    `pytest`+`pip install -e .`, runs `pytest tests/ -v`. Checked every
+    test file's imports before relying on this (2026-08-02): every one
+    guards its heavy imports (`torch`/`sapien`/`open_clip`/`mani_skill`
+    itself) behind `pytest.importorskip("mani_skill")`, and nothing
+    heavier than `numpy`/`gymnasium` is ever imported *before* that
+    guard in any file — verified by grep, not assumed. That means
+    without the simulator stack installed, every heavy test file skips
+    cleanly instead of erroring, and only `test_oracle_feasibility.py`
+    (17 tests, `src/atr/language/goal_graph.py` +
+    `src/atr/feasibility/oracle.py`, the promoted pure-Python core)
+    actually runs. **Verified empirically, not assumed**: built a
+    throwaway venv with exactly this dependency set (no mani_skill
+    installed) and ran the exact CI command against it — result: 17
+    passed, 17 skipped, zero errors, matching the design exactly.
+  - **`full-suite`** (`continue-on-error: true`, does not block merges):
+    installs the real pinned stack from `requirements-maniskill.lock.txt`
+    (stripped of its self-referencing `-e git+ssh://...` line, which
+    would fail in a fresh CI checkout) plus headless-Vulkan system
+    packages (`libvulkan1`/`mesa-vulkan-drivers`/`vulkan-tools`), then
+    runs the full suite. **Not verified to actually pass on GitHub's
+    infrastructure** — this environment has no way to trigger and
+    observe a real GitHub Actions run, and whether SAPIEN's renderer
+    works correctly headless on a GPU-less `ubuntu-latest` runner is a
+    real, currently-open question, not a known-good configuration. Set
+    to non-blocking specifically because of that uncertainty, with a
+    comment saying to remove `continue-on-error` once a real run has
+    actually been observed to pass.
+- **Reason:** The difference between "verified" and "assumed" matters
+  enough elsewhere in this project (D-022's rendering bug, D-033's
+  simulator selection, every promotion's evidence check) that a CI
+  workflow claiming full-suite coverage without ever having actually run
+  in GitHub's environment would be a real instance of exactly the
+  overclaiming this project's own decisions have repeatedly avoided.
+  Splitting into a verified-reliable gate and an honestly-labeled
+  best-effort job says what's actually known, rather than presenting an
+  unverified 8-minute simulator job as equivalent to the 0.1-second pure-
+  Python one.
+- **Consequences:** Every push/PR gets a real, fast, reliable check on
+  the promoted core the moment this merges. The full simulator suite's
+  actual CI viability (Vulkan headless rendering, whether pinned
+  versions of `torch`/`sapien`/`mani_skill-nightly` even resolve on
+  GitHub's runners, wall-clock time at ~7-8 minutes locally) remains
+  genuinely open until someone watches a real run — expected next step,
+  not assumed to already be solved by this entry.
+
 ## D-042: First real evaluation harness — paired seeds, bootstrap CIs (docs/10's statistical protocol, implemented for the first time)
 
 - **Date:** 2026-08-02

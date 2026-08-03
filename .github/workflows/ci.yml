@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Runs on every push/PR. Lightweight on purpose: numpy + gymnasium + pytest
+  # only, no simulator/rendering/torch stack. Every test file in this repo
+  # guards its heavy imports with `pytest.importorskip("mani_skill")` before
+  # anything else is imported (verified 2026-08-02: no test file imports
+  # torch/sapien/open_clip before that guard), so without mani_skill
+  # installed those files skip cleanly instead of erroring -- only the
+  # promoted, simulator-independent core (tests/drafts/test_oracle_feasibility.py,
+  # testing src/atr/language/goal_graph.py + src/atr/feasibility/oracle.py)
+  # actually runs and gates merges. This is the reliable, always-green check.
+  fast-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight dependencies
+        run: pip install numpy gymnasium pytest
+      - name: Install atr package (editable)
+        run: pip install -e .
+      - name: Run simulator-independent tests
+        run: pytest tests/ -v
+
+  # Full suite against the real ManiSkill3/SAPIEN stack -- NOT verified to
+  # pass on GitHub-hosted runners as of this writing (2026-08-02). Locally
+  # this needs a pinned pyenv virtualenv (ai-notes/decisions.md D-009) and
+  # takes ~7-8 minutes with real physics/rendering; whether SAPIEN's
+  # headless-Vulkan rendering path works unmodified on a GPU-less
+  # ubuntu-latest runner is genuinely untested from this environment, not
+  # assumed to work. continue-on-error so a real infrastructure gap here
+  # doesn't block merges on the reliable fast-checks job above -- remove
+  # that once a real run has actually been observed to pass or fail here.
+  full-suite:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install headless Vulkan (for SAPIEN's renderer)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
+      - name: Install pinned dependencies (excluding the self-referencing editable line)
+        run: |
+          grep -v '^-e ' requirements-maniskill.lock.txt > /tmp/requirements.txt
+          pip install -r /tmp/requirements.txt
+      - name: Install atr package (editable)
+        run: pip install -e .
+      - name: Run full test suite
+        run: pytest tests/ -v
