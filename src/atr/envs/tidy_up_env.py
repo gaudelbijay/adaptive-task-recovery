@@ -1,11 +1,17 @@
-"""TidyUp — a runnable draft of the docs/04-benchmark-environment.md task
-schema, built around the project's own canonical example (docs/01
+"""TidyUp — the canonical task environment, wiring the promoted schema
+(docs/04-benchmark-environment.md's task schema) to a real ManiSkill3
+scene, built around the project's own canonical example (docs/01
 "Example"): "Put the red mug and blue bowl on the tray, keep the medicine
 upright, and do not move the glass."
 
-DRAFT for the "Shared: select the task family and irreversible/reversible
-intervention set" item in STATUS.md — not a committed benchmark environment.
-See ../README.md.
+Promoted to src/atr/ 2026-08-02 (D-045) -- see ai-notes/decisions.md.
+Registered as `TidyUp-v1` (was `TidyUpTaskSchemaDraft-v1` while this
+lived in spikes/task_schema_draft/ -- dropped the now-stale "draft"
+qualifier at promotion time, per the naming discussion that led to this
+decision). The three other embodiment/scene variants
+(spikes/task_schema_draft/tidy_up_env_humanoid.py/_replicacad.py/
+_replicacad_humanoid.py) remain spike-stage and keep their own
+`TidyUpTaskSchemaDraft-*-v1` ids until each makes its own case.
 
 Scene: five objects on a tabletop (red_mug, blue_bowl, tray, medicine_bottle,
 glass) plus an idle `panda` arm (no manipulation is exercised here — this
@@ -188,6 +194,6 @@ class TidyUpEnv(BaseEnv):
         return torch.zeros(self.num_envs, device=self.device)
 
 
-@register_env("TidyUpTaskSchemaDraft-v1", max_episode_steps=50)
+@register_env("TidyUp-v1", max_episode_steps=50)
 class TidyUpRegisteredEnv(TidyUpEnv):
     pass

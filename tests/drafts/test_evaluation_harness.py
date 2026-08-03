@@ -43,7 +43,7 @@ from task_schema_draft.rl_policy import learned_policy, train_q_table_canonical 
 
 def _make_env():
     return gym.make(
-        "TidyUpTaskSchemaDraft-v1", num_envs=1, obs_mode="state", render_mode=None,
+        "TidyUp-v1", num_envs=1, obs_mode="state", render_mode=None,
         sim_backend="physx_cpu", control_mode="pd_ee_delta_pos",
         intervention_kind="bowl_destroyed", onset_step_range=(2, 3),
     )

@@ -25,7 +25,7 @@ __all__ = ["ATTEMPT", "SKIP", "train_q_table", "train_q_table_canonical", "learn
 
 def _make_canonical_env(intervention_kind: str, onset_step_range: tuple[int, int]):
     return gym.make(
-        "TidyUpTaskSchemaDraft-v1", num_envs=1, obs_mode="state", render_mode=None,
+        "TidyUp-v1", num_envs=1, obs_mode="state", render_mode=None,
         sim_backend="physx_cpu", control_mode="pd_ee_delta_pos",
         intervention_kind=intervention_kind, onset_step_range=onset_step_range,
     )

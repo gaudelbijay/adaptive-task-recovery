@@ -8,14 +8,14 @@ pytest.importorskip("mani_skill")
 
 import gymnasium as gym  # noqa: E402
 
-import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-v1)
+import task_schema_draft  # noqa: E402, F401  (registers TidyUp-v1)
 
 
 def _make_env(**kwargs):
     # Always CPU — object add/remove is unsupported under GPU-batched sim
     # (see tidy_up_env.py's module docstring).
     return gym.make(
-        "TidyUpTaskSchemaDraft-v1",
+        "TidyUp-v1",
         num_envs=1,
         obs_mode="state",
         render_mode=None,

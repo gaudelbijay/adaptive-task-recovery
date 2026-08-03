@@ -2,6 +2,52 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-045: Canonical task environment promoted to `src/atr/envs/tidy_up_env.py`; env ID dropped its "draft" qualifier
+
+- **Date:** 2026-08-03
+- **Status:** Accepted
+- **Decision:** Promoted `tidy_up_env.py` (the canonical five-object
+  tabletop env, D-013's original ManiSkill3 wiring) from
+  `spikes/task_schema_draft/` to `src/atr/envs/tidy_up_env.py` via
+  `git mv`. This was clean to promote as-is: its only project-internal
+  imports were already `atr.language.goal_graph`/
+  `atr.language.instruction_parser`/`atr.feasibility.oracle` (all
+  previously promoted), so no import direction to fix, unlike every
+  other candidate checked so far. Renamed the registered gym env id from
+  `TidyUpTaskSchemaDraft-v1` to `TidyUp-v1` at promotion time — resolving
+  the naming discussion from earlier the same day (keep "TidyUp" itself,
+  matches ManiSkill's own task-naming convention like `PickCube-v1`; the
+  "TaskSchemaDraft" qualifier was always meant to be dropped once the
+  thing it names stopped being a draft, not renamed twice). The three
+  sibling variants (`tidy_up_env_humanoid.py`/`_replicacad.py`/
+  `_replicacad_humanoid.py`) remain spike-stage and keep their own
+  `TidyUpTaskSchemaDraft-*-v1` ids until each makes its own promotion
+  case — this was a per-module rename, not a global one.
+  `spikes/task_schema_draft/__init__.py`'s registration import updated
+  to `from atr.envs import tidy_up_env`; the id string updated at its 6
+  other call sites (`rl_policy.py` + 5 test files). Preserved the
+  existing `TidyUpEnv`/`TidyUpRegisteredEnv` two-class split (base env
+  class + trivial `@register_env`-decorated subclass) unchanged — this
+  pattern is used identically across all four env variants, a
+  deliberate, consistent convention, not something to alter as a side
+  effect of promoting only one of the four.
+- **Reason:** Continuing the same per-module promotion discipline as
+  D-038–D-044: this file's evidence (D-013's original schema wiring,
+  exercised by every downstream stage since) and its already-clean
+  dependency direction made it the natural next candidate once the
+  language/vision/policy/evaluation layers were promoted. Doing the
+  `TidyUpTaskSchemaDraft` → `TidyUp` id rename now, rather than leaving
+  it for later, avoids the exact "promote now, rename later" two-step
+  this project has been deliberately avoiding elsewhere (e.g. D-030's
+  file renaming was done once, thoroughly, not incrementally).
+- **Consequences:** `src/atr/envs/` now has the canonical task
+  environment; `docs/03`'s proposed layout named this directory
+  correctly in advance. `policy_baselines.py`, `rl_policy.py`'s thin
+  wrapper, and every test file referencing `TidyUp-v1` continue to work
+  unchanged in behavior, only the id string differs. Full suite
+  re-verified green after the move (see this entry's own verification
+  run). Three env variants and `end_to_end.py` remain spike-stage.
+
 ## D-044: First queryable dataset-split registry (`src/atr/evaluation/splits.py`)
 
 - **Date:** 2026-08-03

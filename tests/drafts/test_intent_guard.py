@@ -8,7 +8,7 @@ pytest.importorskip("mani_skill")
 
 import gymnasium as gym  # noqa: E402
 
-import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-v1)
+import task_schema_draft  # noqa: E402, F401  (registers TidyUp-v1)
 from atr.language.goal_graph import canonical_example  # noqa: E402
 from atr.constraints.intent_guard import validate_action  # noqa: E402
 from task_schema_draft.policy_baselines import naive_substitution_policy  # noqa: E402
@@ -16,7 +16,7 @@ from task_schema_draft.policy_baselines import naive_substitution_policy  # noqa
 
 def _make_env(**kwargs):
     return gym.make(
-        "TidyUpTaskSchemaDraft-v1", num_envs=1, obs_mode="state", render_mode=None,
+        "TidyUp-v1", num_envs=1, obs_mode="state", render_mode=None,
         sim_backend="physx_cpu", control_mode="pd_ee_delta_pos", **kwargs,
     )
 
