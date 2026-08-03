@@ -44,7 +44,7 @@ from mani_skill.utils.registration import register_env
 from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 
 from atr.language.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
-from task_schema_draft.instruction_parser import parse_instruction
+from atr.language.instruction_parser import parse_instruction
 from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
 
 _OBJECT_SPECS = {

@@ -2,6 +2,42 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-038: Language parser promoted to `src/atr/`
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Promoted `instruction_parser.py` (D-019/D-026) from
+  `spikes/task_schema_draft/` to `src/atr/language/instruction_parser.py`
+  via `git mv`. No code changes beyond fixing its own import of
+  `goal_graph` (already pointed at `atr.language.goal_graph` since
+  D-037) and one stale docstring line calling `Goal.condition`
+  "PROPOSED... not yet reviewed" (it's been Accepted since D-037 —
+  fixed to say so). Updated the three call sites
+  (`tidy_up_env.py`, `end_to_end.py`, `tests/drafts/test_instruction_parser.py`)
+  from `task_schema_draft.instruction_parser` to
+  `atr.language.instruction_parser`. Full suite re-verified green after
+  the move.
+- **Reason:** Strongest remaining case for promotion among everything
+  still in `spikes/task_schema_draft/`: self-contained (only depends on
+  the already-promoted `goal_graph.py`, no simulator coupling), and
+  its evidence is real, not just plausible — reproduces every
+  hand-authored `GoalGraph` in this project from its own instruction
+  text, generalizes to held-out paraphrases (different verb, negation
+  form, clause order, Oxford comma) and a held-out object composition
+  never seen during development, and raises loudly rather than silently
+  dropping an unrecognized clause. Matches D-037's own stated bar
+  ("does this module's evidence make its own case, on its own terms")
+  rather than promoting everything in one pass just because the schema
+  moved.
+- **Consequences:** `src/atr/language/` now contains both the schema
+  (`goal_graph.py`) and the parser that produces it from text
+  (`instruction_parser.py`) — the pairing docs/03's proposed layout
+  named this directory for from the start ("instruction schema, parsing,
+  goal graphs"). Vision (`clip_feasibility.py`/`dinov2_probe.py`), the
+  learned policy (`rl_policy.py`), and every environment variant remain
+  spike-stage — each would need its own promotion case made on its own
+  evidence, not inherited from this one or D-037's.
+
 ## D-037: D-013's schema review self-resolved and promoted to `src/atr/`
 
 - **Date:** 2026-08-02

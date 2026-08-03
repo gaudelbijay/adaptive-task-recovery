@@ -1,5 +1,7 @@
-"""Stage 2 of docs/00-project-overview.md's build-up order: parse an actual
-instruction sentence into a GoalGraph, instead of writing one by hand.
+"""Promoted to src/atr/ 2026-08-02 (D-038) -- see ai-notes/decisions.md.
+Originally stage 2 of docs/00-project-overview.md's build-up order: parse
+an actual instruction sentence into a GoalGraph, instead of writing one
+by hand.
 
 Deliberately a controlled grammar, not open-ended NLU, per
 docs/04-benchmark-environment.md: "Language templates should support
@@ -32,9 +34,9 @@ identically).
 ## Conditional goals
 
 "If the blue bowl is destroyed, put the backup bowl on the tray instead"
-sets the resulting Goal's `condition` field (D-026, PROPOSED extension to
-goal_graph.py, not yet reviewed) to (trigger_object_id, required_exists).
-Parsed as a *separate* pass, before the generic comma-based clause
+sets the resulting Goal's `condition` field (D-026, reviewed and accepted
+as-is D-037) to (trigger_object_id, required_exists). Parsed as a
+*separate* pass, before the generic comma-based clause
 splitter runs -- not as another clause type dispatched through
 _classify_clause() like the others. Real reason, found by testing: the
 generic splitter breaks on any comma immediately before a recognized verb

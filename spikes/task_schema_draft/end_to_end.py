@@ -35,7 +35,7 @@ import gymnasium as gym
 
 from task_schema_draft.clip_feasibility import visual_object_exists
 from atr.language.goal_graph import GoalGraph
-from task_schema_draft.instruction_parser import parse_instruction
+from atr.language.instruction_parser import parse_instruction
 from task_schema_draft.policy_baselines_replicacad_humanoid import (
     _TRAY_SLOTS,
     _summarize,
