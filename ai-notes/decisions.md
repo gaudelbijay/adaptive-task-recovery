@@ -2,6 +2,55 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-041: Q-learning promoted to `src/atr/policies/q_learning.py`, fixing an internal inconsistency D-040's pattern exposed
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Promoted `train_q_table()`/`learned_policy()` (D-025,
+  already made env-agnostic by D-030) from `spikes/task_schema_draft/
+  rl_policy.py` to `src/atr/policies/q_learning.py`. Two real fixes made
+  along the way, not just a `git mv`: (1) `train_q_table()`'s
+  `attempt_goal_fn` parameter defaulted to the canonical env's
+  `attempt_goal`, imported directly from spike code — harmless while
+  everything lived in `spikes/`, but promoting it unchanged would have
+  pointed committed architecture back at spike code, the wrong
+  direction. Default removed; every caller now supplies its own
+  explicitly (both existing callers already did in practice — this
+  formalizes what was already true). (2) `learned_policy()` was, on
+  inspection, *not* parameterized the same way `train_q_table()` was in
+  the very same file — it hardcoded the canonical env's `attempt_goal`/
+  `_TRAY_SLOTS` internally, an inconsistency invisible until this
+  promotion's own bar (does this match the pattern D-040 just
+  established) was applied to it. Genericized to take
+  `attempt_goal_fn`/`tray_slots` explicitly, matching `train_q_table()`
+  and `baselines.py`'s functions. `spikes/task_schema_draft/rl_policy.py`
+  is now a thin wrapper (`train_q_table_canonical()`, `learned_policy()`)
+  supplying the canonical env's pieces, same relationship
+  `policy_baselines.py` has to `baselines.py`. `end_to_end.py`'s import
+  updated from `task_schema_draft.rl_policy` to `atr.policies.q_learning`
+  directly. `_summarize` now imported from the already-promoted
+  `atr.policies.baselines` rather than duplicated again. Zero test-file
+  changes needed — `test_rl_policy.py` imports `learned_policy`/
+  `train_q_table_canonical`/`ATTEMPT`/`SKIP` from `task_schema_draft.
+  rl_policy`, all still present there as re-exports/thin wrappers.
+- **Reason:** Same discipline D-039/D-040 already established: check
+  what a module actually needs before promoting it, rather than treating
+  "it's next in the list" as sufficient. Here that check found not
+  external duplication (D-040's finding) but an *internal* inconsistency
+  — one function in the file already followed the parameterized pattern,
+  the other didn't, for no principled reason. Fixing both in the same
+  pass kept the module coherent instead of promoting an inconsistency
+  forward.
+- **Consequences:** `src/atr/policies/` now has both halves of the
+  "adaptive... baselines" docs/03 named for that directory:
+  `baselines.py` (static/feasibility-aware/naive-substitution) and
+  `q_learning.py` (the learned one), sharing `_summarize` from one place.
+  `rl_policy.py`, `end_to_end.py`, and every `tidy_up_env*.py`/
+  `policy_baselines*.py` env variant remain spike-stage — each still
+  needs its own promotion case for the actual embodiment-specific
+  `attempt_goal()` implementations and environments themselves. Full
+  suite re-verified green (103 passed).
+
 ## D-040: Policy-baseline logic unified into `src/atr/policies/baselines.py`, fixing a real cross-variant inconsistency
 
 - **Date:** 2026-08-02

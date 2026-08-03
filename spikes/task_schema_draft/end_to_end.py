@@ -7,9 +7,9 @@ Concretely, for each goal in a parsed instruction:
   1. parse_instruction() (D-019/D-026) turns the instruction into a GoalGraph
   2. a real rendered frame + visual_object_exists() (D-020) judges whether
      the goal's target object still exists -- NOT a privileged-state read
-  3. a Q-table trained by rl_policy.py's train_q_table() (D-025/D-030),
-     retrained here for this env's goals, decides attempt vs. skip from
-     that *perceived* feasibility
+  3. a Q-table trained by atr.policies.q_learning's train_q_table()
+     (D-025/D-030, promoted D-041), retrained here for this env's goals,
+     decides attempt vs. skip from that *perceived* feasibility
   4. attempt_goal() (unchanged, real arm motion) executes the decision
 
 Privileged state still exists in this file -- but only in
@@ -41,7 +41,7 @@ from task_schema_draft.policy_baselines_replicacad_humanoid import (
     _summarize,
     attempt_goal,
 )
-from task_schema_draft.rl_policy import ATTEMPT, SKIP, train_q_table
+from atr.policies.q_learning import ATTEMPT, SKIP, train_q_table
 from task_schema_draft.tidy_up_env_replicacad_humanoid import replicacad_humanoid_example
 
 HUMANOID_OBJECTS = {"potted_meat_can", "master_chef_can", "cracker_box", "bowl"}
@@ -65,8 +65,9 @@ def _make_replicacad_humanoid_env(intervention_kind: str, onset_step_range: tupl
 
 
 def train_q_table_replicacad_humanoid(n_episodes: int = 30, seed: int = 0) -> dict:
-    """rl_policy.py's train_q_table() (D-025/D-030), configured for this
-    env's goals/ids -- privileged-state, no rendering. See module docstring
+    """atr.policies.q_learning's train_q_table() (D-025/D-030, promoted
+    D-041), configured for this env's goals/ids -- privileged-state, no
+    rendering. See module docstring
     for why training stays privileged while evaluation doesn't. Default
     n_episodes is lower than train_q_table_canonical()'s 120: this env is
     much heavier to construct per episode (a full ReplicaCAD apartment vs.

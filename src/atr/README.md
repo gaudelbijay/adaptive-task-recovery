@@ -14,6 +14,7 @@ D-013's core schema has been reviewed and promoted here.
 | [`feasibility/clip_feasibility.py`](feasibility/clip_feasibility.py) | `visual_object_exists()` — zero-shot CLIP feasibility from a rendered frame. **Calibrated per object/scene, not generalizing** — read the module docstring before trusting it as general. | `spikes/task_schema_draft/clip_feasibility.py` | D-039 |
 | [`device_utils.py`](device_utils.py) | `resolve_torch_device()` — CUDA-with-CPU-fallback for torch models | `spikes/task_schema_draft/device_utils.py` | D-039 |
 | [`policies/baselines.py`](policies/baselines.py) | `static_policy`, `feasibility_aware_policy`, `naive_substitution_policy` — env-agnostic policy-decision logic, parameterized by an `attempt_goal_fn` each spike env supplies | unified from 4 near-identical `spikes/task_schema_draft/policy_baselines*.py` copies | D-040 |
+| [`policies/q_learning.py`](policies/q_learning.py) | `train_q_table`, `learned_policy` — tabular Q-learning that discovers "attempt iff feasible" from reward, same `attempt_goal_fn`/`tray_slots` parameterization as `baselines.py` | `spikes/task_schema_draft/rl_policy.py` | D-041 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -21,9 +22,10 @@ during review and got resolved rather than deferred: `Goal.condition`
 (D-026, kept as-is) and `Goal.depends_on` (D-037, was dead schema surface
 until this promotion — see `goal_dependencies_satisfied()`'s docstring);
 the language parser (D-038); zero-shot CLIP feasibility, calibrated not
-general (D-039); and env-agnostic policy-decision logic, unified from
+general (D-039); env-agnostic policy-decision logic, unified from
 four duplicated copies after that duplication caused a real,
-now-fixed cross-variant bug (D-040).
+now-fixed cross-variant bug (D-040); and Q-learning (D-041), which
+fixed an internal inconsistency D-040's own pattern exposed.
 
 ## Review status — read before trusting this as "reviewed"
 
@@ -38,19 +40,19 @@ status, not the underlying evidence's scale. See
 
 ## What's still in `spikes/task_schema_draft/`, not here
 
-DINOv2's self-supervised probe, the tabular Q-learning algorithm
-(`rl_policy.py`), the end-to-end pipeline, and every environment variant
-— including each variant's own `attempt_goal()` (the real,
-embodiment-specific low-level motion: Cartesian IK, joint-space reach, or
-navigate-then-reach) and tray geometry, which `policies/baselines.py`
-takes as parameters rather than owning itself. None of those have made
-their own case for promotion yet — each promotion so far (D-038, D-039,
-D-040) was made on that module's own evidence, not as a side effect of
-an earlier one, and each carries whatever caveat its own evidence
-actually supports (D-039's calibration-not-generalization note, D-040's
-"this interface came from four real implementations, not from
-docs/03's untested pseudocode" — see that decision's own reasoning) —
-see `spikes/task_schema_draft/README.md` for the full narrative.
+DINOv2's self-supervised probe, the end-to-end pipeline, and every
+environment variant — including each variant's own `attempt_goal()` (the
+real, embodiment-specific low-level motion: Cartesian IK, joint-space
+reach, or navigate-then-reach) and tray geometry, which
+`policies/baselines.py`/`policies/q_learning.py` take as parameters
+rather than owning themselves. None of those have made their own case
+for promotion yet — each promotion so far (D-038 through D-041) was made
+on that module's own evidence, not as a side effect of an earlier one,
+and each carries whatever caveat its own evidence actually supports
+(D-039's calibration-not-generalization note, D-040/D-041's "this
+interface came from real implementations, not from docs/03's untested
+pseudocode" — see each decision's own reasoning) — see
+`spikes/task_schema_draft/README.md` for the full narrative.
 
 [`configs/`](../../configs/) and [`data/`](../../data/) (added alongside
 this package, D-032) are still empty — nothing here yet needs
