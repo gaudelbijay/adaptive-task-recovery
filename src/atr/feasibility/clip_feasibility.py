@@ -1,7 +1,11 @@
-"""Stage 3 of docs/00-project-overview.md's build-up order: replace the
-privileged-state oracle with a feasibility judgment from images, starting
-with any working pretrained visual model. Zero-shot CLIP (open_clip,
-ViT-B-32, OpenAI weights) — no training, no fine-tuning.
+"""Promoted to src/atr/ 2026-08-02 (D-039) -- see ai-notes/decisions.md
+for the promotion case and its explicit caveat: unlike goal_graph.py/
+instruction_parser.py, this module's evidence is calibration, not
+generalization -- see _OBJECT_VISUAL_CONFIG below. Originally stage 3 of
+docs/00-project-overview.md's build-up order: replace the privileged-state
+oracle with a feasibility judgment from images, starting with any working
+pretrained visual model. Zero-shot CLIP (open_clip, ViT-B-32, OpenAI
+weights) — no training, no fine-tuning.
 
 Four real findings from getting this to work at all (measured, not assumed):
 
@@ -57,7 +61,7 @@ from functools import lru_cache
 
 import numpy as np
 
-from task_schema_draft.device_utils import resolve_torch_device
+from atr.device_utils import resolve_torch_device
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,12 @@ class VisualObjectConfig:
 # privileged state; it's camera calibration, done once, same as
 # kitchen_cabinet's crops were (found by inspection instead, since that
 # camera's framing was simple enough not to need projection math).
+#
+# This is the module's real limit, not hidden by promotion (D-039): every
+# entry here is hand-tuned per object per scene, found by trial and error
+# (see module docstring on generic vs. brand-specific prompts). A new
+# object or scene needs a new entry -- nothing here generalizes to unseen
+# ones the way instruction_parser.py generalizes to unseen paraphrases.
 _OBJECT_VISUAL_CONFIG: dict[str, dict[str, VisualObjectConfig]] = {
     "kitchen_cabinet": {
         "master_chef_can": VisualObjectConfig(

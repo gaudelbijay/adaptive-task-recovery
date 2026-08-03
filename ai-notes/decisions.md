@@ -2,6 +2,56 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-039: Zero-shot CLIP feasibility promoted to `src/atr/` — evidence is calibration, not generalization, and that's disclosed prominently
+
+- **Date:** 2026-08-02
+- **Status:** Accepted, with an explicit caveat carried into the code
+  itself
+- **Decision:** Promoted `clip_feasibility.py` (D-020/D-027) and its one
+  dependency, `device_utils.py` (D-036), from `spikes/task_schema_draft/`
+  to `src/atr/feasibility/clip_feasibility.py` and `src/atr/device_utils.py`
+  via `git mv`. Updated the four call sites (`dinov2_probe.py`,
+  `end_to_end.py`, `test_clip_feasibility.py`,
+  `test_clip_feasibility_kitchen_sink.py`) and both files' own imports.
+  Before promoting, checked what this module's evidence actually claims
+  rather than assuming it matches D-038's bar by default: it's
+  **fundamentally different in kind, not just weaker in degree**.
+  `instruction_parser.py` generalizes (held-out paraphrases, a held-out
+  object composition never tuned against). `clip_feasibility.py` is
+  **hand-calibrated per object per scene**
+  (`_OBJECT_VISUAL_CONFIG`: a specific crop region + a specific
+  hand-picked prompt for exactly `master_chef_can`/`potted_meat_can` in
+  exactly `kitchen_cabinet`/`kitchen_sink`, found by trial and error —
+  the module's own docstring already documented that generic prompts
+  measurably underperformed brand-specific ones). Nothing here
+  generalizes to an unseen object or scene; each needs its own manual
+  calibration entry. Added a comment directly above
+  `_OBJECT_VISUAL_CONFIG` and a promotion-note in the module docstring
+  saying this explicitly, plus a paragraph in
+  `src/atr/feasibility/__init__.py` — not left for a reader to discover
+  by digging, and not silently promoted on the strength of D-037/D-038's
+  precedent alone.
+- **Reason:** User confirmed promoting anyway once the distinction was
+  surfaced — the real, wired-into-the-live-decision-loop evidence
+  (matches oracle on 6 cases across 2 independently-calibrated scene
+  layouts, actually used by `end_to_end.py`, D-029) still clears a
+  reasonable bar for "committed architecture," it just isn't the same
+  *kind* of evidence as `instruction_parser.py`'s, and conflating the two
+  would overstate this module's claim. Checked before promoting rather
+  than after, since silently promoting first and caveating later would
+  have let the stronger-looking precedent (D-037, D-038) carry a weaker
+  case further than its own evidence supports.
+- **Consequences:** `src/atr/feasibility/` now has two feasibility
+  backends: `oracle.py` (privileged-state, always correct within this
+  toy domain by construction) and `clip_feasibility.py` (perceptual,
+  calibrated not general). `dinov2_probe.py` remains spike-stage — it
+  imports the promoted `clip_feasibility.py`'s private
+  `_OBJECT_VISUAL_CONFIG` directly (an existing coupling, not introduced
+  by this promotion, not resolved by it either — spike code depending on
+  a private symbol in promoted code is a real, minor design debt worth
+  revisiting if `dinov2_probe.py` itself is ever promoted). Full suite
+  re-verified green after the move.
+
 ## D-038: Language parser promoted to `src/atr/`
 
 - **Date:** 2026-08-02

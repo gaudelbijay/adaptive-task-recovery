@@ -23,7 +23,7 @@ import pytest
 pytest.importorskip("mani_skill")
 pytest.importorskip("open_clip")
 
-from task_schema_draft.clip_feasibility import visual_object_exists  # noqa: E402
+from atr.feasibility.clip_feasibility import visual_object_exists  # noqa: E402
 
 _CAPTURE_SCRIPT = Path(__file__).parent.parent.parent / "spikes/task_schema_draft/capture_episode_subprocess.py"
 

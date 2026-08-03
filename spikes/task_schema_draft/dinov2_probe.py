@@ -44,8 +44,8 @@ from pathlib import Path
 
 import numpy as np
 
-from task_schema_draft.clip_feasibility import _OBJECT_VISUAL_CONFIG
-from task_schema_draft.device_utils import resolve_torch_device
+from atr.feasibility.clip_feasibility import _OBJECT_VISUAL_CONFIG
+from atr.device_utils import resolve_torch_device
 
 _CAPTURE_SCRIPT = Path(__file__).parent / "capture_episode_subprocess.py"
 

@@ -38,7 +38,7 @@ pytest.importorskip("mani_skill")
 pytest.importorskip("open_clip")
 
 import task_schema_draft  # noqa: E402, F401
-from task_schema_draft.clip_feasibility import visual_object_exists  # noqa: E402
+from atr.feasibility.clip_feasibility import visual_object_exists  # noqa: E402
 
 def _make_env(seed):
     env = gym.make(
