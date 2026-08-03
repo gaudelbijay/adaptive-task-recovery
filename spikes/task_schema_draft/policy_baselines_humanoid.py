@@ -17,8 +17,8 @@ import numpy as np
 import sapien
 
 from atr.language.goal_graph import Goal, GoalGraph, canonical_example
-from atr.constraints.intent_guard import validate_action
-from atr.feasibility.oracle import constraint_violated, goal_achieved, goal_feasible
+from atr.feasibility.oracle import goal_achieved
+from atr.policies import baselines
 from task_schema_draft.tidy_up_env_humanoid import _NEUTRAL_QPOS, _REACH_CONFIGS
 
 _TRAY_POSITION = np.array([0.0, -0.13, 0.698])
@@ -58,83 +58,27 @@ def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, reach_steps: int = 
     return {"achieved": achieved, "steps_used": steps_used, "skipped": False}
 
 
-def _summarize(per_goal: dict) -> dict:
-    return {
-        "per_goal": per_goal,
-        "goals_achieved": sum(r["achieved"] for r in per_goal.values()),
-        "total_steps": sum(r["steps_used"] for r in per_goal.values()),
-        "wasted_steps": sum(
-            r["steps_used"] for r in per_goal.values() if not r["achieved"] and not r["skipped"]
-        ),
-    }
+# Re-exported for existing callers that import this privately -- see
+# atr.policies.baselines for the real implementation.
+_summarize = baselines._summarize
 
 
 def static_policy(env, graph: GoalGraph = None) -> dict:
-    graph = graph or canonical_example()
-    per_goal = {
-        goal.id: attempt_goal(env, goal, _TRAY_SLOTS[i]) for i, goal in enumerate(graph.goals)
-    }
-    return _summarize(per_goal)
+    return baselines.static_policy(env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
-    graph = graph or canonical_example()
-    per_goal = {}
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if not goal_feasible(goal, state):
-            per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
-            continue
-        per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
-    return _summarize(per_goal)
+    return baselines.feasibility_aware_policy(env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
-    graph = graph or canonical_example()
-    # Let physics settle before establishing the never-move/upright baseline
-    # -- objects are spawned slightly above the counter's real surface (see
-    # tidy_up_env_humanoid.py) and drop a small amount in the first few
-    # steps. Capturing initial_state before that settling finishes would
-    # register the settle itself as a false "moved" violation. Bypasses
-    # env.unwrapped._world_state() directly, not evaluate()'s own settle-
-    # window fix, so it needs this explicitly.
-    for _ in range(5):
-        env.step(_NEUTRAL_QPOS)
-    initial_state = env.unwrapped._world_state()
-    per_goal = {}
-    substitution_attempted = False
-
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if goal_feasible(goal, state):
-            per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
-            continue
-
-        if use_intent_guard:
-            allowed, reason = validate_action("glass", graph)
-        else:
-            allowed, reason = True, "unchecked (no intent guard)"
-
-        if not allowed:
-            per_goal[goal.id] = {
-                "achieved": False, "steps_used": 0, "skipped": True,
-                "substitution_attempted": False, "blocked_reason": reason,
-            }
-            continue
-
-        substitution_attempted = True
-        fake_goal = Goal(id=f"substitute_for_{goal.id}", predicate="on_tray", target_object="glass")
-        substitution_result = attempt_goal(env, fake_goal, _TRAY_SLOTS[i])
-        per_goal[goal.id] = {
-            "achieved": False,
-            "steps_used": substitution_result["steps_used"],
-            "skipped": False,
-            "substitution_attempted": True,
-        }
-
-    final_state = env.unwrapped._world_state()
-    glass_constraint = next(c for c in graph.constraints if c.target_object == "glass")
-    result = _summarize(per_goal)
-    result["dont_move_glass_violated"] = constraint_violated(glass_constraint, initial_state, final_state)
-    result["substitution_attempted"] = substitution_attempted
-    return result
+    # settle_steps=5: objects are spawned slightly above the counter's real
+    # surface (see tidy_up_env_humanoid.py) and drop a small amount in the
+    # first few steps -- capturing initial_state before that settling
+    # finishes would register the settle itself as a false "moved"
+    # violation (this bypasses evaluate()'s own settle-window fix by
+    # reading _world_state() directly, so it needs this explicitly).
+    return baselines.naive_substitution_policy(
+        env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS,
+        use_intent_guard=use_intent_guard, settle_steps=5, settle_action=_NEUTRAL_QPOS,
+    )

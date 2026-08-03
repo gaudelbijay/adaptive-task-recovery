@@ -20,9 +20,9 @@ from __future__ import annotations
 import numpy as np
 
 from atr.language.goal_graph import Goal, GoalGraph
-from atr.constraints.intent_guard import validate_action
+from atr.feasibility.oracle import goal_achieved
+from atr.policies import baselines
 from task_schema_draft.navigation import build_occupancy_grid, plan_path
-from atr.feasibility.oracle import constraint_violated, goal_achieved, goal_feasible
 from task_schema_draft.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Covers spawn (-1, 0) plus every goal/constraint object position used in
@@ -138,15 +138,9 @@ def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, nav_steps: int = 25
     return {"achieved": achieved, "steps_used": steps_used, "skipped": False}
 
 
-def _summarize(per_goal: dict) -> dict:
-    return {
-        "per_goal": per_goal,
-        "goals_achieved": sum(r["achieved"] for r in per_goal.values()),
-        "total_steps": sum(r["steps_used"] for r in per_goal.values()),
-        "wasted_steps": sum(
-            r["steps_used"] for r in per_goal.values() if not r["achieved"] and not r["skipped"]
-        ),
-    }
+# Re-exported for existing callers that import this privately -- see
+# atr.policies.baselines for the real implementation.
+_summarize = baselines._summarize
 
 
 _TRAY_SLOTS = [
@@ -158,68 +152,18 @@ _TRAY_SLOTS = [
 def static_policy(env, graph: GoalGraph = None) -> dict:
     from task_schema_draft.tidy_up_env_replicacad import replicacad_example
 
-    graph = graph or replicacad_example()
-    per_goal = {
-        goal.id: attempt_goal(env, goal, _TRAY_SLOTS[i]) for i, goal in enumerate(graph.goals)
-    }
-    return _summarize(per_goal)
+    return baselines.static_policy(env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
     from task_schema_draft.tidy_up_env_replicacad import replicacad_example
 
-    graph = graph or replicacad_example()
-    per_goal = {}
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if not goal_feasible(goal, state):
-            per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
-            continue
-        per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
-    return _summarize(per_goal)
+    return baselines.feasibility_aware_policy(env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
     from task_schema_draft.tidy_up_env_replicacad import replicacad_example
 
-    graph = graph or replicacad_example()
-    initial_state = env.unwrapped._world_state()
-    per_goal = {}
-    substitution_attempted = False
-
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if goal_feasible(goal, state):
-            per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
-            continue
-
-        if use_intent_guard:
-            allowed, reason = validate_action("master_chef_can", graph)
-        else:
-            allowed, reason = True, "unchecked (no intent guard)"
-
-        if not allowed:
-            per_goal[goal.id] = {
-                "achieved": False, "steps_used": 0, "skipped": True,
-                "substitution_attempted": False, "blocked_reason": reason,
-            }
-            continue
-
-        substitution_attempted = True
-        fake_goal = Goal(id=f"substitute_for_{goal.id}", predicate="on_tray", target_object="master_chef_can")
-        substitution_result = attempt_goal(env, fake_goal, _TRAY_SLOTS[i])
-        per_goal[goal.id] = {
-            "achieved": False,
-            "steps_used": substitution_result["steps_used"],
-            "skipped": False,
-            "substitution_attempted": True,
-        }
-
-    final_state = env.unwrapped._world_state()
-    guarded_constraint = next(c for c in graph.constraints if c.target_object == "master_chef_can")
-    result = _summarize(per_goal)
-    result["dont_move_master_chef_can_violated"] = constraint_violated(
-        guarded_constraint, initial_state, final_state
+    return baselines.naive_substitution_policy(
+        env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS, use_intent_guard=use_intent_guard,
     )
-    result["substitution_attempted"] = substitution_attempted
-    return result

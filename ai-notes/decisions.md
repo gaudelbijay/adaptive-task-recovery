@@ -2,6 +2,66 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-040: Policy-baseline logic unified into `src/atr/policies/baselines.py`, fixing a real cross-variant inconsistency
+
+- **Date:** 2026-08-02
+- **Status:** Accepted
+- **Decision:** Before promoting `rl_policy.py`/`policy_baselines.py` as
+  asked, checked whether they were actually self-contained the way
+  `instruction_parser.py` and `clip_feasibility.py` were — they weren't.
+  Found real, confirmed duplication: `_summarize()`, `static_policy()`,
+  `feasibility_aware_policy()`, and `naive_substitution_policy()` were
+  copy-pasted near-identically across all four
+  `spikes/task_schema_draft/policy_baselines*.py` files (panda tabletop,
+  G1 humanoid, ReplicaCAD+Fetch, G1-in-ReplicaCAD), differing only in
+  each env's own `attempt_goal()`, tray geometry, and default example
+  graph. This had already caused a real bug, not a hypothetical one:
+  D-037 added `goal_dependencies_satisfied()` gating to
+  `feasibility_aware_policy()` — but only in `policy_baselines.py`, the
+  one file actually touched. The other three variants silently kept the
+  old, ungated logic. Built `src/atr/policies/baselines.py` with the
+  four functions parameterized by `attempt_goal_fn`/`tray_slots` (same
+  pattern `train_q_table()` already used for the same reason, D-030),
+  plus `settle_steps`/`settle_action` params (three of the four original
+  copies needed a few settle-steps before capturing `initial_state`, one
+  didn't — preserved exactly, not forced to one behavior). Also
+  generalized `naive_substitution_policy()`'s hardcoded substitute-object
+  string (each copy hardcoded a different literal — `"glass"` /
+  `"master_chef_can"` / `"bowl"` — for the same role) into deriving it
+  from the graph's own `never_move` constraint, since that's what every
+  hardcoded value actually was. Each spike `policy_baselines*.py` file
+  is now a thin wrapper: keeps its own `attempt_goal()` (genuinely
+  different per embodiment — Cartesian IK, joint-space reach, or
+  navigate-then-reach — this is the real env/embodiment boundary, not
+  duplication) and its own tray geometry, and calls into the shared
+  functions. Public function names/signatures preserved exactly, so
+  every existing test and caller (`rl_policy.py`, `end_to_end.py`)
+  needed zero changes beyond what D-037/D-038/D-039 already required.
+- **Reason:** The user asked to design the policy/env interface before
+  promoting policy code — this *is* that interface, derived from what
+  four real, independently-evolved implementations actually needed in
+  common, not from docs/03's untested `AdaptivePolicy`/
+  `EmbodimentInterface` `Protocol` pseudocode (which has never been
+  checked against real code and turned out to not match its shape:
+  docs/03 imagined a stateful class-based interface; the real evidence
+  across four working env variants is a plain function taking
+  `(env, goal, tray_slot_xyz) -> SkillResult`). Confirming the
+  dependency-gating gap first, then fixing the duplication, follows the
+  same order D-030's own reasoning already established: find out whether
+  a suspected duplication actually caused a bug before deciding it's
+  worth unifying.
+- **Consequences:** All four env variants now have consistent
+  `goal_dependencies_satisfied()` gating (previously only one did) —
+  a real, if currently inert (no non-canonical example graph uses
+  `depends_on` yet), correctness fix. `rl_policy.py` and
+  `policy_baselines.py`/`_humanoid.py`/`_replicacad.py`/
+  `_replicacad_humanoid.py` remain in `spikes/task_schema_draft/` for
+  now — not promoted themselves this round, since `attempt_goal()`
+  (real, embodiment-specific low-level motion) still needs its own
+  promotion case per env, separate from the decision-logic question this
+  entry answers. Full suite re-verified green (103 passed) with zero
+  test-file changes required.
+
 ## D-039: Zero-shot CLIP feasibility promoted to `src/atr/` — evidence is calibration, not generalization, and that's disclosed prominently
 
 - **Date:** 2026-08-02

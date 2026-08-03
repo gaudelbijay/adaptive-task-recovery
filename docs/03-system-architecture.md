@@ -146,6 +146,22 @@ class EmbodimentInterface(Protocol):
     def safe_stop(self) -> None: ...
 ```
 
+**Aspirational when written, checked against real code 2026-08-02
+(D-040) — and it didn't match.** `AdaptivePolicy`/`EmbodimentInterface`
+imagined a stateful class-based interface. The real evidence, from four
+independently-built, working env variants
+(`spikes/task_schema_draft/policy_baselines*.py`), converged on
+something simpler: a plain function,
+`attempt_goal(env, goal, tray_slot_xyz) -> {"achieved": bool,
+"steps_used": int, "skipped": bool}`, is the actual
+embodiment/environment boundary — no `available_skills()`/`safe_stop()`
+needed for anything built so far. `src/atr/policies/baselines.py`'s
+`static_policy`/`feasibility_aware_policy`/`naive_substitution_policy`,
+each parameterized by that function plus tray geometry, is the real,
+working `AdaptivePolicy`-shaped interface today — not the pseudocode
+above, which is kept here as a record of the original design intent, not
+as a spec anything is checked against.
+
 ## Proposed repository layout
 
 ```text

@@ -24,13 +24,8 @@ import numpy as np
 import sapien
 
 from atr.language.goal_graph import Goal, GoalGraph, canonical_example
-from atr.constraints.intent_guard import validate_action
-from atr.feasibility.oracle import (
-    constraint_violated,
-    goal_achieved,
-    goal_dependencies_satisfied,
-    goal_feasible,
-)
+from atr.feasibility.oracle import goal_achieved
+from atr.policies import baselines
 
 _TRAY_POSITION = np.array([0.4, 0.0, 0.005])
 _TRAY_HALF_SIZES = (0.15, 0.2, 0.005)
@@ -79,97 +74,34 @@ def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, reach_steps: int = 
     return {"achieved": achieved, "steps_used": steps_used, "skipped": False}
 
 
-def _summarize(per_goal: dict) -> dict:
-    return {
-        "per_goal": per_goal,
-        "goals_achieved": sum(r["achieved"] for r in per_goal.values()),
-        "total_steps": sum(r["steps_used"] for r in per_goal.values()),
-        "wasted_steps": sum(
-            r["steps_used"] for r in per_goal.values() if not r["achieved"] and not r["skipped"]
-        ),
-    }
+# Re-exported for existing callers (rl_policy.py) that import this
+# privately -- see atr.policies.baselines for the real implementation.
+_summarize = baselines._summarize
 
 
 def static_policy(env, graph: GoalGraph = None) -> dict:
     """Attempts every goal in order, regardless of feasibility."""
-    graph = graph or canonical_example()
-    per_goal = {
-        goal.id: attempt_goal(env, goal, _TRAY_SLOTS[i]) for i, goal in enumerate(graph.goals)
-    }
-    return _summarize(per_goal)
+    return baselines.static_policy(env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
-    """Checks goal_feasible() (a privileged-state query, ~zero cost) before
-    committing to the physical attempt; skips infeasible goals immediately.
-    Also gates on goal_dependencies_satisfied() (D-037): a goal whose
-    depends_on prerequisite hasn't been achieved yet in this same
-    sequential pass is skipped too, same as an infeasible one -- see that
-    function's docstring for why this is a separate check from feasibility,
-    not the same one. No-op for every goal with empty depends_on (every
-    goal in canonical_example()), so this is backward compatible."""
-    graph = graph or canonical_example()
-    per_goal = {}
-    achieved_ids: set[str] = set()
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if not goal_feasible(goal, state) or not goal_dependencies_satisfied(goal, achieved_ids):
-            per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
-            continue
-        result = attempt_goal(env, goal, _TRAY_SLOTS[i])
-        per_goal[goal.id] = result
-        if result["achieved"]:
-            achieved_ids.add(goal.id)
-    return _summarize(per_goal)
+    """Checks goal_feasible() (a privileged-state query, ~zero cost) and
+    goal_dependencies_satisfied() (D-037) before committing to the
+    physical attempt; skips a goal immediately if either fails. See
+    atr.policies.baselines.feasibility_aware_policy() for the shared
+    implementation (D-040)."""
+    return baselines.feasibility_aware_policy(env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
     """The "invalid agent" from docs/01's own worked example: rather than
     accepting an infeasible goal, it substitutes an unrequested object (the
-    glass) to fill the tray slot instead — which never actually satisfies
-    the real goal (the destroyed object still doesn't exist) and violates
-    the `dont_move_glass` hard constraint. With `use_intent_guard=True`,
-    `validate_action()` is checked before the substitution and blocks it.
-    """
-    graph = graph or canonical_example()
-    initial_state = env.unwrapped._world_state()
-    per_goal = {}
-    substitution_attempted = False
-
-    for i, goal in enumerate(graph.goals):
-        state = env.unwrapped._world_state()
-        if goal_feasible(goal, state):
-            per_goal[goal.id] = attempt_goal(env, goal, _TRAY_SLOTS[i])
-            continue
-
-        if use_intent_guard:
-            allowed, reason = validate_action("glass", graph)
-        else:
-            allowed, reason = True, "unchecked (no intent guard)"
-
-        if not allowed:
-            per_goal[goal.id] = {
-                "achieved": False, "steps_used": 0, "skipped": True,
-                "substitution_attempted": False, "blocked_reason": reason,
-            }
-            continue
-
-        substitution_attempted = True
-        fake_goal = Goal(id=f"substitute_for_{goal.id}", predicate="on_tray", target_object="glass")
-        substitution_result = attempt_goal(env, fake_goal, _TRAY_SLOTS[i])
-        per_goal[goal.id] = {
-            # Never credited: moving the glass onto the tray does not
-            # satisfy "place the (destroyed) bowl on the tray," no matter
-            # how the substitution attempt itself goes.
-            "achieved": False,
-            "steps_used": substitution_result["steps_used"],
-            "skipped": False,
-            "substitution_attempted": True,
-        }
-
-    final_state = env.unwrapped._world_state()
-    glass_constraint = next(c for c in graph.constraints if c.target_object == "glass")
-    result = _summarize(per_goal)
-    result["dont_move_glass_violated"] = constraint_violated(glass_constraint, initial_state, final_state)
-    result["substitution_attempted"] = substitution_attempted
-    return result
+    glass, canonical_example()'s only never_move-constrained object) to
+    fill the tray slot instead — which never actually satisfies the real
+    goal and violates the `dont_move_glass` hard constraint. With
+    `use_intent_guard=True`, `validate_action()` is checked before the
+    substitution and blocks it. See atr.policies.baselines.
+    naive_substitution_policy() for the shared implementation (D-040)."""
+    return baselines.naive_substitution_policy(
+        env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS, use_intent_guard=use_intent_guard,
+    )
