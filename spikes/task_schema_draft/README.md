@@ -27,7 +27,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`../../src/atr/language/goal_graph.py`](../../src/atr/language/goal_graph.py) *(promoted, D-037)* | `Goal`, `Constraint`, `GoalGraph` dataclasses matching docs/04's "atomic goals, priorities, dependencies, and hard constraints." `canonical_example()` builds the docs/01 instruction as data; `dependent_goals_example()` exercises `Goal.depends_on`. |
 | [`../../src/atr/feasibility/oracle.py`](../../src/atr/feasibility/oracle.py) *(promoted, D-037)* | Pure functions: `goal_feasible()` (exists-based, never attempted-motion-based — see "Humanoid validity requirements" in docs/04), `goal_dependencies_satisfied()` (D-037), and `constraint_violated()` (position-drift / orientation checks), plus `evaluate_goal_graph()` combining the feasibility/violation checks. No simulator dependency — testable in isolation. |
 | [`../../src/atr/envs/tidy_up_env.py`](../../src/atr/envs/tidy_up_env.py) *(promoted, D-045)* | A ManiSkill3 scene (5 objects: red_mug, blue_bowl, tray, medicine_bottle, glass + an idle `panda` arm) wiring the schema above to real privileged state. Registered as `TidyUp-v1` (was `TidyUpTaskSchemaDraft-v1` before promotion). |
-| [`policy_baselines.py`](policy_baselines.py) | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? Also `naive_substitution_policy()`, used by the intent guard test below. Thin wrapper over [`../../src/atr/policies/baselines.py`](../../src/atr/policies/baselines.py) since D-040 — this file supplies `attempt_goal()` (real arm motion) and tray geometry; the shared decision logic lives there. |
+| [`../../src/atr/envs/tidy_up_policies.py`](../../src/atr/envs/tidy_up_policies.py) *(promoted, D-046)* | `static_policy()` vs `feasibility_aware_policy()` — the first runnable test of H2 (docs/01): does checking feasibility before acting beat a policy that doesn't? Also `naive_substitution_policy()`, used by the intent guard test below. Supplies `attempt_goal()` (real arm motion) and tray geometry for the canonical env; the shared decision logic lives in `src/atr/policies/baselines.py` (D-040). |
 | [`../../src/atr/constraints/intent_guard.py`](../../src/atr/constraints/intent_guard.py) *(promoted, D-037)* | `validate_action()` — the first runnable test of H3 (docs/01): does rejecting an unauthorized action before execution reduce constraint violations? |
 | [`tidy_up_env_humanoid.py`](tidy_up_env_humanoid.py) | The same scene and interventions, on a Unitree G1 upper body instead of the panda arm — proves `goal_graph`/`oracle_feasibility`/`intent_guard` are genuinely embodiment-agnostic, not accidentally panda-specific. Registered as `TidyUpTaskSchemaDraft-Humanoid-v1`. |
 | [`policy_baselines_humanoid.py`](policy_baselines_humanoid.py) | The same `static_policy` / `feasibility_aware_policy` / `naive_substitution_policy`, adapted to the humanoid's joint-space-only control (see below). |
@@ -85,7 +85,7 @@ Both are deterministic given a seed (same pattern as the earlier spikes).
 
 docs/01's H2 hypothesis: *"conditioning strategy selection on per-goal
 feasibility estimates outperforms a static language-conditioned policy after
-irreversible changes."* `policy_baselines.py` runs the smallest possible
+irreversible changes."* `atr.envs.tidy_up_policies` (promoted, D-046; was `policy_baselines.py`) runs the smallest possible
 version of that test: both policies attempt `place_mug` then `place_bowl` in
 order, using real arm motion for the reach phase (see the module's scope
 note on what's abstracted — the grasp mechanic itself, already validated
@@ -102,7 +102,7 @@ goal — the feasibility-aware policy checks `goal_feasible()` (a privileged-
 state query, ~zero cost) before committing to the physical reach, and skips
 `place_bowl` immediately instead of reaching for an object that's gone.
 With no intervention, both policies achieve 2/2 goals with zero waste (see
-`tests/drafts/test_policy_baselines.py`).
+`tests/drafts/test_tidy_up_policies.py`).
 
 This is a toy-scale, existence-only version of H2, not a publishable result:
 no learned feasibility estimation (the check is a direct privileged-state
@@ -115,7 +115,7 @@ rather than argued for in prose.
 
 H3: *"explicit goal/constraint checking reduces semantic and constraint
 violations with an acceptable trade-off in achievable-goal recall."*
-`naive_substitution_policy()` in `policy_baselines.py` is the "invalid
+`naive_substitution_policy()` in `atr.envs.tidy_up_policies` is the "invalid
 agent" from docs/01's own worked example: when `place_bowl` turns out
 infeasible, instead of accepting that, it substitutes the glass onto the
 tray — which never legitimately satisfies the goal (the bowl still doesn't
@@ -489,7 +489,7 @@ exceed it.
 `rl_policy.py` is stage 5 of the build-up order in
 `docs/00-project-overview.md`: replace the scripted/oracle policies with
 one that's actually learned. `feasibility_aware_policy`
-(`policy_baselines.py`) always implemented "attempt iff feasible" as a
+(`atr.envs.tidy_up_policies`) always implemented "attempt iff feasible" as a
 hard-coded rule; this checks whether an agent can discover that same rule
 from trial and reward instead of being told it.
 
@@ -628,17 +628,17 @@ separately-validated alternative perceptual backend, not integrated here.
   still just a schema field~~ — filled in (D-037):
   `goal_dependencies_satisfied()` in `src/atr/feasibility/oracle.py`,
   exercised by `dependent_goals_example()` and wired into
-  `policy_baselines.py`'s `feasibility_aware_policy()`. Verified live: a
+  `atr.envs.tidy_up_policies`'s `feasibility_aware_policy()`. Verified live: a
   goal gets blocked by an unmet prerequisite even when its own target
   object is independently feasible. Also found while fixing this:
   `Goal.priority` is set by the parser but read by nothing — harmless
   today (execution order already matches it by construction), but worth
   knowing.
 - ~~Actual goal completion~~ — filled in: `goal_achieved()` checks placement
-  (object resting within the tray's footprint), used by `policy_baselines.py`.
+  (object resting within the tray's footprint), used by `atr.envs.tidy_up_policies`.
   Still simplified: a successful attempt teleports the object onto the tray
   rather than re-running a full physical grasp-place sequence (see
-  `policy_baselines.py`'s scope note) — real placement precision/collision
+  `atr.envs.tidy_up_policies`'s scope note) — real placement precision/collision
   between multiple placed objects isn't tested. D-024/D-028 tried to add
   real contact-based grasp *confirmation* on top of this teleport
   abstraction and found it's not achievable from G1's current position —

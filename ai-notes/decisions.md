@@ -2,6 +2,52 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-046: Canonical env's policy API promoted to `src/atr/envs/tidy_up_policies.py`, fixing a duplicated-position bug
+
+- **Date:** 2026-08-03
+- **Status:** Accepted
+- **Decision:** Promoted `policy_baselines.py` (`attempt_goal()` + the
+  `static_policy`/`feasibility_aware_policy`/`naive_substitution_policy`
+  thin wrappers over `atr.policies.baselines`, D-040) to
+  `src/atr/envs/tidy_up_policies.py` via `git mv` — no thin spike wrapper
+  left behind this time, unlike D-040/D-041's `policy_baselines.py`/
+  `rl_policy.py` split, because this file's entire remaining content
+  (real arm motion tightly coupled to `tidy_up_env.py`'s exact scene, plus
+  thin calls into already-promoted generic logic) belongs with the
+  now-promoted env itself, not as a separate "spike wrapper" layer.
+  Renamed `tests/drafts/test_policy_baselines.py` →
+  `test_tidy_up_policies.py` to match — the first test-file rename in
+  this promotion sequence, because every promotion before this one
+  (D-038–D-041) left a same-named spike file behind for the test to
+  still accurately describe; this one didn't, so the old test filename
+  would have been stale. Found and fixed a real duplication while
+  promoting, not just moved the file: `_TRAY_POSITION`/
+  `_LAST_KNOWN_POSITION` were literal position numbers copy-pasted from
+  `tidy_up_env.py`'s `_OBJECT_SPECS` (confirmed by direct comparison,
+  not assumed) — silently driftable if that scene's layout ever changed,
+  the same "duplicated data can silently drift" risk D-030/D-040 already
+  found for duplicated *logic* in this project, just for position data
+  this time. Now derived directly: `_TRAY_POSITION =
+  np.array(_OBJECT_SPECS["tray"][2])`, etc. — one source of truth,
+  verified to produce identical values before trusting it. Also swept
+  and fixed present-tense stale references to the old `policy_baselines.py`
+  path across `spikes/task_schema_draft/README.md`, `rl_policy.py`, and
+  `src/atr/feasibility/oracle.py` (including a `../README.md` relative
+  link in `oracle.py` that had already gone stale at D-037's promotion
+  and gone unnoticed until now — fixed to an explicit path).
+- **Reason:** Continuing the same per-module promotion discipline;
+  checked whether this file was self-contained the way D-038/D-039
+  turned out to be, found the position-duplication issue the same way
+  D-040 found the dependency-gating gap, and fixed it rather than
+  promoting a known data-integrity risk forward.
+- **Consequences:** `src/atr/envs/` now has the canonical env plus its
+  own policy-facing API, fully self-contained. `rl_policy.py`'s thin
+  wrapper (spike-stage) and `end_to_end.py` still import from this
+  module for `attempt_goal`/`_TRAY_SLOTS` — updated, unchanged behavior.
+  Full suite re-verified green after the move (see this entry's
+  verification run). Three sibling env variants (and their own
+  `policy_baselines_*.py` files) remain spike-stage.
+
 ## D-045: Canonical task environment promoted to `src/atr/envs/tidy_up_env.py`; env ID dropped its "draft" qualifier
 
 - **Date:** 2026-08-03

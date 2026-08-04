@@ -3,8 +3,8 @@ specific wrapper. The actual Q-learning algorithm (`train_q_table()`,
 `learned_policy()`) was promoted to `atr.policies.q_learning` (D-041) --
 this file just supplies the canonical tabletop env's own
 `attempt_goal`/`_TRAY_SLOTS`/`canonical_example()`, the same relationship
-`policy_baselines.py`'s wrappers have to `atr.policies.baselines`
-(D-040).
+`atr.envs.tidy_up_policies`'s wrappers have to `atr.policies.baselines`
+(D-040/D-046).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from atr.policies.q_learning import (
     learned_policy as _learned_policy,
     train_q_table,
 )
-from task_schema_draft.policy_baselines import _TRAY_SLOTS, attempt_goal
+from atr.envs.tidy_up_policies import _TRAY_SLOTS, attempt_goal
 
 __all__ = ["ATTEMPT", "SKIP", "train_q_table", "train_q_table_canonical", "learned_policy"]
 

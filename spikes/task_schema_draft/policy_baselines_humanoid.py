@@ -1,7 +1,7 @@
 """Static / feasibility-aware / naive-substitution policies for the
 Unitree G1 humanoid version of TidyUp (tidy_up_env_humanoid.py).
 
-Same policy logic and metrics as policy_baselines.py (panda arm) — same
+Same policy logic and metrics as atr.envs.tidy_up_policies (panda arm, promoted D-046) — same
 goal_graph, oracle_feasibility, and intent_guard modules, genuinely
 embodiment-agnostic as designed. The only thing that changes is how
 "attempt a goal" is realized physically: no Cartesian controller exists for

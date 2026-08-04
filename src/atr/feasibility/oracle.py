@@ -70,7 +70,7 @@ def goal_dependencies_satisfied(goal: Goal, achieved_goal_ids: set[str] | frozen
 
     `achieved_goal_ids` is the caller's responsibility to accumulate --
     this function only knows about one goal's declared dependencies, not
-    the graph or world state. See `policy_baselines.py`'s
+    the graph or world state. See `atr.policies.baselines`'s
     `feasibility_aware_policy()` for the reference caller: it threads an
     `achieved_ids` set through a single sequential pass over
     `graph.goals`, exactly matching every existing policy's execution
@@ -87,8 +87,9 @@ def goal_achieved(
 ) -> bool:
     """Placement completion, not just feasibility: is the goal's target
     object actually resting within the tray's footprint? (This was listed
-    as a gap in ../README.md "What this deliberately doesn't cover yet" —
-    filled in for the policy-baseline comparison in policy_baselines.py.)"""
+    as a gap in spikes/task_schema_draft/README.md's "What this
+    deliberately doesn't cover yet" — filled in for the policy-baseline
+    comparison in `atr.envs.tidy_up_policies`.)"""
     obj = state.get(goal.target_object)
     if obj is None or not obj.exists:
         return False

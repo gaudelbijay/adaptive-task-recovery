@@ -1,7 +1,18 @@
-"""Static vs. feasibility-aware policy baselines — the first runnable test
-of H2 from docs/01-problem-statement-and-motivation.md: "conditioning
-strategy selection on per-goal feasibility estimates outperforms a static
+"""Static vs. feasibility-aware policy baselines for the canonical TidyUp
+env — the first runnable test of H2 from
+docs/01-problem-statement-and-motivation.md: "conditioning strategy
+selection on per-goal feasibility estimates outperforms a static
 language-conditioned policy after irreversible changes."
+
+Promoted to src/atr/ 2026-08-03 (D-046), alongside tidy_up_env.py
+(D-045) -- see ai-notes/decisions.md. Fixed a real duplication while
+promoting, not just moved the file: `_TRAY_POSITION`/
+`_LAST_KNOWN_POSITION` were literal position numbers copy-pasted from
+tidy_up_env.py's `_OBJECT_SPECS`, which could silently drift out of sync
+if that scene's layout ever changed (the exact "same fix landing in one
+copy, not everywhere" risk D-030/D-040 already found elsewhere in this
+project, just for data instead of logic this time) -- now derived from
+`_OBJECT_SPECS` directly, one source of truth.
 
 Both policies attempt `canonical_example()`'s goals in order (mug, then
 bowl) using real arm motion for the "attempt" (reach) phase. They differ in
@@ -23,11 +34,12 @@ from __future__ import annotations
 import numpy as np
 import sapien
 
-from atr.language.goal_graph import Goal, GoalGraph, canonical_example
+from atr.envs.tidy_up_env import _OBJECT_SPECS
 from atr.feasibility.oracle import goal_achieved
+from atr.language.goal_graph import Goal, GoalGraph, canonical_example
 from atr.policies import baselines
 
-_TRAY_POSITION = np.array([0.4, 0.0, 0.005])
+_TRAY_POSITION = np.array(_OBJECT_SPECS["tray"][2])
 _TRAY_HALF_SIZES = (0.15, 0.2, 0.005)
 _TRAY_SLOTS = [
     _TRAY_POSITION + np.array([0.0, -0.08, 0.0]),
@@ -35,8 +47,7 @@ _TRAY_SLOTS = [
 ]
 
 _LAST_KNOWN_POSITION = {
-    "red_mug": np.array([0.15, -0.15, 0.04]),
-    "blue_bowl": np.array([0.15, 0.15, 0.025]),
+    name: np.array(_OBJECT_SPECS[name][2]) for name in ("red_mug", "blue_bowl")
 }
 
 

@@ -14,7 +14,7 @@ import pytest
 pytest.importorskip("mani_skill")
 
 import task_schema_draft  # noqa: E402, F401
-from task_schema_draft.policy_baselines import feasibility_aware_policy, static_policy  # noqa: E402
+from atr.envs.tidy_up_policies import feasibility_aware_policy, static_policy  # noqa: E402
 from task_schema_draft.rl_policy import ATTEMPT, SKIP, learned_policy, train_q_table_canonical  # noqa: E402
 
 

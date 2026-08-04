@@ -18,6 +18,7 @@ D-013's core schema has been reviewed and promoted here.
 | [`evaluation/harness.py`](evaluation/harness.py) | `compare_policies`/`bootstrap_ci` — the first real implementation of docs/10's "paired seeds, bootstrap CIs" statistical protocol. Env/policy-agnostic. | new (D-042) | D-042 |
 | [`evaluation/splits.py`](evaluation/splits.py) | `InstructionSpec`, `TRAIN`/`HELD_OUT_PARAPHRASE`/`HELD_OUT_COMPOSITION`/`SPLITS` — the first queryable dataset-split registry, per docs/04's "hold out paraphrases and compositions". Pure data, zero simulator dependency. | strings copied verbatim from `test_instruction_parser.py` | D-044 |
 | [`envs/tidy_up_env.py`](envs/tidy_up_env.py) | `TidyUpEnv`/`TidyUpRegisteredEnv` — the canonical 5-object tabletop ManiSkill3 scene, registered as `TidyUp-v1` (was `TidyUpTaskSchemaDraft-v1`). | `spikes/task_schema_draft/tidy_up_env.py` | D-045 |
+| [`envs/tidy_up_policies.py`](envs/tidy_up_policies.py) | `attempt_goal()` (real arm motion for the canonical env) + thin `static_policy`/`feasibility_aware_policy`/`naive_substitution_policy` wrappers over `policies/baselines.py`. Fixed a real duplication while promoting: tray/object positions are now derived from `tidy_up_env.py`'s `_OBJECT_SPECS`, not copy-pasted numbers. | `spikes/task_schema_draft/policy_baselines.py` | D-046 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -35,11 +36,15 @@ static-vs-feasibility-aware comparison, which turned out to have zero
 outcome variance across 30 seeds at this toy scale (reported honestly,
 not hidden); a queryable dataset-split registry (D-044), replacing
 literal strings buried in test-function bodies with something any
-evaluation code can enumerate programmatically; and the canonical task
+evaluation code can enumerate programmatically; the canonical task
 environment itself (D-045), the first genuinely simulator-specific
 architecture promoted here now that D-033 has formally selected
 ManiSkill3 — its registered id dropped the "draft" qualifier
-(`TidyUpTaskSchemaDraft-v1` → `TidyUp-v1`) at promotion time.
+(`TidyUpTaskSchemaDraft-v1` → `TidyUp-v1`) at promotion time; and that
+env's own policy-facing API (D-046), which fixed a real duplication
+along the way — tray/object positions are now derived from the env's own
+`_OBJECT_SPECS`, not separately copy-pasted numbers that could silently
+drift.
 
 ## Review status — read before trusting this as "reviewed"
 
@@ -56,12 +61,13 @@ status, not the underlying evidence's scale. See
 
 DINOv2's self-supervised probe, the end-to-end pipeline, and the three
 other environment variants (`tidy_up_env_humanoid.py`/`_replicacad.py`/
-`_replicacad_humanoid.py`) — including each variant's own
-`attempt_goal()` (the real, embodiment-specific low-level motion:
-Cartesian IK, joint-space reach, or navigate-then-reach) and tray
-geometry, which `policies/baselines.py`/`policies/q_learning.py` take as
-parameters rather than owning themselves. None of those have made their
-own case for promotion yet — each promotion so far (D-038 through D-045)
+`_replicacad_humanoid.py`, each with their own `policy_baselines_*.py`)
+— including each variant's own `attempt_goal()` (the real,
+embodiment-specific low-level motion: Cartesian IK, joint-space reach, or
+navigate-then-reach) and tray geometry, which `policies/baselines.py`/
+`policies/q_learning.py` take as parameters rather than owning
+themselves. None of those have made their own case for promotion yet —
+each promotion so far (D-038 through D-046)
 was made on that module's own evidence, not as a side effect of an
 earlier one, and each carries whatever caveat its own evidence actually
 supports (D-039's calibration-not-generalization note, D-040/D-041's
