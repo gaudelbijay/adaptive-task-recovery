@@ -19,6 +19,8 @@ D-013's core schema has been reviewed and promoted here.
 | [`evaluation/splits.py`](evaluation/splits.py) | `InstructionSpec`, `TRAIN`/`HELD_OUT_PARAPHRASE`/`HELD_OUT_COMPOSITION`/`SPLITS` — the first queryable dataset-split registry, per docs/04's "hold out paraphrases and compositions". Pure data, zero simulator dependency. | strings copied verbatim from `test_instruction_parser.py` | D-044 |
 | [`envs/tidy_up_env.py`](envs/tidy_up_env.py) | `TidyUpEnv`/`TidyUpRegisteredEnv` — the canonical 5-object tabletop ManiSkill3 scene, registered as `TidyUp-v1` (was `TidyUpTaskSchemaDraft-v1`). | `spikes/task_schema_draft/tidy_up_env.py` | D-045 |
 | [`envs/tidy_up_policies.py`](envs/tidy_up_policies.py) | `attempt_goal()` (real arm motion for the canonical env) + thin `static_policy`/`feasibility_aware_policy`/`naive_substitution_policy` wrappers over `policies/baselines.py`. Fixed a real duplication while promoting: tray/object positions are now derived from `tidy_up_env.py`'s `_OBJECT_SPECS`, not copy-pasted numbers. | `spikes/task_schema_draft/policy_baselines.py` | D-046 |
+| [`envs/tidy_up_env_humanoid.py`](envs/tidy_up_env_humanoid.py) | Unitree G1 humanoid variant — same schema, joint-space reach instead of Cartesian IK. Registered as `TidyUp-Humanoid-v1`. | `spikes/task_schema_draft/tidy_up_env_humanoid.py` | D-047 |
+| [`envs/tidy_up_humanoid_policies.py`](envs/tidy_up_humanoid_policies.py) | Same policy API as `tidy_up_policies.py`, for the humanoid env. `_TRAY_POSITION`'s z left as-is (0.698, not 0.755) — checked first: it's a real settled-vs-spawn-height difference, not a stale duplicate. | `spikes/task_schema_draft/policy_baselines_humanoid.py` | D-047 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -40,11 +42,14 @@ evaluation code can enumerate programmatically; the canonical task
 environment itself (D-045), the first genuinely simulator-specific
 architecture promoted here now that D-033 has formally selected
 ManiSkill3 — its registered id dropped the "draft" qualifier
-(`TidyUpTaskSchemaDraft-v1` → `TidyUp-v1`) at promotion time; and that
+(`TidyUpTaskSchemaDraft-v1` → `TidyUp-v1`) at promotion time; that
 env's own policy-facing API (D-046), which fixed a real duplication
 along the way — tray/object positions are now derived from the env's own
 `_OBJECT_SPECS`, not separately copy-pasted numbers that could silently
-drift.
+drift; and the Unitree G1 humanoid variant (D-047), where a similar-looking
+position mismatch turned out to be a real, legitimate difference (settled
+vs. spawn height) rather than the same kind of bug — checked, not assumed,
+before deciding to leave it alone.
 
 ## Review status — read before trusting this as "reviewed"
 
@@ -59,15 +64,15 @@ status, not the underlying evidence's scale. See
 
 ## What's still in `spikes/task_schema_draft/`, not here
 
-DINOv2's self-supervised probe, the end-to-end pipeline, and the three
-other environment variants (`tidy_up_env_humanoid.py`/`_replicacad.py`/
+DINOv2's self-supervised probe, the end-to-end pipeline, and the two
+remaining environment variants (`tidy_up_env_replicacad.py`/
 `_replicacad_humanoid.py`, each with their own `policy_baselines_*.py`)
 — including each variant's own `attempt_goal()` (the real,
-embodiment-specific low-level motion: Cartesian IK, joint-space reach, or
-navigate-then-reach) and tray geometry, which `policies/baselines.py`/
+embodiment-specific low-level motion: Cartesian IK or navigate-then-reach)
+and tray geometry, which `policies/baselines.py`/
 `policies/q_learning.py` take as parameters rather than owning
 themselves. None of those have made their own case for promotion yet —
-each promotion so far (D-038 through D-046)
+each promotion so far (D-038 through D-047)
 was made on that module's own evidence, not as a side effect of an
 earlier one, and each carries whatever caveat its own evidence actually
 supports (D-039's calibration-not-generalization note, D-040/D-041's

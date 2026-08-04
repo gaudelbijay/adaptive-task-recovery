@@ -1,14 +1,26 @@
 """Static / feasibility-aware / naive-substitution policies for the
 Unitree G1 humanoid version of TidyUp (tidy_up_env_humanoid.py).
 
-Same policy logic and metrics as atr.envs.tidy_up_policies (panda arm, promoted D-046) — same
-goal_graph, oracle_feasibility, and intent_guard modules, genuinely
-embodiment-agnostic as designed. The only thing that changes is how
-"attempt a goal" is realized physically: no Cartesian controller exists for
-this robot (see tidy_up_env_humanoid.py's module docstring), so `_reach`
-drives pre-calibrated right-arm joint targets instead of proportional IK
-toward an xyz target. Placement still uses the same teleport-on-success
-abstraction as the panda version, for the same reason.
+Promoted to src/atr/ 2026-08-04 (D-047), alongside tidy_up_env_humanoid.py
+-- see ai-notes/decisions.md. `_TRAY_POSITION`'s z (0.698) is deliberately
+*not* derived from `_OBJECT_SPECS["tray"]`'s spawn z (0.755) the way
+D-046 derived the canonical env's tray position -- checked first, not
+assumed the same fix applied: `tidy_up_env_humanoid.py`'s own `evaluate()`
+docstring explains objects are spawned at an assumed counter height that
+doesn't match the counter's real collision surface and settle a small
+amount in the first few steps, so 0.698 is very likely the real,
+empirically-observed resting height, not a stale duplicate of 0.755 the
+spawn height. Left exactly as-is.
+
+Same policy logic and metrics as atr.envs.tidy_up_policies (panda arm,
+D-046) — same goal_graph, oracle_feasibility, and intent_guard modules,
+genuinely embodiment-agnostic as designed. The only thing that changes is
+how "attempt a goal" is realized physically: no Cartesian controller
+exists for this robot (see tidy_up_env_humanoid.py's module docstring),
+so `_reach` drives pre-calibrated right-arm joint targets instead of
+proportional IK toward an xyz target. Placement still uses the same
+teleport-on-success abstraction as the panda version, for the same
+reason.
 """
 
 from __future__ import annotations
@@ -19,7 +31,7 @@ import sapien
 from atr.language.goal_graph import Goal, GoalGraph, canonical_example
 from atr.feasibility.oracle import goal_achieved
 from atr.policies import baselines
-from task_schema_draft.tidy_up_env_humanoid import _NEUTRAL_QPOS, _REACH_CONFIGS
+from atr.envs.tidy_up_env_humanoid import _NEUTRAL_QPOS, _REACH_CONFIGS
 
 _TRAY_POSITION = np.array([0.0, -0.13, 0.698])
 _TRAY_HALF_SIZES = (0.12, 0.15, 0.02)

@@ -2,6 +2,44 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-047: Humanoid env variant promoted — a suspected duplication bug checked first, and it wasn't one
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `tidy_up_env_humanoid.py` +
+  `policy_baselines_humanoid.py` to `src/atr/envs/tidy_up_env_humanoid.py`
+  + `src/atr/envs/tidy_up_humanoid_policies.py` via `git mv`. Both were
+  already clean (only depended on already-promoted
+  `atr.language`/`atr.feasibility`, plus each other). Registered env id
+  changed `TidyUpTaskSchemaDraft-Humanoid-v1` → `TidyUp-Humanoid-v1`,
+  same pattern as D-045. Before assuming D-046's fix applied here too,
+  checked: `policy_baselines_humanoid.py`'s `_TRAY_POSITION` z (0.698)
+  doesn't match `tidy_up_env_humanoid.py`'s `_OBJECT_SPECS["tray"]`
+  spawn z (`_COUNTER_Z + 0.005` = 0.755) — looked identical in shape to
+  D-046's duplication bug (x/y matched exactly, z didn't). It isn't one:
+  `tidy_up_env_humanoid.py`'s own `evaluate()` method already documents,
+  in its own comment, that objects are spawned at an assumed counter
+  height that doesn't match the counter's real collision surface and
+  settle to a different height in the first few steps. 0.698 is very
+  plausibly the real, empirically-observed resting height; 0.755 is just
+  the assumed spawn height. Confirmed with the user before proceeding
+  rather than guessing either way, and left the value exactly as
+  written — did not force it to match `_OBJECT_SPECS` the way D-046 did
+  for the canonical env, since here that would likely have been the
+  *wrong* fix, not the same fix. Documented this reasoning directly in
+  both promoted files' docstrings, not just here.
+- **Reason:** The whole point of checking before promoting (established
+  D-039 onward) is to catch cases where a pattern that worked once
+  doesn't transfer — this is exactly that case, just for a duplication
+  fix instead of a promotion-readiness judgment. Applying D-046's fix
+  mechanically here, without checking, would have silently changed a
+  correct, empirically-calibrated value to an incorrect assumed one.
+- **Consequences:** `src/atr/envs/` now has two of four embodiment
+  variants (canonical panda, G1 humanoid). Two remain spike-stage
+  (`tidy_up_env_replicacad.py`, `tidy_up_env_replicacad_humanoid.py`),
+  each with real navigation logic not yet checked for its own promotion
+  readiness. Full suite re-verified green after the move.
+
 ## D-046: Canonical env's policy API promoted to `src/atr/envs/tidy_up_policies.py`, fixing a duplicated-position bug
 
 - **Date:** 2026-08-03

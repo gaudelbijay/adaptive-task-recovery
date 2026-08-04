@@ -5,8 +5,8 @@ embodiment-agnostic, per docs/04's "feasibility and intent modules are
 embodiment-agnostic, while a humanoid control layer provides ... reaching,
 grasping" framing.
 
-DRAFT for the "Shared: select the task family and irreversible/reversible
-intervention set" item in STATUS.md — not committed. See ../README.md.
+Promoted to src/atr/ 2026-08-04 (D-047) -- see ai-notes/decisions.md.
+Registered as `TidyUp-Humanoid-v1` (was `TidyUpTaskSchemaDraft-Humanoid-v1`).
 
 Robot: `unitree_g1_simplified_upper_body_with_head_camera` — the same agent
 class ManiSkill3's own `UnitreeG1PlaceAppleInBowl-v1` example uses. That
@@ -225,6 +225,6 @@ class TidyUpHumanoidEnv(BaseEnv):
         return torch.zeros(self.num_envs, device=self.device)
 
 
-@register_env("TidyUpTaskSchemaDraft-Humanoid-v1", max_episode_steps=100)
+@register_env("TidyUp-Humanoid-v1", max_episode_steps=100)
 class TidyUpHumanoidRegisteredEnv(TidyUpHumanoidEnv):
     pass
