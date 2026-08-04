@@ -26,6 +26,9 @@ D-013's core schema has been reviewed and promoted here.
 | [`envs/tidy_up_replicacad_policies.py`](envs/tidy_up_replicacad_policies.py) | Same policy API, navigating (not just reaching) to each goal. `_TRAY_POSITION`/`_TRAY_HALF_SIZES` were already imported, not duplicated, before promotion — no fix needed there. | `spikes/task_schema_draft/policy_baselines_replicacad.py` | D-048 |
 | [`envs/tidy_up_env_replicacad_humanoid.py`](envs/tidy_up_env_replicacad_humanoid.py) | G1 fixed-base, placed (not navigating) in the same real apartment. Registered as `TidyUp-ReplicaCAD-Humanoid-v1`. Closes out all four embodiment/scene variants. | `spikes/task_schema_draft/tidy_up_env_replicacad_humanoid.py` | D-049 |
 | [`envs/tidy_up_replicacad_humanoid_policies.py`](envs/tidy_up_replicacad_humanoid_policies.py) | Same policy API, arm-reach only (no navigation). Positions already imported, not duplicated. | `spikes/task_schema_draft/policy_baselines_replicacad_humanoid.py` | D-049 |
+| [`pipeline.py`](pipeline.py) | `run_end_to_end_episode()` — language parsing, real vision-based feasibility, and a learned policy combined into one real episode. Last of the six build-up stages promoted. Uses `atr.policies.q_learning.greedy_action()` (new, D-050) instead of a duplicated argmax lookup. | `spikes/task_schema_draft/end_to_end.py` | D-050 |
+| [`control/ik_solver.py`](control/ik_solver.py) | `solve_right_arm_ik()`/`best_reachable_distance()` — real analytic-Jacobian IK on `pinocchio`, deterministic, verified against ManiSkill's own kinematics. Zero project-internal dependency, plain `git mv`. | `spikes/task_schema_draft/ik_solver.py` | D-051 |
+| [`envs/capture_episode_subprocess.py`](envs/capture_episode_subprocess.py) | Standalone script (never imported, run via subprocess) that captures one render-producing reset in its own fresh process — works around D-022's confirmed upstream ManiSkill3 rendering bug. Promoted even though its main caller (`dinov2_probe.py`) isn't ready, same situation D-039 handled for `device_utils.py`. | `spikes/task_schema_draft/capture_episode_subprocess.py` | D-052 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -58,11 +61,17 @@ before deciding to leave it alone; the ReplicaCAD + Fetch variant
 (D-048), with real navigation (`navigation.py`, generic, promoted
 alongside) — this one had no duplication bug to find at all, since it
 has no `_OBJECT_SPECS`-equivalent to duplicate from in the first place;
-and the fourth and final embodiment/scene variant, G1 fixed-base in the
+the fourth and final embodiment/scene variant, G1 fixed-base in the
 same real apartment (D-049) — same clean pattern as D-048, nothing to
-fix. This closes out every variant docs/00's build-up order named;
-`end_to_end.py` now has zero remaining spike-internal dependencies as a
-side effect, though it hasn't made its own promotion case yet.
+fix; and the end-to-end pipeline itself (D-050), the last of the six
+build-up stages, once everything it depended on already was promoted —
+also fixed a small duplicated argmax lookup along the way
+(`greedy_action()`, shared with `policies/q_learning.py`'s
+`learned_policy()`); the real analytic-Jacobian IK solver (D-051,
+`control/`) — already zero-dependency, plain `git mv`; and the
+subprocess capture script (D-052), promoted despite its main caller
+(`dinov2_probe.py`) not being ready, since it independently serves the
+already-promoted CLIP kitchen_sink tests too.
 
 ## Review status — read before trusting this as "reviewed"
 
@@ -77,12 +86,11 @@ status, not the underlying evidence's scale. See
 
 ## What's still in `spikes/task_schema_draft/`, not here
 
-DINOv2's self-supervised probe and the end-to-end pipeline
-(`end_to_end.py`). Neither has made its own case for promotion yet —
-`end_to_end.py` has zero remaining spike-internal dependencies
-(everything it imports is now `atr.*`), which makes it a strong
-candidate, but that's a separate decision from promoting the pieces it
-depends on, not yet made. Each promotion so far (D-038 through D-049)
+Only `dinov2_probe.py` — the one module flagged early on as not ready
+(D-039's write-up: weaker evidence than CLIP, one scene layout, never
+wired into a live decision loop) and still true. Everything else that
+started in `spikes/task_schema_draft/` has now either been promoted or
+explicitly evaluated and held back. Each promotion so far (D-038 through D-052)
 was made on that module's own evidence, not as a side effect of an
 earlier one, and each carries whatever caveat its own evidence actually
 supports (D-039's calibration-not-generalization note, D-040/D-041's

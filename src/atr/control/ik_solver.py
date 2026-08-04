@@ -4,6 +4,11 @@ confirmation with a principled tool instead of the finite-difference
 approximation that proved unreliable there (same starting state converged
 to wildly different distances run to run).
 
+Promoted to src/atr/ 2026-08-04 (D-051) -- see ai-notes/decisions.md.
+Was already zero-dependency on any other spike file (only `numpy`,
+`pinocchio`, `mani_skill.PACKAGE_ASSET_DIR`), so promotion was a plain
+`git mv`, nothing to fix.
+
 Uses `pinocchio` (already a dependency, proven for Panda's Cartesian
 controller in the original spike) against G1's actual URDF kinematic chain
 -- a real analytic Jacobian, not a numerical approximation. Damped

@@ -11,7 +11,7 @@ pytest.importorskip("mani_skill")
 pytest.importorskip("pinocchio")
 
 import task_schema_draft  # noqa: E402, F401
-from task_schema_draft.ik_solver import best_reachable_distance, solve_right_arm_ik  # noqa: E402
+from atr.control.ik_solver import best_reachable_distance, solve_right_arm_ik  # noqa: E402
 
 
 def _make_env():
@@ -36,7 +36,7 @@ class TestMatchesManiSkillKinematics:
             base_pos = agent.robot.pose.sp.p.copy()
             qpos = agent.robot.qpos[0].cpu().numpy().astype(np.float64)
 
-            from task_schema_draft.ik_solver import _model_and_data
+            from atr.control.ik_solver import _model_and_data
 
             model, data = _model_and_data()
             import pinocchio as pin

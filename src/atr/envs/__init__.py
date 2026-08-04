@@ -40,11 +40,20 @@ same role as `clip_feasibility.py`'s `_OBJECT_VISUAL_CONFIG`.
 navigating) in the same real apartment as the Fetch variant. Same clean
 pattern as D-048 -- real YCB objects, tray/fallback positions already
 imported rather than duplicated, nothing to fix. This closes out all
-four embodiment/scene variants named in docs/00's build-up order;
-`spikes/task_schema_draft/end_to_end.py` (the integration pipeline) now
-has zero remaining spike-internal dependencies as a result, though it
-hasn't made its own promotion case yet -- that's a separate decision
-from promoting the pieces it depends on.
+four embodiment/scene variants named in docs/00's build-up order.
+
+`capture_episode_subprocess.py` (D-052) is a standalone script (never
+imported as a module, run via `subprocess.run([sys.executable,
+str(_CAPTURE_SCRIPT), ...])`) that captures one render-producing reset of
+the ReplicaCAD-Humanoid env in its own fresh process -- a real,
+necessary workaround for D-022's confirmed upstream ManiSkill3 rendering
+bug. Promoted despite its main caller
+(`spikes/task_schema_draft/dinov2_probe.py`) not being promotion-ready,
+same situation D-039 already handled for `device_utils.py`: this script
+also serves the already-promoted `clip_feasibility.py`'s kitchen_sink
+tests, and `dinov2_probe.py` depending on promoted code is the expected
+direction, not a problem. Callers now locate it via its own module
+`__file__` rather than a hardcoded relative path.
 """
 
 from __future__ import annotations

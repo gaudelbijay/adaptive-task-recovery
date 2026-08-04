@@ -3,13 +3,21 @@ everything -- language, vision, learned policy -- into one real pipeline
 on one episode, instead of five separate demonstrations that never talk
 to each other.
 
+Promoted to src/atr/ 2026-08-04 (D-050) -- see ai-notes/decisions.md.
+Last of the six build-up stages to be promoted, once every piece it
+depends on (parser, vision, the fourth and final env variant, D-045-
+D-049) already was -- this file had zero remaining spike-internal
+imports as a result, not by design of this promotion itself.
+
 Concretely, for each goal in a parsed instruction:
   1. parse_instruction() (D-019/D-026) turns the instruction into a GoalGraph
   2. a real rendered frame + visual_object_exists() (D-020) judges whether
      the goal's target object still exists -- NOT a privileged-state read
   3. a Q-table trained by atr.policies.q_learning's train_q_table()
      (D-025/D-030, promoted D-041), retrained here for this env's goals,
-     decides attempt vs. skip from that *perceived* feasibility
+     decides attempt vs. skip from that *perceived* feasibility, via the
+     same greedy_action() lookup atr.policies.q_learning.learned_policy()
+     uses (D-050 -- previously duplicated, now shared)
   4. attempt_goal() (unchanged, real arm motion) executes the decision
 
 Privileged state still exists in this file -- but only in
@@ -42,7 +50,7 @@ from atr.envs.tidy_up_replicacad_humanoid_policies import (
 from atr.feasibility.clip_feasibility import visual_object_exists
 from atr.language.goal_graph import GoalGraph
 from atr.language.instruction_parser import parse_instruction
-from atr.policies.q_learning import ATTEMPT, SKIP, train_q_table
+from atr.policies.q_learning import SKIP, greedy_action, train_q_table
 
 HUMANOID_OBJECTS = {"potted_meat_can", "master_chef_can", "cracker_box", "bowl"}
 
@@ -91,8 +99,7 @@ def run_end_to_end_episode(env, q_table: dict, scene_variant: str = "kitchen_cab
         frame = env.render()[0].cpu().numpy()
         perceived_feasible = visual_object_exists(frame, goal.target_object, scene_variant)
         key = (goal.id, perceived_feasible)
-        actions = q_table.get(key, {SKIP: 0.0, ATTEMPT: 0.0})
-        action = max(actions, key=actions.get)
+        action = greedy_action(q_table, key)
 
         if action == SKIP:
             per_goal[goal.id] = {

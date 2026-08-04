@@ -23,9 +23,11 @@ import pytest
 pytest.importorskip("mani_skill")
 pytest.importorskip("open_clip")
 
+import atr.envs.capture_episode_subprocess as _capture_module  # noqa: E402
 from atr.feasibility.clip_feasibility import visual_object_exists  # noqa: E402
 
-_CAPTURE_SCRIPT = Path(__file__).parent.parent.parent / "spikes/task_schema_draft/capture_episode_subprocess.py"
+# capture_episode_subprocess.py promoted to src/atr/envs/ (D-052).
+_CAPTURE_SCRIPT = Path(_capture_module.__file__)
 
 
 def _capture(seed: int, steps: int) -> dict:

@@ -55,6 +55,19 @@ _ALPHA = 0.3  # single-step decisions per goal -- no bootstrapping needed, so no
 _REACH_STEPS = 25  # matches every current attempt_goal_fn's own default -- see _wait() below for why this matters
 
 
+def greedy_action(q_table: dict, key: tuple) -> int:
+    """argmax over a trained Q-table's two actions for `key`, defaulting to
+    indifferent (0.0, 0.0) for an unseen key. Pulled out (D-050) because
+    learned_policy() below and pipeline.py's run_end_to_end_episode() had
+    this exact lookup duplicated -- same decision rule, applied to two
+    different feasibility signals (privileged state vs. a rendered
+    frame), which is the actual point of run_end_to_end_episode() and
+    worth keeping distinct; the *lookup* itself has no reason to be
+    written twice."""
+    actions = q_table.get(key, {SKIP: 0.0, ATTEMPT: 0.0})
+    return max(actions, key=actions.get)
+
+
 def _wait(env, steps: int = _REACH_STEPS):
     """Holds position for `steps` control steps -- same elapsed-time cost as
     an attempt, without actually reaching. Real bug found building this: a
@@ -144,8 +157,7 @@ def learned_policy(
     for i, goal in enumerate(graph.goals):
         feasible = bool(goal_feasible(goal, env.unwrapped._world_state()))
         key = (goal.id, feasible)
-        actions = q_table.get(key, {SKIP: 0.0, ATTEMPT: 0.0})
-        action = max(actions, key=actions.get)
+        action = greedy_action(q_table, key)
         if action == SKIP:
             per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
         else:

@@ -2,6 +2,104 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-052: Subprocess capture script promoted despite its main caller not being ready
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `capture_episode_subprocess.py` (the D-022
+  rendering-bug workaround: captures one render-producing reset of the
+  ReplicaCAD-Humanoid env in its own fresh subprocess) to
+  `src/atr/envs/capture_episode_subprocess.py` via `git mv`. This
+  script's main reason for existing is serving `dinov2_probe.py`'s data
+  collection — the one module already flagged (D-039) as not
+  promotion-ready. Checked whether that made this script un-promotable
+  too, and found it doesn't: `tests/drafts/test_clip_feasibility_kitchen_sink.py`
+  (testing the already-promoted `clip_feasibility.py`) also depends on
+  it directly, for the same reason (subprocess isolation against D-022).
+  Same situation D-039 already worked through for `device_utils.py`
+  (also depended on by both a promoted module and `dinov2_probe.py`) —
+  a not-yet-promoted module depending on promoted code is the expected
+  direction, not a blocker. Fixed both callers
+  (`dinov2_probe.py`, `test_clip_feasibility_kitchen_sink.py`) to locate
+  the script via `Path(atr.envs.capture_episode_subprocess.__file__)`
+  instead of a hardcoded relative path — required since the path
+  changed, and a real improvement over the previous fragile pattern
+  (`test_clip_feasibility_kitchen_sink.py`'s old
+  `Path(__file__).parent.parent.parent / "spikes/..."` would have broken
+  again the next time either file moved).
+- **Reason:** Real evidence this script works correctly and is needed
+  (it's the only thing standing between this project and D-022 silently
+  corrupting captured training data) made it worth promoting on its own
+  merit, independent of whether its primary caller is ready.
+- **Consequences:** `dinov2_probe.py` is now the only module remaining
+  in `spikes/task_schema_draft/` without an explicit promotion
+  evaluation — every other spike file has either been promoted (D-037
+  through D-052) or checked and correctly held back (this script's
+  sibling caller). Full suite re-verified green (122 passed).
+
+## D-051: Real analytic-Jacobian IK solver promoted, zero-dependency and unchanged
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `ik_solver.py` (D-028) to
+  `src/atr/control/ik_solver.py` via `git mv`. Checked its dependencies
+  first, same as every other promotion: `numpy`, `pinocchio`,
+  `mani_skill.PACKAGE_ASSET_DIR` — zero project-internal imports, so
+  nothing to redirect and nothing to check for duplication against.
+  Plain move, no other change needed. New `src/atr/control/` package
+  (docs/03's proposed layout named this directory "humanoid skill
+  adapters and whole-body safety interface" — the closest fit for a
+  kinematics tool that isn't tied to any one TidyUp env variant). Fixed
+  `tests/drafts/test_ik_solver.py`'s two import sites (module-level and
+  one local import inside a test method).
+- **Reason:** Real, already-strong evidence (deterministic, verified
+  against ManiSkill's own forward kinematics before being trusted,
+  confirmed a genuine reachability limit via wide random-restart search,
+  not a solver artifact) and a clean dependency profile made this an
+  easy next candidate once the pipeline itself was promoted.
+- **Consequences:** `src/atr/control/` exists now with one module.
+  `dinov2_probe.py` (still not ready, per D-039) and
+  `capture_episode_subprocess.py` (not yet evaluated) are what's left in
+  `spikes/task_schema_draft/`. Full suite re-verified green (122 passed).
+
+## D-050: End-to-end pipeline promoted — the last of the six build-up stages, and a small shared-logic fix along the way
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `end_to_end.py` to `src/atr/pipeline.py` via
+  `git mv`. By this point it had zero remaining spike-internal
+  dependencies (a side effect of D-045–D-049 promoting everything it
+  imports), not something engineered for this entry specifically. Before
+  promoting, checked it against `atr.policies.q_learning.learned_policy()`
+  for duplication the same way D-040/D-041 checked policy code, and
+  found a small one: both functions look up the greedy action from a
+  Q-table with an identical three-line pattern (`q_table.get(key,
+  {SKIP: 0.0, ATTEMPT: 0.0})` then `max(..., key=....get)`), applied to
+  two different feasibility signals -- `learned_policy()` uses privileged
+  state, `run_end_to_end_episode()` uses a real rendered frame via CLIP.
+  That difference is the actual point of this stage and stays; the
+  lookup itself had no reason to be written twice. Extracted
+  `greedy_action(q_table, key) -> int` into `q_learning.py`, both
+  functions now call it. Renamed `tests/drafts/test_end_to_end.py` →
+  `test_pipeline.py` to match — no spike stub left behind (same as
+  D-046/D-047's env-variant test renames), so the old name would have
+  gone stale.
+- **Reason:** This is the last of the six build-up stages
+  docs/00-project-overview.md names, so promoting it closes that list.
+  Checking for the small duplication first, rather than treating a
+  clean-dependency file as automatically promotion-ready, follows the
+  same discipline every promotion since D-039 has used — "no remaining
+  spike imports" means the *directional* dependency problem is solved,
+  it doesn't mean there's nothing left to check.
+- **Consequences:** `src/atr/` now contains the full build-up order:
+  schema (D-037), language (D-038), vision (D-039), policies (D-040/
+  D-041), evaluation (D-042/D-044), all four env variants (D-045/D-047/
+  D-048/D-049), their policy APIs (D-046 and siblings), and now the
+  integration pipeline itself (D-050). What remains spike-stage:
+  `dinov2_probe.py` (still the one module flagged as not ready, D-039),
+  `ik_solver.py`, and `capture_episode_subprocess.py` — none evaluated
+  for promotion yet. Full suite re-verified green (122 passed).
+
 ## D-049: Fourth and final env variant promoted — closes out docs/00's build-up order variants
 
 - **Date:** 2026-08-04

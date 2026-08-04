@@ -45,9 +45,13 @@ from pathlib import Path
 import numpy as np
 
 from atr.feasibility.clip_feasibility import _OBJECT_VISUAL_CONFIG
+import atr.envs.capture_episode_subprocess as _capture_module
 from atr.device_utils import resolve_torch_device
 
-_CAPTURE_SCRIPT = Path(__file__).parent / "capture_episode_subprocess.py"
+# capture_episode_subprocess.py promoted to src/atr/envs/ (D-052) -- located
+# via the module's own __file__ rather than a hardcoded relative path, so
+# this doesn't break again if either file moves independently.
+_CAPTURE_SCRIPT = Path(_capture_module.__file__)
 
 
 @lru_cache(maxsize=1)
