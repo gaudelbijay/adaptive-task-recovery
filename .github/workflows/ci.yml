@@ -92,8 +92,10 @@ jobs:
       - name: Download required ManiSkill scene assets
         run: |
           df -h /
+          python -m mani_skill.utils.download_asset ycb -y
           python -m mani_skill.utils.download_asset ReplicaCAD -y
           python -m mani_skill.utils.download_asset ReplicaCADRearrange -y
+          test -f "$HOME/.maniskill/data/assets/mani_skill2_ycb/info_pick_v0.json"
           df -h /
       - name: Verify ManiSkill imports
         run: |
