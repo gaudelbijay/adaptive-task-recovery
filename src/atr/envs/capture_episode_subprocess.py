@@ -20,6 +20,20 @@ Box bounds like [-2.618, 2.9671], not normalized [-1, 1]), so random actions
 risk unrealistic/unstable arm motion for no real benefit. `--steps` controls
 only how many zero-action steps run before capture, i.e. whether the
 scripted intervention (onset step 2) has fired yet by capture time.
+
+`--attempt-object` (added D-055, ai-notes/decisions.md) optionally runs a
+real *full* attempt_goal() -- reach, then teleport-to-tray if the object
+exists -- for the named object before capture, so a labeled example
+includes both G1's arm having moved into frame *and* whatever else that
+first attempt visibly changed in the scene (e.g. the first object now
+sitting in the tray). Matters because a reach-only capture turned out not
+to reproduce D-054's actual failure (see D-055) -- the live pipeline's
+first goal doesn't just move the arm, it also (when successful) moves that
+object into the tray, and that's part of what the second goal's frame
+looks like too. `--intervention-kind` (default unchanged,
+"chef_can_destroyed") lets a caller ask for "none" instead, needed to
+collect an arm-in-frame *present* example (nothing destroyed) to pair
+against the arm-in-frame *absent* one.
 """
 
 import argparse
@@ -28,6 +42,14 @@ import gymnasium as gym
 import numpy as np
 
 import task_schema_draft  # noqa: F401  (registers the env)
+from atr.language.goal_graph import Goal
+from atr.envs.tidy_up_replicacad_humanoid_policies import _TRAY_SLOTS, attempt_goal
+
+# Matches _instruction_graph()'s goal order in atr.pipeline (parsed from
+# replicacad_humanoid_example()'s instruction text: potted meat can first,
+# then master chef can) -- not imported directly, since atr.pipeline sits
+# above atr.envs and this script must not depend downward on it.
+_GOAL_ORDER = ["potted_meat_can", "master_chef_can"]
 
 
 def main():
@@ -39,18 +61,32 @@ def main():
         "--scene-variant", type=str, default="kitchen_cabinet",
         help='"kitchen_cabinet" (original) or "kitchen_sink" (D-027)',
     )
+    parser.add_argument(
+        "--intervention-kind", type=str, default="chef_can_destroyed",
+        help='env intervention_kind, e.g. "chef_can_destroyed" or "none"',
+    )
+    parser.add_argument(
+        "--attempt-object", type=str, default=None, choices=_GOAL_ORDER,
+        help="if set, perform a real attempt_goal() (reach + teleport-on-success) for "
+        "this object before capture -- puts G1's arm (and, if successful, the object "
+        "itself) in frame the way an actual prior goal attempt would, D-055",
+    )
     args = parser.parse_args()
 
     env = gym.make(
         "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode="rgb_array", sim_backend="physx_cpu", control_mode="pd_joint_pos",
-        intervention_kind="chef_can_destroyed", onset_step_range=(2, 3),
+        intervention_kind=args.intervention_kind, onset_step_range=(2, 3),
         scene_variant=args.scene_variant,
     )
     env.reset(seed=args.seed)
     zero_action = np.zeros(env.action_space.shape, dtype=np.float32)
     for _ in range(args.steps):
         env.step(zero_action)
+    if args.attempt_object is not None:
+        goal = Goal(id="_capture", predicate="on_tray", target_object=args.attempt_object, priority=0)
+        tray_slot = _TRAY_SLOTS[_GOAL_ORDER.index(args.attempt_object)]
+        attempt_goal(env, goal, tray_slot)
     frame = env.render()[0].cpu().numpy()
     exists = dict(env.unwrapped._exists)
     env.close()

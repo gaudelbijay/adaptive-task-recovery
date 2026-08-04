@@ -2,6 +2,81 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-055: Closed D-054's DINOv2 robustness gap for real — training data, not test-tuning
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** D-054 flagged a real, scoped next step: train the probe on
+  examples that include the arm mid-reach, not only at-rest captures, and
+  see whether that closes the gap. Did that. Added `--attempt-object` to
+  `capture_episode_subprocess.py` (a real `attempt_goal()` call -- reach
+  *and* teleport-on-success -- before capture, not just a reach motion)
+  and `collect_arm_occluded_examples()` (`dinov2_probe.py`), which uses it
+  to collect present/absent `master_chef_can` examples with the arm
+  already having reached for `potted_meat_can` first, the same state the
+  live loop's second goal actually renders.
+
+  First attempt used a reach-only capture (arm moved, nothing teleported)
+  and it did NOT reproduce D-054's gap -- a probe trained on arm-at-rest
+  data alone judged those examples 12/12 correctly, which meant the
+  reproduction wasn't faithful yet, not that there was nothing left to
+  find. Checked why before concluding anything: the live loop's first
+  goal, when it succeeds, also teleports `potted_meat_can` into the tray,
+  which is visually part of the second goal's frame too. Rebuilt the
+  capture around a real `attempt_goal()` call so it replays everything the
+  first attempt actually changes, not just the arm motion. That version
+  reproduced D-054's exact 81% confident misjudgment on the new examples
+  when evaluated with an arm-at-rest-only probe -- real confirmation the
+  reproduction was faithful before trusting any fix built on top of it.
+
+  Fit a probe on arm-at-rest examples (`collect_labeled_examples`) plus
+  arm-occluded examples (`collect_arm_occluded_examples`) together and
+  re-ran the exact D-054 failing case: fixed (`perceived_feasible=False`,
+  correctly skipped, zero wasted steps). Didn't stop at one seed --
+  checked 5 seed/intervention combinations (3 with the object destroyed,
+  2 without) to make sure this wasn't a fluke tuned to seed=0.
+
+  First multi-seed check gave a false alarm: running all 5 episodes in one
+  investigation script (one shared process) showed a spurious failure on
+  the no-intervention case. Diagnosed before reporting it: that script had
+  already burned through several render-producing `env.reset()` calls in
+  the same process (Q-table training aside, each diagnostic episode is one
+  more), which is exactly the D-022 render-desync condition this project
+  has hit before -- confirmed the existing `TestLiveDecisionLoopMatchesOracle`
+  test class stays within budget (2 render-producing resets total across
+  its two test methods, in one pytest session) and re-ran each of the 5
+  diagnostics in its own fresh subprocess instead. All 5 matched oracle
+  correctly. The real regression test suite
+  (`tests/drafts/test_dinov2_probe.py::TestLiveDecisionLoopMatchesOracle`)
+  was rewritten to fit the combined probe and assert the correct outcome
+  in both cases -- `test_intervention_case_reveals_a_real_robustness_gap`
+  →  `test_intervention_case_matches_oracle`,
+  `test_no_intervention_case_passes_but_does_not_demonstrate_robustness`
+  → `test_no_intervention_case_matches_oracle` -- per D-054's own test
+  comment inviting exactly this update once the underlying gap closed.
+- **Reason:** D-054 explicitly declined to force a pass by tuning the crop
+  or retraining on the specific failing case, since that would have been
+  curve-fitting to one test rather than a real fix. This is the real fix
+  that comment pointed at: broadening the *training distribution* to
+  include a condition the live loop actually produces, verified against
+  held-out seeds in properly isolated processes, not narrowed to make one
+  assertion pass. The reach-only false start and the single-process false
+  regression are both kept in the writeup (not smoothed over) because they
+  were real methodological traps on the way to a real result, and either
+  one going unnoticed would have produced a false conclusion in either
+  direction (a fix that doesn't actually work, or a working fix reported
+  as broken).
+- **Consequences:** D-054's finding about representation robustness still
+  stands as *history* -- DINOv2's probe, calibrated only on arm-at-rest
+  data, really was less robust than CLIP to this distribution shift — but
+  it's no longer an open gap: with training data that reflects what the
+  live loop actually produces, DINOv2 matches oracle here too. Updated
+  `docs/01-problem-statement-and-motivation.md`'s H1 entry to reflect the
+  fuller story (gap found, root-caused, closed) rather than leave the more
+  pessimistic D-054-only framing standing. `dinov2_probe.py` still not
+  promoted -- this closes one specific, well-scoped gap, not a general
+  promotion-readiness claim. Full suite re-verified green.
+
 ## D-054: DINOv2 wired into a live decision loop — attempted, and it surfaced a real robustness gap, not a clean success
 
 - **Date:** 2026-08-04

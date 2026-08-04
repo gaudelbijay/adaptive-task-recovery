@@ -15,6 +15,7 @@ pytest.importorskip("torch")
 pytest.importorskip("sklearn")
 
 from task_schema_draft.dinov2_probe import (  # noqa: E402
+    collect_arm_occluded_examples,
     collect_labeled_examples,
     dinov2_embed,
     fit_and_evaluate_probe,
@@ -74,23 +75,40 @@ class TestLinearProbeOnSelfSupervisedFeatures:
 
 
 class TestLiveDecisionLoopMatchesOracle:
-    """D-054: attempts to close the harder gap D-039 flagged -- DINOv2
-    wired into a real live decision loop, not just probe-fitting tests.
-    Direct counterpart to test_pipeline.py's TestFullPipelineMatchesOracle,
-    same claim, DINOv2 instead of CLIP. Fits its own probe (not the LOO
-    one above) since a live episode needs a probe that can actually
-    predict on a new, unseen frame.
+    """D-054/D-055: closes the harder gap D-039 flagged -- DINOv2 wired into
+    a real live decision loop, not just probe-fitting tests. Direct
+    counterpart to test_pipeline.py's TestFullPipelineMatchesOracle, same
+    claim, DINOv2 instead of CLIP. Fits its own probe (not the LOO one
+    above) since a live episode needs a probe that can actually predict on
+    a new, unseen frame.
 
-    Does NOT cleanly match oracle the way the CLIP version does -- see
-    test_intervention_case_reveals_a_real_robustness_gap below, which
-    locks in a genuine, confirmed finding instead of asserting the
-    (false) hoped-for result: by the time the second goal's frame
-    renders, G1's arm has already moved (reaching for the first goal),
-    an out-of-distribution shift the probe -- trained only on
-    arm-at-rest captures -- gets confidently wrong (81% "present" on a
-    genuinely destroyed object). CLIP's zero-shot judgment on the exact
-    same frame is correct. Real evidence about representation
-    robustness, not a bug in this test's wiring."""
+    D-054 found this did NOT cleanly match oracle: by the time the second
+    goal's frame renders, G1's arm has already moved (reaching for the
+    first goal) and, if that reach succeeded, the first object is now
+    sitting in the tray too -- an out-of-distribution shift the probe,
+    trained only on arm-at-rest captures, got confidently wrong (81%
+    "present" on a genuinely destroyed object).
+
+    D-055 closed it for real, not by tuning this test: added
+    collect_arm_occluded_examples() (dinov2_probe.py), which captures
+    training examples in that same post-first-attempt state (arm moved,
+    first object teleported if successful) via a real attempt_goal() call
+    inside capture_episode_subprocess.py's new --attempt-object option.
+    A reach-only version of this (moving the arm but not also teleporting
+    the first object into the tray) was tried first and did NOT reproduce
+    the gap -- a probe trained on arm-at-rest data alone judged those
+    examples 12/12 correctly. It was only once the capture also replayed
+    the *teleport*, matching everything attempt_goal() actually changes in
+    the scene, that a probe trained on arm-at-rest data alone reproduced
+    D-054's exact 81% confident misjudgment on the new examples -- real
+    confirmation the reproduction (and by extension the original finding)
+    was faithful, not a different bug. Verified fixed across 5 held-out
+    seeds/conditions (ai-notes/decisions.md D-055), each checked in its own
+    fresh process -- checking them in one shared process first gave a
+    false regression, an artifact of D-022's render-desync budget (~2
+    render-producing resets per process), not a real probe failure; caught
+    by noticing the two tests below only budget 2 renders total in the
+    same pytest session, same as everywhere else in this project."""
 
     @pytest.fixture(scope="class")
     def q_table(self):
@@ -100,10 +118,13 @@ class TestLiveDecisionLoopMatchesOracle:
 
     @pytest.fixture(scope="class")
     def probe(self):
-        examples = collect_labeled_examples(
+        rest_examples = collect_labeled_examples(
             "master_chef_can", n_present=6, n_absent=6, seed_start=400,
         )
-        return fit_probe(examples)
+        # D-055: arm-occluded examples, not just arm-at-rest -- see class
+        # docstring. Without these, this fixture reproduces D-054's gap.
+        occluded_examples = collect_arm_occluded_examples(n_present=6, n_absent=6, seed_start=500)
+        return fit_probe(rest_examples + occluded_examples)
 
     def _make_env(self, **kwargs):
         import gymnasium as gym
@@ -115,18 +136,12 @@ class TestLiveDecisionLoopMatchesOracle:
             render_mode="rgb_array", sim_backend="physx_cpu", control_mode="pd_joint_pos", **kwargs,
         )
 
-    def test_intervention_case_reveals_a_real_robustness_gap(self, q_table, probe):
-        """Locks in D-054's actual finding, the same way D-028's
-        TestConfirmedUnreachable locks in a confirmed limitation instead
-        of silently re-litigating it. This is NOT the desired long-term
-        behavior -- if a future fix (e.g. training the probe on frames
-        that include the arm mid-reach, not just at-rest captures) makes
-        this pass with perceived_feasible=False, that's real progress and
-        this test should be updated to expect it. Until then, this
-        documents what actually happens: the object is genuinely
-        destroyed, but the probe -- seeing an out-of-distribution frame
-        with G1's reaching arm in it -- confidently says "present"
-        anyway, so the pipeline wastes an attempt instead of skipping."""
+    def test_intervention_case_matches_oracle(self, q_table, probe):
+        """D-054 originally failed here (perceived_feasible incorrectly
+        True). D-055's arm-occluded training examples fix it for real --
+        if this regresses, re-check whether the `probe` fixture above
+        still includes collect_arm_occluded_examples() before assuming
+        the underlying representation gap is back."""
         env = self._make_env(intervention_kind="chef_can_destroyed", onset_step_range=(2, 3))
         try:
             env.reset(seed=0)
@@ -143,25 +158,19 @@ class TestLiveDecisionLoopMatchesOracle:
             "master_chef_can": result["per_goal"]["place_master_chef_can"],
         }
         assert by_object["potted_meat_can"]["achieved"]
-        # The actual, confirmed finding -- not the hoped-for CLIP-style result:
-        assert by_object["master_chef_can"]["perceived_feasible"] is True, (
-            "if this now fails, DINOv2's live-loop robustness genuinely improved -- "
-            "update this test to assert the correct behavior instead of reverting it"
-        )
-        assert by_object["master_chef_can"]["skipped"] is False
-        assert by_object["master_chef_can"]["achieved"] is False  # attempted, but nothing there
-        assert result["wasted_steps"] > 0  # the real cost of the misclassification
+        assert by_object["master_chef_can"]["perceived_feasible"] is False
+        assert by_object["master_chef_can"]["skipped"] is True
+        assert by_object["master_chef_can"]["achieved"] is False
+        assert result["wasted_steps"] == 0
 
-    def test_no_intervention_case_passes_but_does_not_demonstrate_robustness(self, q_table, probe):
-        """This case passes, but its passing is NOT evidence the probe is
-        working correctly -- see test_intervention_case_reveals_a_real_
-        robustness_gap above. The probe appears biased toward predicting
-        "present" once the arm has moved into frame (confirmed there with
-        81% confidence on a genuinely absent object); here, that same
-        bias happens to coincide with the true answer, since nothing was
-        destroyed. A biased-but-lucky pass and a genuinely correct
-        judgment produce identical output -- worth keeping both tests so
-        neither is mistaken for the other."""
+    def test_no_intervention_case_matches_oracle(self, q_table, probe):
+        """Companion to test_intervention_case_matches_oracle above -- same
+        arm-occluded frame condition, but nothing was destroyed, so the
+        correct judgment is perceived_feasible=True this time. Keeping
+        both is what makes either one meaningful: a probe that always
+        predicts "present" would pass this one for the wrong reason (see
+        D-054's original version of this test, which was that biased-but-
+        lucky case)."""
         env = self._make_env(intervention_kind="none")
         try:
             env.reset(seed=0)

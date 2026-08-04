@@ -59,15 +59,23 @@ unrequested object, or violate the glass constraint for reward.
   proof couldn't: on a live episode's second goal, G1's arm has already moved
   from the first goal's attempt, producing a frame never seen during
   training (all calibration captures are arm-at-rest); the probe confidently
-  (81%) misjudges a genuinely destroyed object as present, while CLIP's
-  zero-shot judgment on the identical frame is correct. This cuts against a
-  naive reading of H1 rather than for it — evidence that this self-supervised
-  probe, at least as calibrated here, generalizes *worse* than the
-  language-supervised baseline to a realistic distribution shift, not better.
-  Locked in as a regression test (`TestLiveDecisionLoopMatchesOracle` in
-  `tests/drafts/test_dinov2_probe.py`) rather than tuned away, since whether
-  this gap closes with more representative training data is itself a live
-  question for H1, not a bug to hide.
+  (81%) misjudged a genuinely destroyed object as present, while CLIP's
+  zero-shot judgment on the identical frame was correct. At the time, this
+  cut against a naive reading of H1 — evidence that this self-supervised
+  probe, calibrated only on arm-at-rest data, generalized *worse* than the
+  language-supervised baseline to a realistic distribution shift.
+  **Root-caused and closed (2026-08-04, D-055):** the gap traced to training
+  data, not a representational ceiling — a probe fit on arm-at-rest examples
+  *plus* examples from the same post-first-attempt state the live loop's
+  second goal actually renders (arm moved, first object teleported into the
+  tray) matched oracle on the original failing case and 4 further held-out
+  seeds/conditions. So the fuller picture as of D-055: this self-supervised
+  representation *can* support a robust decision under a realistic
+  distribution shift, but — unlike CLIP's zero-shot judgment, which needed
+  no shift-specific data at all — only once the training data actually
+  covers that shift. That gap in what each approach needs to generalize is
+  itself relevant evidence for H1, not fully for the self-supervised side
+  and not fully against it.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
