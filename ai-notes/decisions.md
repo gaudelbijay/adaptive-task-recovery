@@ -2,6 +2,37 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-053: DINOv2 tested on a second scene layout — closes one of D-039's two flagged gaps, not both
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** With every other spike module either promoted or
+  correctly held back, `dinov2_probe.py` was the one remaining unevaluated
+  file. D-039 already named exactly what it would take to make its case
+  match `clip_feasibility.py`'s: two gaps, "one scene layout only" and
+  "never wired into a live decision loop." Closed the first, for real:
+  ran `collect_labeled_examples("master_chef_can", n_present=6,
+  n_absent=6, scene_variant="kitchen_sink")` — a scene `collect_labeled_examples()`
+  has supported since D-027 but had never actually been exercised against
+  — and got the same result as `kitchen_cabinet`: 100% leave-one-out
+  accuracy (12/12, predictions exactly matching labels). Added as a real
+  test (`test_probe_separates_present_from_absent_on_kitchen_sink`,
+  `tests/drafts/test_dinov2_probe.py`), not just a one-off script run.
+  Updated `dinov2_probe.py`'s own "Honesty about scale" docstring
+  section, which had gone stale the moment this became true (it still
+  said "the one scene this project can currently render reliably").
+- **Reason:** This gap was already named explicitly in D-039's own
+  "Consequences" section as a known, disclosed shortfall — closing a
+  named gap with real evidence, rather than leaving it to go stale,
+  matches this project's standard elsewhere (e.g. D-026 growing the
+  probe's example count after D-023 flagged it as small).
+- **Consequences:** DINOv2 now has 2-scene validation, matching CLIP.
+  **Still not promotion-ready** — the harder gap, "never wired into a
+  live decision loop," remains exactly as open as D-039 left it; this
+  entry doesn't change that and isn't claiming to. `dinov2_probe.py`
+  stays in `spikes/task_schema_draft/`. Full suite re-verified green
+  (123 passed, +1 from the new test).
+
 ## D-052: Subprocess capture script promoted despite its main caller not being ready
 
 - **Date:** 2026-08-04

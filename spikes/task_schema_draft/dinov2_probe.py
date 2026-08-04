@@ -31,8 +31,13 @@ the only real variation is which object is being asked about and whether
 the scripted intervention has fired yet. This is not a meaningful test of
 representation *generalization* (different objects, layouts, lighting) --
 it's a much narrower question: does DINOv2's embedding of this exact crop
-linearly separate "object present" from "object absent" at all, on the one
-scene this project can currently render reliably. Treat accordingly.
+linearly separate "object present" from "object absent" at all. Tested on
+two scene layouts as of D-053 ("kitchen_cabinet" and "kitchen_sink",
+D-027), matching CLIP's 2-scene validation, not just one -- both 100%
+leave-one-out accuracy. Still not wired into any live decision loop (the
+other gap D-039 flagged) -- that's the harder remaining piece before this
+module's evidence matches clip_feasibility.py's, not this one. Treat
+accordingly.
 """
 
 from __future__ import annotations

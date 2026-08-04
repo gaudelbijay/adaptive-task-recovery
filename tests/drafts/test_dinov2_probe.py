@@ -50,3 +50,22 @@ class TestLinearProbeOnSelfSupervisedFeatures:
             f"leave-one-out accuracy only {result['accuracy']}, "
             f"predictions={result['predictions']} labels={result['labels']}"
         )
+
+    def test_probe_separates_present_from_absent_on_kitchen_sink(self):
+        """D-053: closes the gap D-039 flagged explicitly -- this probe had
+        never actually been tested against the "kitchen_sink" scene variant
+        (D-027) despite collect_labeled_examples() supporting it since that
+        same decision. clip_feasibility.py has 2-scene validation; this is
+        DINOv2's first. Different seed_start (200, not 100) so its capture
+        files never collide with the kitchen_cabinet test above if both run
+        concurrently."""
+        examples = collect_labeled_examples(
+            "master_chef_can", n_present=6, n_absent=6, seed_start=200,
+            scene_variant="kitchen_sink",
+        )
+        assert sum(label for _, label in examples) == 6
+        result = fit_and_evaluate_probe(examples)
+        assert result["accuracy"] >= 10 / 12, (
+            f"leave-one-out accuracy only {result['accuracy']}, "
+            f"predictions={result['predictions']} labels={result['labels']}"
+        )
