@@ -48,6 +48,19 @@ jobs:
       MPLCONFIGDIR: /tmp/matplotlib
     steps:
       - uses: actions/checkout@v4
+      - name: Free disk space for ReplicaCAD assets
+        # ReplicaCADRearrange downloads a 1.38 GiB archive and temporarily
+        # needs room for both that archive and its extracted 33k files.
+        # ubuntu-latest ships several large SDKs this project never uses.
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo apt-get clean
+          df -h /
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -78,8 +91,10 @@ jobs:
         run: python -m pip install -e .
       - name: Download required ManiSkill scene assets
         run: |
+          df -h /
           python -m mani_skill.utils.download_asset ReplicaCAD -y
           python -m mani_skill.utils.download_asset ReplicaCADRearrange -y
+          df -h /
       - name: Verify ManiSkill imports
         run: |
           python -c "import mani_skill, sapien, torch; print('ManiSkill/SAPIEN/Torch imports OK')"
