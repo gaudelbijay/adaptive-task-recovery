@@ -45,9 +45,6 @@ jobs:
     continue-on-error: true
     timeout-minutes: 45
     env:
-      # GitHub-hosted runners have no GPU. Force SAPIEN to use Mesa's
-      # CPU-backed Vulkan implementation instead of probing for NVIDIA.
-      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
       MPLCONFIGDIR: /tmp/matplotlib
     steps:
       - uses: actions/checkout@v4
@@ -58,10 +55,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libegl1 libgl1 libvulkan1 mesa-vulkan-drivers vulkan-tools
-      - name: Verify the software Vulkan renderer
+      - name: Locate the lavapipe (software) Vulkan ICD
+        # GitHub-hosted runners have no GPU. Force SAPIEN to use Mesa's
+        # CPU-backed Vulkan implementation instead of probing for NVIDIA.
+        # The exact filename/path has drifted across mesa-vulkan-drivers
+        # versions before (confirmed 2026-08-04: 25.2.8-0ubuntu0.24.04.2 no
+        # longer ships it at the previously-hardcoded
+        # /usr/share/vulkan/icd.d/lvp_icd.x86_64.json), so find it instead
+        # of hardcoding a path that can silently go stale again.
         run: |
-          test -f "$VK_ICD_FILENAMES"
-          vulkaninfo --summary
+          icd=$(find /usr/share/vulkan/icd.d -iname '*lvp*' -o -iname '*llvmpipe*' | head -n1)
+          test -n "$icd" || { echo "::error::no lavapipe/llvmpipe ICD found under /usr/share/vulkan/icd.d"; find /usr/share/vulkan/icd.d -type f; exit 1; }
+          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
+      - name: Verify the software Vulkan renderer
+        run: vulkaninfo --summary
       - name: Install pinned dependencies (excluding the self-referencing editable line)
         run: |
           grep -v '^-e ' requirements-maniskill.lock.txt > /tmp/requirements.txt
