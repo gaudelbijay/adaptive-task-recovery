@@ -23,11 +23,23 @@ height than their spawn height, so the two numbers are legitimately
 different, not a stale duplicate. Left as-is rather than "fixed" to
 match.
 
-The two remaining embodiment/scene variants
-(`spikes/task_schema_draft/tidy_up_env_replicacad.py`/
-`_replicacad_humanoid.py`, each with their own `policy_baselines_*.py`)
-remain spike-stage -- each needs its own promotion case, same discipline
-every promotion since D-037 has followed.
+`tidy_up_env_replicacad.py` + `tidy_up_replicacad_policies.py` (D-048)
+are the third variant: a real ManiSkill3 `ReplicaCADSetTableTrain`
+apartment with a mobile Fetch robot, real YCB objects, and real
+navigation (`navigation.py`, a generic grid + Dijkstra planner promoted
+alongside since the policies file depends on it). Unlike D-046/D-047's
+canonical/humanoid envs, this one has no `_OBJECT_SPECS`-style dict to
+duplicate or derive from -- object positions come from the real scene
+dataset, not hand-placed boxes -- so `_TRAY_POSITION`/`_TRAY_HALF_SIZES`
+were already correctly imported (not copy-pasted) before promotion, and
+`_LAST_KNOWN_POSITIONS` are legitimately standalone empirical fallbacks,
+same role as `clip_feasibility.py`'s `_OBJECT_VISUAL_CONFIG`.
+
+The one remaining embodiment/scene variant
+(`spikes/task_schema_draft/tidy_up_env_replicacad_humanoid.py`, with its
+own `policy_baselines_replicacad_humanoid.py`) remains spike-stage --
+needs its own promotion case, same discipline every promotion since
+D-037 has followed.
 """
 
 from __future__ import annotations

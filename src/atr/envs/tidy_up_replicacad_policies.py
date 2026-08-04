@@ -1,6 +1,16 @@
 """Static / feasibility-aware / naive-substitution policies for the
 ReplicaCAD + Fetch version of TidyUp (tidy_up_env_replicacad.py).
 
+Promoted to src/atr/ 2026-08-04 (D-048), alongside tidy_up_env_replicacad.py
+and navigation.py -- see ai-notes/decisions.md. `_TRAY_POSITION`/
+`_TRAY_HALF_SIZES` were already imported from tidy_up_env_replicacad.py
+rather than duplicated (unlike D-046's canonical-env bug), so no fix
+needed there; `_LAST_KNOWN_POSITIONS` are standalone empirical fallback
+positions with no `_OBJECT_SPECS`-equivalent source of truth to derive
+from in this env (real YCB objects, not hand-placed boxes), so those stay
+as calibrated literals too, same as clip_feasibility.py's
+`_OBJECT_VISUAL_CONFIG`.
+
 Same goal_graph, oracle_feasibility, and intent_guard logic as the panda and
 humanoid variants. What's genuinely new here: "attempt a goal" now means
 *navigate* to the object (it may be a room away) before reaching for it —
@@ -22,8 +32,8 @@ import numpy as np
 from atr.language.goal_graph import Goal, GoalGraph
 from atr.feasibility.oracle import goal_achieved
 from atr.policies import baselines
-from task_schema_draft.navigation import build_occupancy_grid, plan_path
-from task_schema_draft.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
+from atr.envs.navigation import build_occupancy_grid, plan_path
+from atr.envs.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Covers spawn (-1, 0) plus every goal/constraint object position used in
 # this scenario, with margin -- see tidy_up_env_replicacad.py's alias map.
@@ -150,19 +160,19 @@ _TRAY_SLOTS = [
 
 
 def static_policy(env, graph: GoalGraph = None) -> dict:
-    from task_schema_draft.tidy_up_env_replicacad import replicacad_example
+    from atr.envs.tidy_up_env_replicacad import replicacad_example
 
     return baselines.static_policy(env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
-    from task_schema_draft.tidy_up_env_replicacad import replicacad_example
+    from atr.envs.tidy_up_env_replicacad import replicacad_example
 
     return baselines.feasibility_aware_policy(env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS)
 
 
 def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
-    from task_schema_draft.tidy_up_env_replicacad import replicacad_example
+    from atr.envs.tidy_up_env_replicacad import replicacad_example
 
     return baselines.naive_substitution_policy(
         env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS, use_intent_guard=use_intent_guard,

@@ -16,9 +16,9 @@ pytest.importorskip("mani_skill")
 
 import gymnasium as gym  # noqa: E402
 
-import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-ReplicaCAD-v1)
-from task_schema_draft.navigation import build_occupancy_grid, plan_path  # noqa: E402
-from task_schema_draft.policy_baselines_replicacad import (  # noqa: E402
+import task_schema_draft  # noqa: E402, F401  (registers TidyUp-ReplicaCAD-v1)
+from atr.envs.navigation import build_occupancy_grid, plan_path  # noqa: E402
+from atr.envs.tidy_up_replicacad_policies import (  # noqa: E402
     feasibility_aware_policy,
     naive_substitution_policy,
     static_policy,
@@ -27,14 +27,14 @@ from task_schema_draft.policy_baselines_replicacad import (  # noqa: E402
 
 def _make_env(**kwargs):
     return gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-v1", num_envs=1, obs_mode="state", render_mode=None,
+        "TidyUp-ReplicaCAD-v1", num_envs=1, obs_mode="state", render_mode=None,
         sim_backend="physx_cpu", control_mode="pd_ee_delta_pos", **kwargs,
     )
 
 
 class TestTidyUpReplicaCADEnv:
     def test_registered(self):
-        assert "TidyUpTaskSchemaDraft-ReplicaCAD-v1" in gym.envs.registry
+        assert "TidyUp-ReplicaCAD-v1" in gym.envs.registry
 
     def test_reset_and_step(self):
         env = _make_env(intervention_kind="none")

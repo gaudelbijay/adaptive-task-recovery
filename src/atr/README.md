@@ -21,6 +21,9 @@ D-013's core schema has been reviewed and promoted here.
 | [`envs/tidy_up_policies.py`](envs/tidy_up_policies.py) | `attempt_goal()` (real arm motion for the canonical env) + thin `static_policy`/`feasibility_aware_policy`/`naive_substitution_policy` wrappers over `policies/baselines.py`. Fixed a real duplication while promoting: tray/object positions are now derived from `tidy_up_env.py`'s `_OBJECT_SPECS`, not copy-pasted numbers. | `spikes/task_schema_draft/policy_baselines.py` | D-046 |
 | [`envs/tidy_up_env_humanoid.py`](envs/tidy_up_env_humanoid.py) | Unitree G1 humanoid variant — same schema, joint-space reach instead of Cartesian IK. Registered as `TidyUp-Humanoid-v1`. | `spikes/task_schema_draft/tidy_up_env_humanoid.py` | D-047 |
 | [`envs/tidy_up_humanoid_policies.py`](envs/tidy_up_humanoid_policies.py) | Same policy API as `tidy_up_policies.py`, for the humanoid env. `_TRAY_POSITION`'s z left as-is (0.698, not 0.755) — checked first: it's a real settled-vs-spawn-height difference, not a stale duplicate. | `spikes/task_schema_draft/policy_baselines_humanoid.py` | D-047 |
+| [`envs/tidy_up_env_replicacad.py`](envs/tidy_up_env_replicacad.py) | Real ManiSkill3 `ReplicaCADSetTableTrain` apartment, mobile Fetch robot, real YCB objects. Registered as `TidyUp-ReplicaCAD-v1`. | `spikes/task_schema_draft/tidy_up_env_replicacad.py` | D-048 |
+| [`envs/navigation.py`](envs/navigation.py) | Generic grid + Dijkstra path planner — no project-internal dependency. | `spikes/task_schema_draft/navigation.py` | D-048 |
+| [`envs/tidy_up_replicacad_policies.py`](envs/tidy_up_replicacad_policies.py) | Same policy API, navigating (not just reaching) to each goal. `_TRAY_POSITION`/`_TRAY_HALF_SIZES` were already imported, not duplicated, before promotion — no fix needed there. | `spikes/task_schema_draft/policy_baselines_replicacad.py` | D-048 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -46,10 +49,13 @@ ManiSkill3 — its registered id dropped the "draft" qualifier
 env's own policy-facing API (D-046), which fixed a real duplication
 along the way — tray/object positions are now derived from the env's own
 `_OBJECT_SPECS`, not separately copy-pasted numbers that could silently
-drift; and the Unitree G1 humanoid variant (D-047), where a similar-looking
+drift; the Unitree G1 humanoid variant (D-047), where a similar-looking
 position mismatch turned out to be a real, legitimate difference (settled
 vs. spawn height) rather than the same kind of bug — checked, not assumed,
-before deciding to leave it alone.
+before deciding to leave it alone; and the ReplicaCAD + Fetch variant
+(D-048), with real navigation (`navigation.py`, generic, promoted
+alongside) — this one had no duplication bug to find at all, since it
+has no `_OBJECT_SPECS`-equivalent to duplicate from in the first place.
 
 ## Review status — read before trusting this as "reviewed"
 
@@ -64,15 +70,14 @@ status, not the underlying evidence's scale. See
 
 ## What's still in `spikes/task_schema_draft/`, not here
 
-DINOv2's self-supervised probe, the end-to-end pipeline, and the two
-remaining environment variants (`tidy_up_env_replicacad.py`/
-`_replicacad_humanoid.py`, each with their own `policy_baselines_*.py`)
-— including each variant's own `attempt_goal()` (the real,
-embodiment-specific low-level motion: Cartesian IK or navigate-then-reach)
-and tray geometry, which `policies/baselines.py`/
-`policies/q_learning.py` take as parameters rather than owning
-themselves. None of those have made their own case for promotion yet —
-each promotion so far (D-038 through D-047)
+DINOv2's self-supervised probe, the end-to-end pipeline, and the one
+remaining environment variant (`tidy_up_env_replicacad_humanoid.py`,
+with its own `policy_baselines_replicacad_humanoid.py`) — including its
+own `attempt_goal()` (joint-space reach, no navigation, G1 fixed-base) and
+tray geometry, which `policies/baselines.py`/`policies/q_learning.py`
+take as parameters rather than owning themselves. None of those have
+made their own case for promotion yet —
+each promotion so far (D-038 through D-048)
 was made on that module's own evidence, not as a side effect of an
 earlier one, and each carries whatever caveat its own evidence actually
 supports (D-039's calibration-not-generalization note, D-040/D-041's

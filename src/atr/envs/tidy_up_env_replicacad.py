@@ -4,15 +4,19 @@ the third embodiment/scene combination, after the panda-arm tabletop
 (tidy_up_env_humanoid.py). Same goal_graph.py / oracle_feasibility.py /
 intent_guard.py, unchanged.
 
+Promoted to src/atr/ 2026-08-04 (D-048) -- see ai-notes/decisions.md.
+Registered as `TidyUp-ReplicaCAD-v1` (was
+`TidyUpTaskSchemaDraft-ReplicaCAD-v1`).
+
 Per the user's request to prefer established environments over hand-built
 ones: this reuses ManiSkill3's own `SceneManipulationEnv` +
 `ReplicaCADSetTableTrain` scene builder — a real furnished apartment (104
 actors) with real YCB objects (Habitat's rearrangement dataset), not
 hand-placed primitive boxes. Real objects were inspected directly (not
 assumed): `env-0_024_bowl-4` is a genuine YCB bowl, etc. — see
-../README.md "ReplicaCAD embodiment" for the full object inventory used.
+spikes/task_schema_draft/README.md "ReplicaCAD embodiment" for the full object inventory used.
 
-Important scope finding, also in ../README.md: these scenes scatter active
+Important scope finding, also in spikes/task_schema_draft/README.md: these scenes scatter active
 objects across the *entire apartment* (rooms 1-2+ meters apart), and use
 `fetch`, a **mobile** base robot — not the fixed-arm/fixed-reach setup the
 panda and humanoid versions use. So "attempt a goal" here genuinely
@@ -268,6 +272,6 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
         return torch.zeros(self.num_envs, device=self.device)
 
 
-@register_env("TidyUpTaskSchemaDraft-ReplicaCAD-v1", max_episode_steps=2000)
+@register_env("TidyUp-ReplicaCAD-v1", max_episode_steps=2000)
 class TidyUpReplicaCADRegisteredEnv(TidyUpReplicaCADEnv):
     pass

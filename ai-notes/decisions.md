@@ -2,6 +2,50 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-048: ReplicaCAD + Fetch env variant promoted, alongside its navigation dependency
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `tidy_up_env_replicacad.py` +
+  `policy_baselines_replicacad.py` + `navigation.py` to
+  `src/atr/envs/tidy_up_env_replicacad.py` +
+  `src/atr/envs/tidy_up_replicacad_policies.py` +
+  `src/atr/envs/navigation.py` via `git mv`. `navigation.py` (a generic
+  grid + Dijkstra path planner, only depends on `numpy`/`scipy`) promoted
+  alongside its one caller rather than left behind, same reasoning as
+  D-039 promoting `device_utils.py` alongside `clip_feasibility.py`.
+  Registered env id `TidyUpTaskSchemaDraft-ReplicaCAD-v1` →
+  `TidyUp-ReplicaCAD-v1`, same pattern as D-045/D-047. Checked for
+  D-046/D-047-style position-duplication risk before promoting and found
+  none: this env uses ManiSkill3's real `ReplicaCADSetTableTrain` scene
+  builder with real YCB objects, not hand-placed boxes, so there is no
+  `_OBJECT_SPECS`-equivalent dict for anything to accidentally duplicate
+  from. `_TRAY_POSITION`/`_TRAY_HALF_SIZES` were already correctly
+  *imported* by `policy_baselines_replicacad.py` (confirmed by reading
+  the actual import line, not assumed), and `_LAST_KNOWN_POSITIONS` (used
+  as a navigation fallback when an object no longer exists) are
+  legitimately standalone empirical calibration data with no source of
+  truth to derive from — same role as `clip_feasibility.py`'s
+  `_OBJECT_VISUAL_CONFIG` (D-039). Fixed two stale `../README.md`
+  relative links in `tidy_up_env_replicacad.py`'s own docstring
+  (broken by the directory move, same class of issue D-046 found and
+  fixed in `oracle.py`) to explicit `spikes/task_schema_draft/README.md`
+  paths.
+- **Reason:** Continuing the same per-module discipline; this promotion
+  differs from D-046/D-047 in an instructive way — not every env variant
+  has the same kind of risk. Checking each one on its own terms (rather
+  than assuming "the last two had a position bug, so check for one here
+  too, find one, fix it") is what let this entry correctly conclude
+  there was nothing to fix, not force a finding to match the pattern of
+  the prior two entries.
+- **Consequences:** `src/atr/envs/` now has three of four embodiment
+  variants (canonical panda, G1 humanoid, ReplicaCAD+Fetch) plus the
+  navigation utility. One remains spike-stage:
+  `tidy_up_env_replicacad_humanoid.py` (G1 fixed-base in the same real
+  apartment, no navigation) with its own
+  `policy_baselines_replicacad_humanoid.py`. Full suite re-verified
+  green (122 passed).
+
 ## D-047: Humanoid env variant promoted — a suspected duplication bug checked first, and it wasn't one
 
 - **Date:** 2026-08-04
