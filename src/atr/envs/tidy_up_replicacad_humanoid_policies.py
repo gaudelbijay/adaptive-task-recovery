@@ -2,8 +2,14 @@
 fixed-placement G1-in-ReplicaCAD version of TidyUp
 (tidy_up_env_replicacad_humanoid.py).
 
+Promoted to src/atr/ 2026-08-04 (D-049), alongside
+tidy_up_env_replicacad_humanoid.py -- see ai-notes/decisions.md.
+`_TRAY_POSITION`/`_TRAY_HALF_SIZES`/`_LAST_KNOWN_POSITIONS` were already
+imported from that module, not duplicated -- same clean pattern as
+D-048's ReplicaCAD+Fetch variant, no position-duplication fix needed.
+
 No navigation here — G1 is fixed-base, placed once. "Attempt a goal" means
-a joint-space arm reach (same approach as policy_baselines_humanoid.py's
+a joint-space arm reach (same approach as tidy_up_humanoid_policies.py's
 kitchen-counter variant), then teleport-on-success, same abstraction as
 every other variant.
 """
@@ -16,7 +22,7 @@ import sapien
 from atr.language.goal_graph import Goal, GoalGraph
 from atr.feasibility.oracle import goal_achieved
 from atr.policies import baselines
-from task_schema_draft.tidy_up_env_replicacad_humanoid import (
+from atr.envs.tidy_up_env_replicacad_humanoid import (
     _LAST_KNOWN_POSITIONS,
     _NEUTRAL_QPOS,
     _REACH_CONFIGS,

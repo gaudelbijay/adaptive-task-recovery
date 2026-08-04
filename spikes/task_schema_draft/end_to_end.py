@@ -33,16 +33,16 @@ from __future__ import annotations
 
 import gymnasium as gym
 
-from atr.feasibility.clip_feasibility import visual_object_exists
-from atr.language.goal_graph import GoalGraph
-from atr.language.instruction_parser import parse_instruction
-from task_schema_draft.policy_baselines_replicacad_humanoid import (
+from atr.envs.tidy_up_env_replicacad_humanoid import replicacad_humanoid_example
+from atr.envs.tidy_up_replicacad_humanoid_policies import (
     _TRAY_SLOTS,
     _summarize,
     attempt_goal,
 )
+from atr.feasibility.clip_feasibility import visual_object_exists
+from atr.language.goal_graph import GoalGraph
+from atr.language.instruction_parser import parse_instruction
 from atr.policies.q_learning import ATTEMPT, SKIP, train_q_table
-from task_schema_draft.tidy_up_env_replicacad_humanoid import replicacad_humanoid_example
 
 HUMANOID_OBJECTS = {"potted_meat_can", "master_chef_can", "cracker_box", "bowl"}
 
@@ -58,7 +58,7 @@ def _instruction_graph() -> GoalGraph:
 
 def _make_replicacad_humanoid_env(intervention_kind: str, onset_step_range: tuple[int, int]):
     return gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
+        "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode=None, sim_backend="physx_cpu", control_mode="pd_joint_pos",
         intervention_kind=intervention_kind, onset_step_range=onset_step_range,
     )

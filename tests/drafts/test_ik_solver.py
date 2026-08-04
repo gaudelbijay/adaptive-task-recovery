@@ -16,7 +16,7 @@ from task_schema_draft.ik_solver import best_reachable_distance, solve_right_arm
 
 def _make_env():
     return gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
+        "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode=None, sim_backend="physx_cpu", control_mode="pd_joint_pos",
         intervention_kind="none",
     )

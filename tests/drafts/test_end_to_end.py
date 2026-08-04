@@ -35,7 +35,7 @@ def _q_table():
 
 def _make_env(**kwargs):
     return gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
+        "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode="rgb_array", sim_backend="physx_cpu", control_mode="pd_joint_pos", **kwargs,
     )
 

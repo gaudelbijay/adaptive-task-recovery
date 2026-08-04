@@ -11,8 +11,8 @@ import pytest
 
 pytest.importorskip("mani_skill")
 
-import task_schema_draft  # noqa: E402, F401  (registers TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1)
-from task_schema_draft.policy_baselines_replicacad_humanoid import (  # noqa: E402
+import task_schema_draft  # noqa: E402, F401  (registers TidyUp-ReplicaCAD-Humanoid-v1)
+from atr.envs.tidy_up_replicacad_humanoid_policies import (  # noqa: E402
     feasibility_aware_policy,
     naive_substitution_policy,
     static_policy,
@@ -21,14 +21,14 @@ from task_schema_draft.policy_baselines_replicacad_humanoid import (  # noqa: E4
 
 def _make_env(**kwargs):
     return gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
+        "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode=None, sim_backend="physx_cpu", control_mode="pd_joint_pos", **kwargs,
     )
 
 
 class TestTidyUpReplicaCADHumanoidEnv:
     def test_registered(self):
-        assert "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1" in gym.envs.registry
+        assert "TidyUp-ReplicaCAD-Humanoid-v1" in gym.envs.registry
 
     def test_reset_and_step(self):
         env = _make_env(intervention_kind="none")

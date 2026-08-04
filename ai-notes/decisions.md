@@ -2,6 +2,46 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-049: Fourth and final env variant promoted — closes out docs/00's build-up order variants
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** Promoted `tidy_up_env_replicacad_humanoid.py` +
+  `policy_baselines_replicacad_humanoid.py` to
+  `src/atr/envs/tidy_up_env_replicacad_humanoid.py` +
+  `src/atr/envs/tidy_up_replicacad_humanoid_policies.py` via `git mv`.
+  Registered env id `TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1` →
+  `TidyUp-ReplicaCAD-Humanoid-v1`. Checked for the D-046-style
+  duplication risk again and found the same clean pattern as D-048: real
+  YCB objects, `_TRAY_POSITION`/`_TRAY_HALF_SIZES`/
+  `_LAST_KNOWN_POSITIONS` already imported from the env module, not
+  copy-pasted, nothing to fix. Fixed a stale `../README.md` relative
+  link in the moved env file's docstring (same class of issue D-046/
+  D-048 already found and fixed elsewhere). Updated the wider set of
+  callers this variant has beyond just its own env/policy pair —
+  `end_to_end.py`, `capture_episode_subprocess.py`, and the CLIP/
+  IK-solver/instruction-parser tests that all use this specific scene
+  for calibration (D-020/D-027/D-028) — to import from the new location.
+- **Reason:** Same per-module discipline as D-045–D-048; this was the
+  last of the four variants named in docs/00's build-up order
+  ("confirmed embodiment-agnostic across four robot/scene
+  combinations"), so promoting it closes that list out completely.
+- **Consequences:** All four embodiment/scene variants are now in
+  `src/atr/envs/`: `TidyUp-v1`, `TidyUp-Humanoid-v1`,
+  `TidyUp-ReplicaCAD-v1`, `TidyUp-ReplicaCAD-Humanoid-v1`. A real side
+  effect worth noting explicitly: `spikes/task_schema_draft/end_to_end.py`
+  now imports *only* `atr.*` modules — zero remaining spike-internal
+  dependencies — which makes it a strong candidate for its own promotion.
+  That has deliberately not been decided here; promoting the pieces
+  `end_to_end.py` depends on is a different decision from promoting
+  `end_to_end.py` itself, which still needs its own evidence check first,
+  same as every promotion before it. `dinov2_probe.py` remains the only
+  other spike-stage module with no promotion case made. Full suite
+  re-verified green (122 passed) — the first verification run was
+  interrupted mid-suite by an unrelated tool-approval issue and had to
+  be re-run from scratch to get a trustworthy result, rather than
+  assumed to have passed from partial output.
+
 ## D-048: ReplicaCAD + Fetch env variant promoted, alongside its navigation dependency
 
 - **Date:** 2026-08-04

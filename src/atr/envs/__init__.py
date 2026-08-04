@@ -35,11 +35,16 @@ were already correctly imported (not copy-pasted) before promotion, and
 `_LAST_KNOWN_POSITIONS` are legitimately standalone empirical fallbacks,
 same role as `clip_feasibility.py`'s `_OBJECT_VISUAL_CONFIG`.
 
-The one remaining embodiment/scene variant
-(`spikes/task_schema_draft/tidy_up_env_replicacad_humanoid.py`, with its
-own `policy_baselines_replicacad_humanoid.py`) remains spike-stage --
-needs its own promotion case, same discipline every promotion since
-D-037 has followed.
+`tidy_up_env_replicacad_humanoid.py` + `tidy_up_replicacad_humanoid_policies.py`
+(D-049) are the fourth and final variant: G1 fixed-base, placed (not
+navigating) in the same real apartment as the Fetch variant. Same clean
+pattern as D-048 -- real YCB objects, tray/fallback positions already
+imported rather than duplicated, nothing to fix. This closes out all
+four embodiment/scene variants named in docs/00's build-up order;
+`spikes/task_schema_draft/end_to_end.py` (the integration pipeline) now
+has zero remaining spike-internal dependencies as a result, though it
+hasn't made its own promotion case yet -- that's a separate decision
+from promoting the pieces it depends on.
 """
 
 from __future__ import annotations

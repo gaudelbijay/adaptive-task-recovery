@@ -3,8 +3,13 @@ ReplicaCAD apartment — the direct answer to "but this is not a humanoid
 robot" for the ReplicaCAD variant. Same goal_graph.py / oracle_feasibility.py
 / intent_guard.py, unchanged.
 
+Promoted to src/atr/ 2026-08-04 (D-049) -- see ai-notes/decisions.md.
+Registered as `TidyUp-ReplicaCAD-Humanoid-v1` (was
+`TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1`).
+
 G1 (`unitree_g1_simplified_upper_body_with_head_camera`) is fixed-base —
-legs locked, cannot walk (see ../README.md "G1 in the real apartment").
+legs locked, cannot walk (see spikes/task_schema_draft/README.md "G1 in
+the real apartment").
 So unlike tidy_up_env_replicacad.py's Fetch variant, this doesn't navigate:
 G1 is placed once, at a spot with real open floor clearance (checked via
 raycast, not guessed — see README), close enough to reach two nearby real
@@ -383,6 +388,6 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         return torch.zeros(self.num_envs, device=self.device)
 
 
-@register_env("TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", max_episode_steps=200)
+@register_env("TidyUp-ReplicaCAD-Humanoid-v1", max_episode_steps=200)
 class TidyUpReplicaCADHumanoidRegisteredEnv(TidyUpReplicaCADHumanoidEnv):
     pass

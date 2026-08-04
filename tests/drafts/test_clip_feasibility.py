@@ -42,7 +42,7 @@ from atr.feasibility.clip_feasibility import visual_object_exists  # noqa: E402
 
 def _make_env(seed):
     env = gym.make(
-        "TidyUpTaskSchemaDraft-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
+        "TidyUp-ReplicaCAD-Humanoid-v1", num_envs=1, obs_mode="state",
         render_mode="rgb_array", sim_backend="physx_cpu", control_mode="pd_joint_pos",
         intervention_kind="chef_can_destroyed", onset_step_range=(2, 3),
     )
