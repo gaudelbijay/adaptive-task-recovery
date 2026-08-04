@@ -52,7 +52,22 @@ unrequested object, or violate the glass constraint for reward.
   which doesn't exist yet, and not held-out-change generalization (both
   models were only tested on the same object/scene they were calibrated
   against) — an existence proof that the representation *can* support this
-  judgment, not a test of the comparative claim H1 actually makes.
+  judgment, not a test of the comparative claim H1 actually makes. **First
+  live-loop test (2026-08-04):** see D-054 in `ai-notes/decisions.md` — wiring
+  the DINOv2 probe into an actual decision loop (not just LOO evaluation on
+  calibration captures) surfaced a real robustness gap the earlier existence
+  proof couldn't: on a live episode's second goal, G1's arm has already moved
+  from the first goal's attempt, producing a frame never seen during
+  training (all calibration captures are arm-at-rest); the probe confidently
+  (81%) misjudges a genuinely destroyed object as present, while CLIP's
+  zero-shot judgment on the identical frame is correct. This cuts against a
+  naive reading of H1 rather than for it — evidence that this self-supervised
+  probe, at least as calibrated here, generalizes *worse* than the
+  language-supervised baseline to a realistic distribution shift, not better.
+  Locked in as a regression test (`TestLiveDecisionLoopMatchesOracle` in
+  `tests/drafts/test_dinov2_probe.py`) rather than tuned away, since whether
+  this gap closes with more representative training data is itself a live
+  question for H1, not a bug to hide.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in

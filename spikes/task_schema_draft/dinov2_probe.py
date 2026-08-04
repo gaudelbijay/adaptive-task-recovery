@@ -34,10 +34,22 @@ it's a much narrower question: does DINOv2's embedding of this exact crop
 linearly separate "object present" from "object absent" at all. Tested on
 two scene layouts as of D-053 ("kitchen_cabinet" and "kitchen_sink",
 D-027), matching CLIP's 2-scene validation, not just one -- both 100%
-leave-one-out accuracy. Still not wired into any live decision loop (the
-other gap D-039 flagged) -- that's the harder remaining piece before this
-module's evidence matches clip_feasibility.py's, not this one. Treat
-accordingly.
+leave-one-out accuracy.
+
+Wired into a real live decision loop as of D-054
+(`run_end_to_end_episode_dinov2()` below) -- the other gap D-039 flagged,
+and the harder one. **Attempted, not cleanly closed**: doing this for
+real surfaced a genuine robustness gap the LOO evaluation above never
+could, because LOO only ever evaluates against more of the same kind of
+"arm at rest" capture. A real episode's second goal renders *after* G1
+has already reached for the first one, so the frame includes the arm --
+never seen during training/calibration -- and the probe confidently (81%)
+misjudges a genuinely destroyed object as present. CLIP's zero-shot
+judgment on the identical frame gets it right. See D-054 and
+test_dinov2_probe.py's TestLiveDecisionLoopMatchesOracle, which locks
+this finding in as a regression test rather than hiding it. This module
+remains not promotion-ready -- now for a more specific, better-understood
+reason than "hasn't been tried yet."
 """
 
 from __future__ import annotations
@@ -149,3 +161,87 @@ def fit_and_evaluate_probe(examples: list[tuple[np.ndarray, bool]]) -> dict:
         "predictions": predictions.tolist(),
         "labels": labels.tolist(),
     }
+
+
+def fit_probe(examples: list[tuple[np.ndarray, bool]]):
+    """Fits a logistic-regression linear probe on DINOv2 embeddings of
+    `examples` and returns it for real use afterward (D-054) -- unlike
+    fit_and_evaluate_probe(), which only reports leave-one-out accuracy
+    and discards the fit. Query it with
+    `probe.predict(dinov2_embed(new_crop).reshape(1, -1))`."""
+    from sklearn.linear_model import LogisticRegression
+
+    embeddings = np.stack([dinov2_embed(crop) for crop, _ in examples])
+    labels = np.array([label for _, label in examples], dtype=int)
+    return LogisticRegression(max_iter=1000).fit(embeddings, labels)
+
+
+def run_end_to_end_episode_dinov2(
+    env, q_table: dict, probe, scene_variant: str = "kitchen_cabinet",
+) -> dict:
+    """DINOv2 counterpart to atr.pipeline.run_end_to_end_episode() (D-029/
+    D-050): wires DINOv2 into a real live decision loop -- the harder of
+    D-039's two flagged gaps. **Attempted, not cleanly closed (D-054):**
+    a real live episode surfaced a genuine robustness gap this function's
+    first version didn't anticipate -- see D-054 in ai-notes/decisions.md
+    and TestLiveDecisionLoopMatchesOracle in test_dinov2_probe.py, which
+    locks the finding in as a regression test rather than hiding it.
+    Short version: by the time this checks the *second* goal, G1's arm
+    has already moved (reaching for the first goal), so the frame it
+    renders is out-of-distribution relative to every training/calibration
+    capture (all taken with the arm at rest) -- the probe misclassifies
+    a genuinely destroyed object as present, confidently (81%). CLIP's
+    zero-shot judgment on the exact same frame gets it right. Left this
+    function's logic exactly as a faithful, direct port of
+    run_end_to_end_episode()'s structure -- fixing it by tuning the crop
+    or retraining until this specific case passes would be curve-fitting
+    to one test, not a real fix, and would hide a genuine finding about
+    representation robustness instead of reporting it.
+
+    Otherwise identical integration to the CLIP version: parsed
+    instruction, a trained Q-table decides attempt vs. skip via the same
+    greedy_action() lookup, real arm motion executes it.
+
+    Scoped to `master_chef_can` only, unlike the CLIP version, which
+    checks both goals -- not an oversight. `potted_meat_can` never goes
+    absent under this env's `chef_can_destroyed` intervention (see
+    collect_labeled_examples()'s own docstring), so there are no
+    negative examples anywhere in this project to fit a present/absent
+    probe against for it. Treating "no visual check possible for an
+    object that's never actually intervened on in this scenario" as
+    always-feasible is honest here -- it's what oracle_feasibility would
+    report too, not a shortcut around a real gap. Fabricating negative
+    examples or skipping this distinction silently would be the actual
+    shortcut."""
+    from atr.pipeline import _instruction_graph
+    from atr.envs.tidy_up_replicacad_humanoid_policies import _TRAY_SLOTS, _summarize, attempt_goal
+    from atr.policies.q_learning import SKIP, greedy_action
+
+    cfg = _OBJECT_VISUAL_CONFIG[scene_variant]["master_chef_can"]
+    y0, y1, x0, x1 = cfg.crop
+
+    graph = _instruction_graph()
+    per_goal = {}
+    for i, goal in enumerate(graph.goals):
+        if goal.target_object == "master_chef_can":
+            frame = env.render()[0].cpu().numpy()
+            crop = frame[y0:y1, x0:x1]
+            embedding = dinov2_embed(crop).reshape(1, -1)
+            perceived_feasible = bool(probe.predict(embedding)[0])
+        else:
+            perceived_feasible = True  # never intervened on here -- see docstring
+
+        key = (goal.id, perceived_feasible)
+        action = greedy_action(q_table, key)
+
+        if action == SKIP:
+            per_goal[goal.id] = {
+                "achieved": False, "steps_used": 0, "skipped": True,
+                "perceived_feasible": perceived_feasible,
+            }
+        else:
+            result = attempt_goal(env, goal, _TRAY_SLOTS[i])
+            result["perceived_feasible"] = perceived_feasible
+            per_goal[goal.id] = result
+
+    return _summarize(per_goal)

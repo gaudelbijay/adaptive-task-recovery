@@ -2,6 +2,76 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-054: DINOv2 wired into a live decision loop — attempted, and it surfaced a real robustness gap, not a clean success
+
+- **Date:** 2026-08-04
+- **Status:** Accepted — as a genuine, disclosed finding, not as "DINOv2
+  is now promotion-ready"
+- **Decision:** Built `run_end_to_end_episode_dinov2()`
+  (`spikes/task_schema_draft/dinov2_probe.py`) and `fit_probe()` (a
+  real "fit once, predict later" function, distinct from
+  `fit_and_evaluate_probe()`'s LOO-only evaluation), a direct structural
+  port of `atr.pipeline.run_end_to_end_episode()` (D-029/D-050) with
+  DINOv2's fitted probe standing in for CLIP's zero-shot judgment.
+  Scoped to `master_chef_can` only (not both goals like the CLIP
+  version) -- `potted_meat_can` never goes absent under this env's
+  intervention, so no negative examples exist anywhere in this project
+  to fit a real present/absent probe against for it; treated as
+  always-feasible, matching what oracle feasibility would say, not a
+  hidden shortcut.
+
+  First run **failed** the direct CLIP-equivalent assertion. Diagnosed
+  before deciding what to do about it, not guessed at: saved and visually
+  inspected the actual frame (`Read` tool on the rendered PNG) at the
+  moment of misclassification. Root cause, confirmed not assumed: by the
+  time the pipeline checks the *second* goal, G1's arm has already moved
+  (real reach motion from `attempt_goal()` on the first goal), so the
+  frame rendered for `master_chef_can`'s crop shows the arm intruding
+  into that region -- a frame unlike anything in `collect_labeled_examples()`'s
+  training/calibration set, which only ever captures the arm at rest
+  (zero-action steps). The probe classifies this out-of-distribution
+  frame as "present" with 81% confidence, on an object that is genuinely
+  destroyed. Checked whether CLIP's zero-shot judgment has the same
+  vulnerability on the identical frame: it doesn't -- `visual_object_exists()`
+  correctly says "absent" there, which is exactly why `test_pipeline.py`'s
+  equivalent test already passes.
+
+  Did not "fix" this by tuning the crop region or retraining until the
+  specific test case passes -- that would be curve-fitting to one test,
+  not a real fix, and would hide a genuine finding instead of reporting
+  it. Instead, rewrote the test
+  (`tests/drafts/test_dinov2_probe.py::TestLiveDecisionLoopMatchesOracle::
+  test_intervention_case_reveals_a_real_robustness_gap`) to assert the
+  *actual, confirmed* outcome and lock it in as a regression test --
+  same pattern as D-028's `TestConfirmedUnreachable` -- with an explicit
+  comment that a future fix making this pass with the correct answer
+  would be real progress, and the test should then be updated to expect
+  it, not reverted. Added a second test documenting that the
+  no-intervention case *passes* but doesn't demonstrate robustness --
+  the same "present" bias that caused the misclassification happens to
+  coincide with the true answer there, so a lucky pass and a genuinely
+  correct judgment would look identical without both tests existing.
+- **Reason:** The whole point of "wire it into a live loop" was to test
+  under real conditions, not curated ones -- finding that the curated
+  LOO evidence (100% accuracy, twice) doesn't transfer to a real rollout
+  is the actual result of doing that, and a more informative one than a
+  clean pass would have been. It's also directly relevant to H1
+  (self-supervised representations vs. task-reward/language-only
+  features) in a way no prior toy test in this project was: a concrete,
+  reproducible case where CLIP's language-supervised representation is
+  measurably more robust to a realistic distribution shift (an
+  in-frame robot arm) than DINOv2's self-supervised one, on the same
+  frame, same task.
+- **Consequences:** `dinov2_probe.py` remains not promotion-ready --
+  now for a specific, well-understood reason (a concrete
+  out-of-distribution failure mode) instead of "hasn't been tried yet."
+  A real, scoped next step exists if anyone wants to pursue it: train
+  the probe on examples that include the arm mid-reach, not only
+  at-rest captures, and see whether that closes the gap -- not attempted
+  here, since that's a genuinely new experiment, not a continuation of
+  this one. Full suite re-verified green (125 passed: 123 + this
+  entry's 2 new tests).
+
 ## D-053: DINOv2 tested on a second scene layout — closes one of D-039's two flagged gaps, not both
 
 - **Date:** 2026-08-04
