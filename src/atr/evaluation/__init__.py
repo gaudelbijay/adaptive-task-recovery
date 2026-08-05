@@ -14,6 +14,18 @@ docs/04's explicit "hold out paraphrases and compositions" requirement.
 Previously these existed only as literal strings inside
 `test_instruction_parser.py`'s test bodies; real, validated evidence,
 but not something anything else could enumerate programmatically.
+
+`logging.py` (D-056) is the log interface docs/03-system-architecture.md's
+data-flow step 6 described but nothing had implemented -- attaches oracle
+labels and a normalized violations dict to the result shape every policy
+in `atr.policies.baselines` already produces, and persists it as JSONL.
+
+`tracking.py` (D-057) is experiment tracking on top of `harness.py` and
+`logging.py` -- `track_comparison()` runs a `compare_policies()`
+comparison and persists a `summary.json` (run metadata + the bootstrap-CI
+report) alongside the per-policy episode logs, under `data/runs/`
+(gitignored, generated, per D-032). `list_runs()` is the queryable
+registry over what's been tracked so far.
 """
 
 from __future__ import annotations

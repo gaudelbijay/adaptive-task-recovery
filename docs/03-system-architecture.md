@@ -118,6 +118,17 @@ reported back as evidence; it is not automatically equated with goal infeasibili
 4. Select a strategy that maximizes weighted feasible-goal completion.
 5. Reject or mask actions that violate explicit intent constraints.
 6. Log predictions, decisions, violations, and oracle labels for analysis.
+   **Real implementation 2026-08-04 (D-056, `src/atr/evaluation/logging.py`):**
+   `build_episode_log()` combines a policy's own result dict (the
+   `per_goal`/`goals_achieved`/`wasted_steps`/`*_violated` shape every
+   policy in `atr.policies.baselines` and every pipeline already
+   produces) with the `GoalGraph` it ran against and the episode's
+   oracle labels into one structured, JSONL-persistable record.
+   `atr.evaluation.harness.run_episode()`/`compare_policies()` take it as
+   an opt-in `log_path`/`log_dir` — same derived-from-real-evidence
+   discipline D-040 used for `AdaptivePolicy`: no field exists in the log
+   that wasn't already being produced and just never attached to a
+   record before.
 
 ## Initial interfaces
 

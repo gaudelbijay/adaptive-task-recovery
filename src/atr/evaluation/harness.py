@@ -24,19 +24,38 @@ from typing import Callable
 import gymnasium as gym
 import numpy as np
 
+from atr.evaluation.logging import append_episode_log, build_episode_log
+from atr.language.goal_graph import GoalGraph
+
 EnvFactory = Callable[[], "gym.Env"]
 PolicyFn = Callable[..., dict]
 
 
-def run_episode(env_factory: EnvFactory, policy_fn: PolicyFn, seed: int) -> dict:
+def run_episode(
+    env_factory: EnvFactory, policy_fn: PolicyFn, seed: int,
+    *, graph: GoalGraph | None = None, log_path: str | None = None,
+) -> dict:
     """One episode: fresh env, reset at `seed`, run `policy_fn`, close.
     `policy_fn(env) -> dict` matching static_policy/feasibility_aware_policy/
     naive_substitution_policy/learned_policy's existing result shape
-    (must include whatever metric keys the caller asks bootstrap_ci for)."""
+    (must include whatever metric keys the caller asks bootstrap_ci for).
+
+    `log_path` (optional, off by default -- no behavior change for any
+    existing caller): if given, also builds and appends a structured
+    episode log (`atr.evaluation.logging`, the docs/03 step-6 "log
+    interface"). Requires `graph`, since resolving each goal id to the
+    object it targets -- needed to attach the oracle label -- isn't
+    possible from the policy's result dict alone."""
     env = env_factory()
     try:
         env.reset(seed=seed)
-        return policy_fn(env)
+        result = policy_fn(env)
+        if log_path is not None:
+            if graph is None:
+                raise ValueError("log_path requires graph (to resolve goal -> target_object)")
+            oracle_exists = dict(env.unwrapped._exists)
+            append_episode_log(log_path, build_episode_log(result, graph, oracle_exists, seed=seed))
+        return result
     finally:
         env.close()
 
@@ -66,16 +85,26 @@ def compare_policies(
     metrics: tuple[str, ...] = ("goals_achieved", "wasted_steps"),
     n_resamples: int = 2000,
     ci: float = 0.95,
+    *, graph: GoalGraph | None = None, log_dir: str | None = None,
 ) -> dict[str, dict[str, tuple[float, float, float]]]:
     """Paired comparison: every policy runs against the *same* seeds (docs/10's
     "paired episode seeds across methods"), so any difference reflects the
     policy, not seed-to-seed variance in which interventions/timings
     happened to come up. Returns {policy_name: {metric: (mean, lo, hi)}}.
+
+    `log_dir` (optional, off by default): if given (with `graph`), every
+    episode's structured log (see `run_episode`) is appended to
+    `{log_dir}/{policy_name}.jsonl` -- one file per policy, so a run's full
+    per-goal/per-seed record is on disk alongside the bootstrap summary
+    this function returns, not just the aggregate.
     """
     episodes: dict[str, list[dict]] = {name: [] for name in policies}
     for seed in seeds:
         for name, policy_fn in policies.items():
-            episodes[name].append(run_episode(env_factory, policy_fn, seed))
+            log_path = f"{log_dir}/{name}.jsonl" if log_dir is not None else None
+            episodes[name].append(
+                run_episode(env_factory, policy_fn, seed, graph=graph, log_path=log_path)
+            )
 
     return {
         name: {

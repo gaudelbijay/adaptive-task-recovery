@@ -2,6 +2,116 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-057: Built experiment tracking on top of the harness and log interface
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** STATUS.md's shared row has listed experiment tracking as
+  not started since D-042/D-043. Considered and rejected pulling in a
+  dependency (wandb/mlflow/a hosted service) -- nothing about this
+  project's toy-scale, single-machine, local-only reality justifies one
+  yet, and adding it now would be exactly the kind of aspirational
+  addition D-040 already found and corrected once for `AdaptivePolicy`.
+  What was actually missing, once `compare_policies()` (D-042) and
+  `build_episode_log()` (D-056) already existed: nothing persisted
+  *which run* produced a given report, when, or against which commit --
+  every comparison in this project's history lives only in
+  `ai-notes/decisions.md` prose, not as queryable data.
+
+  Built `src/atr/evaluation/tracking.py`: `track_comparison(run_name,
+  env_factory, policies, seeds, graph, ...)` runs `compare_policies()`
+  exactly as before (now passing `graph`/`log_dir` through, so every
+  tracked comparison also gets D-056's per-episode JSONL logs for free,
+  not just the aggregate bootstrap-CI numbers), and additionally writes
+  `summary.json` (run id, timestamp, best-effort git commit via `git
+  rev-parse --short HEAD`, seeds, policy names, the report itself) to
+  `data/runs/<run_id>/` -- gitignored per D-032, same as every other
+  generated artifact in this project. `list_runs()` reads every tracked
+  summary back, oldest first, the same "queryable registry" shape D-044's
+  split registry already established for instruction specs.
+
+  `run_id` uses microsecond-precision timestamps, not just seconds --
+  caught during testing that two `track_comparison()` calls back-to-back
+  (this module's own tests, deliberately small/fast) can land in the same
+  second and would otherwise collide in sort order.
+- **Reason:** Direct instruction to set up experiment tracking, following
+  the log interface (D-056). Same "build the thin layer actually missing
+  on top of what's real, not a new dependency" reasoning as every other
+  infrastructure decision in this project since D-040/D-042.
+- **Consequences:** `atr.evaluation.tracking` is real, tested,
+  `src/atr/`-committed architecture from the start, same as D-056 (no
+  spike version to promote from -- the gap was "never built"). 5 new
+  integration tests (`tests/drafts/test_evaluation_tracking.py`), a real
+  live canonical-env comparison in each, not mocked. `data/README.md`
+  updated to document `data/runs/`'s shape. Full suite re-verified green.
+
+## D-056: Built the log interface docs/03 described but nothing had implemented
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** `docs/03-system-architecture.md`'s data-flow step 6 has said
+  "Log predictions, decisions, violations, and oracle labels for
+  analysis" since the diagram was first drawn; STATUS.md's interfaces
+  row still listed it as not started. Rather than write a speculative
+  schema first (the mistake D-040 already found and corrected for
+  `AdaptivePolicy`/`EmbodimentInterface`), inventoried what every policy
+  in this project already produces: `baselines._summarize()`'s
+  `{"per_goal": {goal_id: {"achieved", "steps_used", "skipped", ...}},
+  "goals_achieved", "total_steps", "wasted_steps"}` shape, sometimes with
+  extra policy-specific keys (`perceived_feasible` in the CLIP/DINOv2
+  pipelines, `substitution_attempted`/`blocked_reason`/a dynamically
+  named `dont_move_<object>_violated` in `naive_substitution_policy`).
+  Two things docs/03 asks for were genuinely missing from that shape:
+  which object each goal id targets, and the oracle existence label for
+  it -- every test in this project already reads `env.unwrapped._exists`
+  directly for its own assertions, but nothing had ever attached it to a
+  policy's own result.
+
+  Built `src/atr/evaluation/logging.py`: `build_episode_log(result,
+  graph, oracle_exists, seed=None, policy_name=None)` combines exactly
+  those three already-existing things into one structured record --
+  per-goal target object + oracle label attached, plus a normalized
+  `violations` dict (any key ending in `_violated`, not a hardcoded list
+  of names, so it doesn't need to know each policy's own naming). No new
+  field invented beyond "oracle_feasible" and the "target_object"/
+  "violations" derivation -- everything else passes through unchanged.
+  `append_episode_log()`/`read_episode_logs()` persist it as JSONL (one
+  record per line, so a crash mid-run leaves a readable partial log
+  instead of a corrupted single JSON array). Found a real latent bug
+  while writing this: several `per_goal` outcomes contain numpy scalars
+  (`goal_achieved()` returns `np.bool_`, confirmed directly while
+  investigating D-055's `np.True_` output) -- `json.dumps` rejects those
+  outright, so `build_episode_log()` recursively converts via
+  `np.generic.item()` before returning, rather than let every future
+  caller discover this the same way.
+
+  Wired in as an opt-in on `atr.evaluation.harness.run_episode()`
+  (`graph`/`log_path` kwargs) and `compare_policies()`
+  (`graph`/`log_dir`, one JSONL file per policy) -- zero behavior change
+  for any existing caller, since both default to `None`. Tests split the
+  same way the module is: `test_evaluation_logging.py` (6 tests, pure
+  function, synthetic `GoalGraph`/result dicts, no simulator -- runs in
+  the fast-checks CI tier) plus two real integration tests added to
+  `test_evaluation_harness.py` (a live canonical-env episode's log
+  matches its own live result; `log_path` without `graph` raises rather
+  than silently skipping the oracle-label lookup it can't do).
+- **Reason:** Direct instruction to design the log interface, following
+  the promotion sweep and D-055. Same reasoning as every other interface
+  decision in this project since D-040: a schema derived from what real,
+  working code already produces is more likely to actually fit than one
+  designed first and reconciled with reality later.
+- **Consequences:** `atr.evaluation.logging` is real, tested,
+  `src/atr/`-committed architecture from the start (not a spike promoted
+  later) -- there was no draft version to promote from, since the gap
+  was "never built," not "built once as a spike." Doesn't include a
+  prediction-confidence field (e.g. DINOv2's `predict_proba`) since no
+  caller in this project currently computes and passes one through --
+  adding it would be speculative, not evidence-derived; a real next step
+  if a future experiment needs calibration analysis, not attempted here.
+  Full suite: 133 passed (125 + 6 new pure-function + 2 new integration).
+  Updated `docs/03-system-architecture.md`'s step 6 with a concrete
+  pointer, same pattern as D-040's `AdaptivePolicy` note.
+
 ## D-055: Closed D-054's DINOv2 robustness gap for real — training data, not test-tuning
 
 - **Date:** 2026-08-04

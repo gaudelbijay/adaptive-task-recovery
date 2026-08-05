@@ -38,6 +38,7 @@ pytest.importorskip("mani_skill")
 
 import task_schema_draft  # noqa: E402, F401
 from atr.envs.tidy_up_policies import feasibility_aware_policy, static_policy  # noqa: E402
+from atr.language.goal_graph import canonical_example  # noqa: E402
 from task_schema_draft.rl_policy import learned_policy, train_q_table_canonical  # noqa: E402
 
 
@@ -54,6 +55,35 @@ class TestRunEpisode:
         result = run_episode(_make_env, static_policy, seed=0)
         assert "goals_achieved" in result
         assert "wasted_steps" in result
+
+
+class TestRunEpisodeLogging:
+    """D-056: run_episode's optional log_path/graph, against a real live
+    episode -- test_evaluation_logging.py already covers build_episode_log()
+    itself against synthetic data; this checks the real wiring (a real
+    env's `_exists`, a real policy result) produces the same thing."""
+
+    def test_log_path_writes_a_record_matching_the_live_episode(self, tmp_path):
+        log_path = tmp_path / "static.jsonl"
+        result = run_episode(
+            _make_env, static_policy, seed=0, graph=canonical_example(), log_path=str(log_path),
+        )
+
+        from atr.evaluation.logging import read_episode_logs
+
+        records = read_episode_logs(log_path)
+        assert len(records) == 1
+        record = records[0]
+        assert record["seed"] == 0
+        assert record["goals_achieved"] == result["goals_achieved"]
+        assert record["wasted_steps"] == result["wasted_steps"]
+        for goal in canonical_example().goals:
+            assert record["per_goal"][goal.id]["target_object"] == goal.target_object
+            assert isinstance(record["per_goal"][goal.id]["oracle_feasible"], bool)
+
+    def test_log_path_without_graph_raises_rather_than_silently_skip_logging(self):
+        with pytest.raises(ValueError):
+            run_episode(_make_env, static_policy, seed=0, log_path="/tmp/should_not_be_written.jsonl")
 
 
 class TestComparePoliciesOnCanonicalEnv:
