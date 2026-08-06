@@ -17,7 +17,7 @@ why.
 
 ---
 
-**For:** the teammate on this project (Person A / representation, language,
+**For:** the teammate on this project (representation, language,
 feasibility side)
 **Ask:** review D-013's task schema and decide whether it's ready to move
 from `spikes/task_schema_draft/` into `src/atr/` as committed architecture,

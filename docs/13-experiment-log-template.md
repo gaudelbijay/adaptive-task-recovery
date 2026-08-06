@@ -11,7 +11,7 @@ last_updated: 2026-07-26
 | Field | Value |
 |---|---|
 | Experiment ID | |
-| Date / primary owner | Person A / Person B / Shared |
+| Date / primary owner | Representation / Policy / Shared |
 | Reviewer / integration owner | |
 | Commit and dirty state | |
 | Phase | |

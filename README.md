@@ -84,20 +84,20 @@ See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study des
 
 See the [full roadmap](docs/11-roadmap-and-milestones.md).
 
-## Two-person team
+## Scope areas
 
-Both contributors jointly own the benchmark, schemas, integration contracts,
-and final evaluation. After that shared foundation:
+The benchmark, schemas, integration contracts, and final evaluation are
+shared foundations. Two work areas sit on top of that foundation:
 
-- **Person A — representation and feasibility:** visual/language model selection,
+- **Representation and feasibility:** visual/language model selection,
   self-supervised representations, goal graphs, change inference, per-goal
   feasibility, calibration, and abstention.
-- **Person B — policy and humanoid execution:** simulator/asset integration,
+- **Policy and humanoid execution:** simulator/asset integration,
   low-level skills, static and adaptive RL policies, intent guard, and policy baselines.
 
-Integration is continuous: Person B first develops against oracle feasibility,
-Person A develops against recorded trajectories, and both replace the oracle
-with learned beliefs through a versioned shared interface.
+Integration is continuous: policy work develops against oracle feasibility,
+representation work develops against recorded trajectories, and both
+replace the oracle with learned beliefs through a versioned shared interface.
 
 ## License
 

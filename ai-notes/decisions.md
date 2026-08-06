@@ -1402,8 +1402,8 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   `docs/03-system-architecture.md`. Shows the same modules the file's
   existing pseudocode names (`VisualEncoder`, `InstructionEncoder`,
   `ChangeModel`, `FeasibilityModel`, `AdaptivePolicy`, `IntentGuard`,
-  `HumanoidSkillInterface`), grouped into three swimlanes — Person A,
-  Person B, Shared — matching `docs/08-training-pipeline.md`'s existing
+  `HumanoidSkillInterface`), grouped into three swimlanes —
+  Representation, Policy, Shared — matching `docs/08-training-pipeline.md`'s existing
   "Contributors and handoff contract" exactly, plus dotted edges marking
   where privileged oracle state is allowed to flow (labels/eval only,
   never a live decision input) per this same doc's own design principles.
@@ -2280,11 +2280,11 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   control (a distractor object that appears and disappears), per docs/04's
   explicit requirement to include matched pairs.
 - **Reason:** This was the single biggest bottleneck blocking further
-  progress on both Person A's and Person B's tracks (STATUS.md). A concrete,
-  runnable draft is easier to react to and critique than more prose in
-  docs/04.
-- **Consequences:** Not yet covered: language (deliberately Person A's
-  territory), priorities/dependencies exercised by an actual example, actual
+  progress on both the representation and policy tracks (STATUS.md). A
+  concrete, runnable draft is easier to react to and critique than more
+  prose in docs/04.
+- **Consequences:** Not yet covered: language (deliberately the
+  representation area's territory), priorities/dependencies exercised by an actual example, actual
   goal-completion detection (vs. feasibility), held-out paraphrases, and the
   other four candidate intervention types (container broken, route
   permanently blocked, tool consumed, resource contention). See
@@ -2385,18 +2385,19 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   training will need a CUDA machine regardless of which simulator is chosen.
   See `spikes/maniskill_humanoid_spike/README.md` for full results.
 
-## D-008: Two-person ownership with shared benchmark first
+## D-008: Shared benchmark first, then a representation/policy scope split
 
 - **Date:** 2026-07-26
 - **Status:** Accepted
-- **Decision:** Both contributors build the benchmark and contracts first.
-  Person A then leads representation/language/feasibility; Person B leads
-  policy/humanoid execution. Integration and final evaluation remain shared.
+- **Decision:** Build the benchmark and contracts first, shared. The
+  representation/language/feasibility area and the policy/humanoid
+  execution area lead separately after that. Integration and final
+  evaluation remain shared.
 - **Reason:** This balances specialization with the need to test the research
   question at the perception-policy boundary and avoids late integration.
-- **Consequences:** Person A develops against recorded trajectories, Person B
-  against oracle beliefs, interfaces are versioned, and roadmap phases contain
-  explicit integration gates.
+- **Consequences:** Representation work develops against recorded
+  trajectories, policy work against oracle beliefs, interfaces are
+  versioned, and roadmap phases contain explicit integration gates.
 
 ## D-007: Simulated humanoid is the required target embodiment
 

@@ -44,7 +44,7 @@ HumanoidSkillInterface(Action, proprioception) -> whole-body commands
 
 ```mermaid
 flowchart TB
-    subgraph A["Person A — representation, language, feasibility"]
+    subgraph A["Representation — language, vision, feasibility"]
         direction TB
         IE["InstructionEncoder<br/>text → GoalGraph"]
         VE["VisualEncoder<br/>o_t, history → VisualState"]
@@ -53,7 +53,7 @@ flowchart TB
         VE --> CM --> FM
     end
 
-    subgraph B["Person B — policy, guard, humanoid execution"]
+    subgraph B["Policy — guard, humanoid execution"]
         direction TB
         AP["AdaptivePolicy<br/>state, GoalGraph, beliefs → CandidateAction"]
         IG["IntentGuard<br/>candidate, state, GoalGraph<br/>→ Action | reject | abstain"]
@@ -78,12 +78,12 @@ flowchart TB
     IG -. "violations" .-> EV
 ```
 
-Ownership matches `docs/08-training-pipeline.md`'s contract exactly: Person
-A owns the `ObservationWindow + instruction -> AgentBelief` path (encoders
-through feasibility), Person B owns `AgentBelief + available skills ->
-guarded SkillCall` (policy through execution), and both jointly own the
-shared row — schemas, benchmark, oracle, integration tests, end-to-end
-evaluation. The dotted "labels / eval only" edges are the same design
+Scope matches `docs/08-training-pipeline.md`'s contract exactly: the
+representation area owns the `ObservationWindow + instruction ->
+AgentBelief` path (encoders through feasibility), the policy area owns
+`AgentBelief + available skills -> guarded SkillCall` (policy through
+execution), and both share the shared row — schemas, benchmark, oracle,
+integration tests, end-to-end evaluation. The dotted "labels / eval only" edges are the same design
 principle stated above under "Design principles": privileged simulator
 state feeds the oracle and evaluation paths, never the live
 `FeasibilityModel`/`AdaptivePolicy` decision path.
