@@ -1,11 +1,22 @@
-"""Instruction-level dataset splits (D-044). docs/04-benchmark-environment.md
-requires holding out "paraphrases and compositions"; docs/10-evaluation-
-and-benchmarks.md's statistical protocol requires "predeclare primary
-metrics and splits." Both existed only as literal strings inside
+"""Instruction-level dataset splits (D-044), plus intervention-level splits
+(D-059). docs/04-benchmark-environment.md requires holding out
+"paraphrases and compositions"; docs/10-evaluation-and-benchmarks.md's
+statistical protocol requires "predeclare primary metrics and splits."
+Both existed only as literal strings inside
 `tests/drafts/test_instruction_parser.py`'s test-function bodies until
 this -- real, validated evidence, but with no way for anything else
 (the evaluation harness, D-042; a future benchmark runner) to ask "give
 me every held-out-paraphrase spec" programmatically.
+
+`InterventionSpec`/`INTERVENTION_SPLITS` (D-059) are the same idea for a
+different axis: docs/10's "seen versus held-out goal-change combinations"
+ablation needs more than 2 total intervention kinds to hold one out at
+all meaningfully. `tidy_up_env.py`'s `resource_contention`/
+`resource_contention_temporary` (D-059) are the first kinds
+mechanistically different enough from `bowl_destroyed`/
+`temporary_obstacle` (contingent on episode progress, not a blind timer)
+to be a genuine held-out test, not just a differently-named copy of the
+same mechanism.
 
 Pure data, no simulator/env dependency by design: an `InstructionSpec` is
 just `(instruction_text, known_objects, split)`. Deliberately does NOT
@@ -110,3 +121,44 @@ SPLITS: dict[str, tuple[InstructionSpec, ...]] = {
 def all_specs() -> tuple[InstructionSpec, ...]:
     """Every spec across every split, in split order (train first)."""
     return TRAIN + HELD_OUT_PARAPHRASE + HELD_OUT_COMPOSITION
+
+
+@dataclass(frozen=True)
+class InterventionSpec:
+    """One (env, intervention_kind) combination to evaluate, and which
+    split it belongs to -- the intervention-axis counterpart to
+    InstructionSpec above. Added D-059, once a 3rd intervention_kind
+    (`resource_contention`/its matched `resource_contention_temporary`
+    counterpart, `tidy_up_env.py`) existed to hold out at all: with only
+    2 kinds total, "train on some, hold out one, unseen" wasn't
+    constructible before this."""
+
+    env_id: str
+    intervention_kind: str
+    split: str  # "train" | "held_out_intervention"
+
+
+INTERVENTION_TRAIN: tuple[InterventionSpec, ...] = (
+    InterventionSpec("TidyUp-v1", "bowl_destroyed", "train"),
+    InterventionSpec("TidyUp-v1", "temporary_obstacle", "train"),
+)
+
+# D-059's contingent-on-progress mechanism, genuinely different from
+# bowl_destroyed's blind timer -- held out, not trained on, so a policy
+# tuned only against the two timer-based interventions above can be
+# checked against a kind it's never seen.
+HELD_OUT_INTERVENTION: tuple[InterventionSpec, ...] = (
+    InterventionSpec("TidyUp-v1", "resource_contention", "held_out_intervention"),
+    InterventionSpec("TidyUp-v1", "resource_contention_temporary", "held_out_intervention"),
+)
+
+INTERVENTION_SPLITS: dict[str, tuple[InterventionSpec, ...]] = {
+    "train": INTERVENTION_TRAIN,
+    "held_out_intervention": HELD_OUT_INTERVENTION,
+}
+
+
+def all_intervention_specs() -> tuple[InterventionSpec, ...]:
+    """Every intervention spec across every split, in split order (train
+    first) -- same shape as all_specs() above, for the intervention axis."""
+    return INTERVENTION_TRAIN + HELD_OUT_INTERVENTION

@@ -17,7 +17,7 @@ Scene: five objects on a tabletop (red_mug, blue_bowl, tray, medicine_bottle,
 glass) plus an idle `panda` arm (no manipulation is exercised here — this
 tests the world-state/intervention/oracle wiring, not skill execution).
 
-Two scripted interventions, matched per docs/04's "Include matched
+Four scripted interventions, matched per docs/04's "Include matched
 reversible and temporary changes. Otherwise the model may learn that every
 detected change implies abandonment":
 
@@ -28,6 +28,22 @@ detected change implies abandonment":
 - `temporary_obstacle` (reversible/matched control): spawns a distractor
   object near the tray, then removes it again a few steps later — a
   detectable world change that never makes any goal infeasible.
+- `resource_contention` (irreversible, D-059): a second, mechanistically
+  different way for `place_blue_bowl` to become infeasible — not a blind
+  timer like `bowl_destroyed`, but *contingent on episode progress*:
+  blue_bowl is only removed at the onset step if it hasn't already been
+  placed on the tray (`goal_achieved()`) by then, modeling docs/04's
+  "resource contention" candidate (a shared resource lost to being too
+  slow, not lost unconditionally). A policy that already secured the
+  bowl before the onset step never sees this intervention fire at all.
+- `resource_contention_temporary` (reversible/matched control for the
+  above, D-059): same contingent trigger, but blue_bowl comes back a few
+  steps later if it was taken — the contention resolves instead of being
+  permanent. Distinguishes an agent that correctly treats temporary
+  unavailability as still-feasible-later from one that gives up on
+  anything it briefly can't see, the same distinction
+  `temporary_obstacle` tests for detectability alone but this tests for
+  an object the goal graph actually depends on.
 
 CPU sim only, for the same reason as object_intervention_spike.py: object
 add/remove is unsupported under GPU-batched sim.
@@ -51,7 +67,7 @@ from mani_skill.utils.structs.types import GPUMemoryConfig, SimConfig
 
 from atr.language.goal_graph import CANONICAL_INSTRUCTION_TEXT, CANONICAL_OBJECTS
 from atr.language.instruction_parser import parse_instruction
-from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
+from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph, goal_achieved
 
 _OBJECT_SPECS = {
     # name: (half_sizes, color, initial_pos)
@@ -61,6 +77,8 @@ _OBJECT_SPECS = {
     "medicine_bottle": ([0.015, 0.015, 0.05], [0.9, 0.9, 0.2, 1], [0.0, -0.2, 0.05]),
     "glass": ([0.02, 0.02, 0.045], [0.7, 0.9, 1.0, 0.6], [0.0, 0.2, 0.045]),
 }
+_TRAY_POSITION = np.array(_OBJECT_SPECS["tray"][2])
+_TRAY_HALF_SIZES = tuple(_OBJECT_SPECS["tray"][0])
 
 
 class TidyUpEnv(BaseEnv):
@@ -73,7 +91,10 @@ class TidyUpEnv(BaseEnv):
         self,
         *args,
         robot_uids="panda",
-        intervention_kind: Literal["bowl_destroyed", "temporary_obstacle", "none"] = "bowl_destroyed",
+        intervention_kind: Literal[
+            "bowl_destroyed", "temporary_obstacle",
+            "resource_contention", "resource_contention_temporary", "none",
+        ] = "bowl_destroyed",
         onset_step_range: tuple[int, int] = (5, 15),
         obstacle_duration_steps: int = 10,
         **kwargs,
@@ -89,6 +110,7 @@ class TidyUpEnv(BaseEnv):
         self._triggered = False
         self._obstacle = None
         self._obstacle_remove_step: int | None = None
+        self._contention_return_step: int | None = None
         self._initial_state: WorldState | None = None
         super().__init__(*args, robot_uids=robot_uids, **kwargs)
 
@@ -131,6 +153,7 @@ class TidyUpEnv(BaseEnv):
         self._triggered = False
         self._obstacle = None
         self._obstacle_remove_step = None
+        self._contention_return_step = None
         self._exists = {name: True for name in _OBJECT_SPECS}
         self._initial_state = None  # captured on the first evaluate() call after reset
 
@@ -147,6 +170,24 @@ class TidyUpEnv(BaseEnv):
         ):
             self._obstacle.remove_from_scene()
             self._obstacle = None
+        if (
+            self._contention_return_step is not None
+            and self._elapsed_control_steps == self._contention_return_step
+        ):
+            # A new actor, not the removed one -- D-010 already found the
+            # old wrapper goes stale after removal. Distinct internal
+            # SAPIEN name ("blue_bowl_returned") to avoid any scene-level
+            # name-reuse question; the schema/world-state key stays
+            # "blue_bowl" either way, since goal_graph/oracle only look up
+            # objects by that key, never by the underlying actor name.
+            half_sizes, color, pos = _OBJECT_SPECS["blue_bowl"]
+            self._objects["blue_bowl"] = build_box(
+                self.scene, half_sizes=half_sizes, color=color, name="blue_bowl_returned",
+                body_type="dynamic", initial_pose=sapien.Pose(p=pos),
+            )
+            self.scene.update_render()
+            self._exists["blue_bowl"] = True
+            self._contention_return_step = None
         self._elapsed_control_steps += 1
 
     def _trigger_intervention(self):
@@ -162,6 +203,20 @@ class TidyUpEnv(BaseEnv):
             )
             self.scene.update_render()
             self._obstacle_remove_step = self._elapsed_control_steps + self.obstacle_duration_steps
+        elif self.intervention_kind in ("resource_contention", "resource_contention_temporary"):
+            # Contingent on episode progress, not a blind timer (docs/04's
+            # "resource contention"): blue_bowl is only taken if the agent
+            # hasn't already secured it (placed it on the tray) by the
+            # onset step -- models being too slow, not an unconditional
+            # scripted loss like bowl_destroyed.
+            bowl_goal = next(g for g in self.goal_graph.goals if g.target_object == "blue_bowl")
+            if not goal_achieved(bowl_goal, self._world_state(), _TRAY_POSITION, _TRAY_HALF_SIZES):
+                self._objects["blue_bowl"].remove_from_scene()
+                self._exists["blue_bowl"] = False
+                if self.intervention_kind == "resource_contention_temporary":
+                    self._contention_return_step = (
+                        self._elapsed_control_steps + self.obstacle_duration_steps
+                    )
 
     def _world_state(self) -> WorldState:
         state: WorldState = {}

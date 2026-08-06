@@ -1,24 +1,19 @@
 """Tests for the intent guard — first toy test of H3 (docs/01): explicit
 constraint checking reduces violations without collapsing goal recall.
+
+TestValidateAction is pure-function (no simulator) on purpose -- moved
+above the mani_skill import-skip below so it runs in the fast-checks CI
+tier too, not just the full-suite one, the same reason
+test_evaluation_harness.py's TestBootstrapCi is declared before its own
+importorskip.
 """
 
+import gymnasium as gym
 import pytest
 
-pytest.importorskip("mani_skill")
-
-import gymnasium as gym  # noqa: E402
-
-import task_schema_draft  # noqa: E402, F401  (registers TidyUp-v1)
-from atr.language.goal_graph import canonical_example  # noqa: E402
-from atr.constraints.intent_guard import validate_action  # noqa: E402
-from atr.envs.tidy_up_policies import naive_substitution_policy  # noqa: E402
-
-
-def _make_env(**kwargs):
-    return gym.make(
-        "TidyUp-v1", num_envs=1, obs_mode="state", render_mode=None,
-        sim_backend="physx_cpu", control_mode="pd_ee_delta_pos", **kwargs,
-    )
+from atr.constraints.intent_guard import validate_action
+from atr.feasibility.oracle import ObjectState
+from atr.language.goal_graph import Constraint, Goal, GoalGraph, canonical_example
 
 
 class TestValidateAction:
@@ -37,6 +32,118 @@ class TestValidateAction:
         graph = canonical_example()
         allowed, _ = validate_action("blue_bowl", graph)
         assert allowed is True
+
+
+class TestValidateActionUnderRealTension:
+    """D-058, closing R-010's harder case: D-015's original test only ever
+    blocked an action that never earned goal credit anyway (zero recall
+    cost by construction). These build the two scenarios R-010's own
+    mitigation note asks for -- guard precision genuinely in tension with
+    a real goal -- instead of another zero-cost case."""
+
+    def test_direct_conflict_a_real_goal_wins_over_a_matching_never_move_constraint(self):
+        """A deliberately contradictory instruction ("place the vase... but
+        never move the vase") -- not realistic, but the sharpest possible
+        stress test of the precedence rule: does a genuine, declared goal
+        ever lose to a constraint targeting the very same object? It
+        should not -- a guard that blocked this would be over-blocking a
+        legitimate action in the most literal sense R-010 describes."""
+        graph = GoalGraph(
+            instruction_text="Put the vase on the tray, but do not move the vase.",
+            goals=(Goal(id="place_vase", predicate="on_tray", target_object="vase"),),
+            constraints=(Constraint(id="dont_move_vase", kind="never_move", target_object="vase"),),
+        )
+        allowed, reason = validate_action("vase", graph)
+        assert allowed is True
+        assert "goal target" in reason
+
+    def test_without_state_a_conditional_goal_wrongly_exempts_its_target_early(self):
+        """The opposite-direction gap D-058 actually found while building
+        the scenario above: without `state`, "is this a goal target" means
+        "named as *any* goal's target_object anywhere in the graph" --
+        including a conditional goal (Goal.condition, D-026) whose
+        condition doesn't currently hold. Here, "cup" is only meant to be
+        moved if the bowl is destroyed; the pre-D-058 (state-less) check
+        can't tell the difference and allows it unconditionally. Locked in
+        as the confirmed old behavior, not a bug to silently drop -- the
+        two tests below show the actual fix."""
+        graph = GoalGraph(
+            instruction_text=(
+                "Put the mug on the tray; if the bowl is destroyed, put the "
+                "cup on the tray instead; do not move the cup otherwise."
+            ),
+            goals=(
+                Goal(id="place_mug", predicate="on_tray", target_object="mug"),
+                Goal(
+                    id="place_cup_fallback", predicate="on_tray", target_object="cup",
+                    condition=("bowl", False),
+                ),
+            ),
+            constraints=(Constraint(id="dont_move_cup", kind="never_move", target_object="cup"),),
+        )
+        allowed, _ = validate_action("cup", graph)  # no state -- old behavior
+        assert allowed is True  # wrong: the bowl hasn't been destroyed here
+
+    def test_with_state_the_fallback_goal_is_correctly_blocked_while_the_bowl_survives(self):
+        graph = GoalGraph(
+            instruction_text=(
+                "Put the mug on the tray; if the bowl is destroyed, put the "
+                "cup on the tray instead; do not move the cup otherwise."
+            ),
+            goals=(
+                Goal(id="place_mug", predicate="on_tray", target_object="mug"),
+                Goal(
+                    id="place_cup_fallback", predicate="on_tray", target_object="cup",
+                    condition=("bowl", False),
+                ),
+            ),
+            constraints=(Constraint(id="dont_move_cup", kind="never_move", target_object="cup"),),
+        )
+        state = {
+            "mug": ObjectState(exists=True, position=None),
+            "bowl": ObjectState(exists=True, position=None),  # bowl survives
+            "cup": ObjectState(exists=True, position=None),
+        }
+        allowed, reason = validate_action("cup", graph, state=state)
+        assert allowed is False  # correctly blocked -- the fallback isn't in play yet
+        assert "dont_move_cup" in reason
+
+    def test_with_state_the_fallback_goal_is_correctly_allowed_once_the_bowl_is_destroyed(self):
+        graph = GoalGraph(
+            instruction_text=(
+                "Put the mug on the tray; if the bowl is destroyed, put the "
+                "cup on the tray instead; do not move the cup otherwise."
+            ),
+            goals=(
+                Goal(id="place_mug", predicate="on_tray", target_object="mug"),
+                Goal(
+                    id="place_cup_fallback", predicate="on_tray", target_object="cup",
+                    condition=("bowl", False),
+                ),
+            ),
+            constraints=(Constraint(id="dont_move_cup", kind="never_move", target_object="cup"),),
+        )
+        state = {
+            "mug": ObjectState(exists=True, position=None),
+            "bowl": ObjectState(exists=False, position=None),  # bowl genuinely destroyed
+            "cup": ObjectState(exists=True, position=None),
+        }
+        allowed, reason = validate_action("cup", graph, state=state)
+        assert allowed is True  # correctly allowed -- the fallback is legitimately in play
+        assert "goal target" in reason
+
+
+pytest.importorskip("mani_skill")
+
+import task_schema_draft  # noqa: E402, F401  (registers TidyUp-v1)
+from atr.envs.tidy_up_policies import naive_substitution_policy  # noqa: E402
+
+
+def _make_env(**kwargs):
+    return gym.make(
+        "TidyUp-v1", num_envs=1, obs_mode="state", render_mode=None,
+        sim_backend="physx_cpu", control_mode="pd_ee_delta_pos", **kwargs,
+    )
 
 
 class TestNaiveSubstitutionPolicy:

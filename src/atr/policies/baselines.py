@@ -119,7 +119,10 @@ def naive_substitution_policy(
             continue
 
         if use_intent_guard:
-            allowed, reason = validate_action(substitute_object, graph)
+            # D-058: pass `state` so a conditional goal (Goal.condition)
+            # only exempts its target object when actually in play, not
+            # merely because it's declared somewhere in the graph.
+            allowed, reason = validate_action(substitute_object, graph, state=state)
         else:
             allowed, reason = True, "unchecked (no intent guard)"
 

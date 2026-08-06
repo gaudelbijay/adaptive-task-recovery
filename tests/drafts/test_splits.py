@@ -11,9 +11,13 @@ import pytest
 from atr.evaluation.splits import (
     CANONICAL_OBJECTS,
     HELD_OUT_COMPOSITION,
+    HELD_OUT_INTERVENTION,
     HELD_OUT_PARAPHRASE,
+    INTERVENTION_SPLITS,
+    INTERVENTION_TRAIN,
     SPLITS,
     TRAIN,
+    all_intervention_specs,
     all_specs,
 )
 from atr.language.goal_graph import canonical_example
@@ -67,3 +71,24 @@ class TestCanonicalSplitsMatchTheHandAuthoredGraph:
         for spec in canonical_specs:
             parsed = parse_instruction(spec.instruction_text, spec.known_objects)
             assert _semantics(parsed) == expected, spec.instruction_text
+
+
+class TestInterventionRegistryStructure:
+    """D-059's intervention-axis counterpart to TestRegistryStructure
+    above -- same checks, different registry."""
+
+    def test_all_intervention_specs_covers_every_split(self):
+        assert all_intervention_specs() == INTERVENTION_TRAIN + HELD_OUT_INTERVENTION
+
+    def test_intervention_splits_dict_matches_the_tuples(self):
+        assert INTERVENTION_SPLITS["train"] == INTERVENTION_TRAIN
+        assert INTERVENTION_SPLITS["held_out_intervention"] == HELD_OUT_INTERVENTION
+
+    def test_every_intervention_spec_tagged_with_its_own_split_name(self):
+        for split_name, specs in INTERVENTION_SPLITS.items():
+            assert all(spec.split == split_name for spec in specs)
+
+    def test_train_and_held_out_are_disjoint_kinds(self):
+        train_kinds = {s.intervention_kind for s in INTERVENTION_TRAIN}
+        held_out_kinds = {s.intervention_kind for s in HELD_OUT_INTERVENTION}
+        assert train_kinds.isdisjoint(held_out_kinds)

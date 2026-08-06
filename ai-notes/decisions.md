@@ -2,6 +2,131 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-059: Third intervention kind, matched pair, unlocking a real held-out-intervention split
+
+- **Date:** 2026-08-05
+- **Status:** Accepted
+- **Decision:** STATUS.md flagged held-out scene-layout and
+  held-out-intervention splits as impossible — only 2 scene layouts and 2
+  intervention kinds existed at all. Before building either, checked
+  what a 3rd intervention kind would actually need to mean: the existing
+  two (`bowl_destroyed`, `temporary_obstacle`) are both existence-based —
+  `goal_feasible()` only checks `state[target_object].exists`, explicitly
+  not reachability, by design (`oracle.py`'s own docstring). docs/04
+  lists "route permanently blocked" as a candidate, but that only
+  becomes a real oracle-recognized infeasibility if `goal_feasible()`
+  itself is extended to cover reachability, not existence — a genuine
+  scope change to what "feasible" means project-wide, not just a new
+  env feature. Asked rather than assumed; chose to stay existence-based
+  for this pass, deferring the reachability question.
+
+  Built `resource_contention`/`resource_contention_temporary` in
+  `tidy_up_env.py` (the canonical panda env): mechanistically different
+  from `bowl_destroyed` (a blind onset-step timer), not just a
+  differently-named copy of the same mechanism — blue_bowl is only taken
+  at the onset step if the agent hasn't already secured it (placed it on
+  the tray, checked via the already-promoted `goal_achieved()`), modeling
+  docs/04's "resource contention" candidate (lost to being too slow, not
+  lost unconditionally). Matched, per docs/04's explicit requirement,
+  with `resource_contention_temporary`: same contingent trigger, but the
+  resource comes back a few steps later if taken — contention resolving
+  instead of being permanent, distinguishing an agent that correctly
+  treats temporary unavailability as still-feasible-later from one that
+  gives up immediately.
+
+  Verified with a standalone script before writing formal tests: bowl
+  not-yet-secured → destroyed at onset; bowl already secured beforehand
+  → never taken, even well past the onset step; temporary variant →
+  destroyed then genuinely returns. All three matched expectations
+  exactly. 3 new regression tests added to `test_tidy_up_env.py`.
+
+  Extended `src/atr/evaluation/splits.py` with the intervention-axis
+  counterpart to D-044's `InstructionSpec`/`SPLITS`:
+  `InterventionSpec`/`INTERVENTION_SPLITS`/`all_intervention_specs()` —
+  `train` = the two original (timer-based) kinds, `held_out_intervention`
+  = the two new (progress-contingent) kinds. 4 new pure-function tests in
+  `test_splits.py`, no simulator needed.
+- **Reason:** Direct instruction to unlock held-out scene-layout/
+  intervention splits, following R-010. Picked the intervention axis
+  over scene-layout since it maps onto docs/04's already-specified
+  candidate list and the project's central existence-based feasibility
+  model, rather than requiring new simulator-asset exploration
+  (calibrating a third apartment layout) with a less clear connection to
+  the research question.
+- **Consequences:** Held-out scene-layout split remains impossible — only
+  2 scene layouts exist, unaffected by this entry, a separate future
+  task. Held-out-intervention split is now real, not just a
+  differently-named restatement of the same mechanism: `bowl_destroyed`
+  (timer) vs. `resource_contention` (progress-contingent) are genuinely
+  different triggers for a policy to generalize across. Reachability-based
+  feasibility (needed for "route blocked"-style interventions) remains an
+  open, deliberately deferred scope question, not resolved here. Full
+  suite: 149 passed (142 + 7).
+
+## D-058: Tested the intent guard under real tension (R-010's harder case) — found and fixed a real gap
+
+- **Date:** 2026-08-04
+- **Status:** Accepted
+- **Decision:** R-010 (`ai-notes/issues_and_risks.md`) flagged that D-015's
+  original intent-guard test only ever exercised the easy case: blocking
+  a substitution that was hardcoded to never earn goal credit either way
+  (`naive_substitution_policy`'s `achieved: False` for any substitution
+  attempt), so "zero recall cost" held by construction, not because the
+  guard demonstrated real precision. Its own mitigation note asked for a
+  scenario where guard precision is genuinely in tension with a real
+  goal before trusting any recall-preservation claim.
+
+  Built two such scenarios, both with hand-crafted `GoalGraph`s (pure
+  Python, no simulator needed):
+  1. **Direct conflict** -- a goal whose target object is *also* under a
+     matching `never_move` constraint (a deliberately contradictory
+     instruction: "place the vase... but never move the vase"). Confirmed
+     `validate_action()`'s existing precedence rule is sound: the real
+     goal wins, not over-blocked. This is R-010's concern exactly as
+     stated, and the guard passes it.
+  2. **Conditional-goal blind spot** -- found while building scenario 1,
+     not the thing being looked for. `validate_action()`'s state-less
+     `is_goal_target` check means "named as *any* goal's target_object
+     anywhere in the graph," including a conditional goal
+     (`Goal.condition`, D-026) whose condition doesn't currently hold.
+     Built a graph where "cup" is only meant to move if "bowl" is
+     destroyed (`condition=("bowl", False)`) and also carries a
+     `never_move` constraint otherwise -- confirmed the guard
+     incorrectly allowed moving "cup" even when the bowl still existed
+     (the fallback wasn't actually in play). This is the *opposite*
+     direction from R-010's literal wording (too permissive, not
+     over-blocking) but the same underlying concern: guard precision
+     genuinely in tension with what's actually authorized right now.
+
+  Fixed scenario 2 for real, not just documented: `validate_action()`
+  gained an optional `state: WorldState | None = None` parameter: when
+  given, `is_goal_target` checks `goal_feasible(goal, state)` (already
+  existing, already correctly resolves `Goal.condition`, D-026) instead
+  of mere declaration. Kept optional -- `validate_action()` predates
+  conditional goals, and no caller before this had ever needed the
+  distinction -- so every existing call site keeps working unchanged;
+  `naive_substitution_policy` (the one real caller) updated to pass the
+  `state` it already computes each iteration.
+
+  `TestValidateAction` (3 pre-existing tests) moved above
+  `test_intent_guard.py`'s `pytest.importorskip("mani_skill")`, alongside
+  4 new tests (`TestValidateActionUnderRealTension`) -- all pure-function,
+  no simulator, so they now run in the fast-checks CI tier too, not just
+  full-suite, the same pattern `test_evaluation_harness.py`'s
+  `TestBootstrapCi` already established.
+- **Reason:** Direct instruction to test R-010's harder intent-guard
+  case, following the log interface and experiment tracking. The guard
+  needed to be checked against a real conflict, not just documented as
+  untested -- and doing so surfaced a real, fixable gap the easy-case
+  test structurally could never have found (D-026's conditional goals
+  didn't exist yet when D-015 was written).
+- **Consequences:** R-010 downgraded Medium → Low in
+  `ai-notes/issues_and_risks.md`, not closed outright: a physical-
+  obstruction scenario (disturbing a protected object as a side effect
+  of reaching past it for something else) still isn't representable in
+  this project's action space, so remains untested by construction, not
+  ruled out. Full suite: 142 passed (138 + 4).
+
 ## D-057: Built experiment tracking on top of the harness and log interface
 
 - **Date:** 2026-08-04
