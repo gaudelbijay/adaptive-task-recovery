@@ -65,10 +65,24 @@ object plus the intent guard blocking it, combined for the first time.
 Verified both directions: guarded run avoids the constraint violation
 (zero wasted steps), unguarded run on the identical episode actually
 violates it — confirming the guard's block is doing real work, not
-passing vacuously. None of the other remaining required baselines
-(domain-randomized policy, task-reward-only encoder, symbolic replanner,
-pretrained frozen-vs-fine-tuned encoder comparison) have first instances
-yet.
+passing vacuously. **"Domain-randomized policy without explicit
+feasibility" built 2026-08-06 (D-065,
+`src/atr/policies/domain_randomized.py`):** same domain-randomized
+training loop `q_learning.py` already uses, minus the feasibility bit in
+the state key — the policy has no way to perceive whether the current
+episode's goal is actually feasible. Predicted the result from this
+project's own reward shape before training, then confirmed it on the
+real trained table: a goal that's only feasible half the time has
+negative expected value to attempt blindly, so the policy learns to skip
+it unconditionally. Measured consequence on two live episodes: matches
+`feasibility_aware_policy` exactly when the goal really is infeasible
+(costs nothing), but wrongly skips a genuinely achievable goal when it
+isn't (`goals_achieved` drops from 2 to 1) — a real, measured recall
+cost `feasibility_aware_policy` doesn't pay, since it can actually tell
+the two cases apart. Task-reward-only visual encoder, symbolic
+replanner with learned state, and pretrained frozen-vs-fine-tuned
+encoder comparison remain the only required baselines with no first
+instance yet.
 
 ## Core ablations
 

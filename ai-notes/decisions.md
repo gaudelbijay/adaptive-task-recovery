@@ -2,6 +2,56 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-065: Domain-randomized policy without explicit feasibility — a third required baseline
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** docs/10's required-baselines list names "domain-randomized
+  policy without explicit feasibility" as distinct from every policy this
+  project already has -- all of them (`static_policy`,
+  `feasibility_aware_policy`, `naive_substitution_policy`,
+  `learned_policy`, `imitation_policy`) either hard-code a feasibility
+  rule or are trained/demonstrated *with* a feasibility signal in their
+  state. Built `src/atr/policies/domain_randomized.py`:
+  `train_domain_randomized_policy()` reuses `q_learning.train_q_table()`'s
+  exact domain-randomization loop (intervention kind and onset timing
+  varied every episode, same reward shape) but drops the feasibility bit
+  from the state key entirely -- `goal_id -> {SKIP, ATTEMPT}`, not
+  `(goal_id, feasible) -> ...`. The policy has no way to perceive whether
+  the current episode's goal is actually feasible, only which goal it's
+  looking at.
+
+  Predicted the result from this project's own reward shape before
+  training, then verified it on the actual trained table rather than
+  assuming: with `intervention_kinds=("none", "bowl_destroyed")` at
+  50/50 and reward `+1.0` achieved / `-0.1 * steps_used` otherwise, a
+  goal that's only feasible half the time has negative expected value to
+  attempt blindly (`0.5*1.0 + 0.5*(-0.1*25) = -0.75` vs. `0.0` for
+  skipping) -- confirmed directly:
+  `q["place_bowl"][SKIP] > q["place_bowl"][ATTEMPT]` on the real trained
+  table. Measured the consequence on two live episodes: on a
+  `bowl_destroyed` episode, the blind policy matches
+  `feasibility_aware_policy` exactly (skipping costs nothing when the
+  goal really was infeasible). On a `none` episode (bowl genuinely
+  achievable), the blind policy still skips it unconditionally --
+  `goals_achieved` drops from 2 to 1, a real, measured recall cost
+  `feasibility_aware_policy` doesn't pay, since it can actually tell the
+  two episodes apart and this policy fundamentally cannot.
+- **Reason:** Direct instruction to build another required baseline.
+  Picked for tractability: reused `q_learning.py`'s training loop and
+  env plumbing almost entirely, needing only a smaller state key and a
+  matching greedy-policy function, unlike the remaining open baselines
+  (symbolic replanner, task-reward-only visual encoder, pretrained
+  frozen-vs-fine-tuned encoder comparison), each of which needs
+  substantial new infrastructure.
+- **Consequences:** Three required baselines closed this session (D-063,
+  D-064, this one); symbolic replanner with learned state, task-reward-
+  only visual encoder, and pretrained frozen-vs-fine-tuned encoder
+  comparison remain open. 4 new tests
+  (`tests/drafts/test_domain_randomized.py`), against the canonical env,
+  matching `test_rl_policy.py`'s own first-instance precedent. Full
+  suite re-verified green.
+
 ## D-064: Combined DINOv2, substitution, and the intent guard — the last required baseline
 
 - **Date:** 2026-08-06
