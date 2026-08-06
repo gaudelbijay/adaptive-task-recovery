@@ -47,11 +47,28 @@ combinations since (D-016–D-018, D-021), not a benchmark run against the
 other required baselines above. "Oracle-feasibility policy" also now has a
 *learned* variant (`rl_policy.py`, D-025) — tabular Q-learning that
 discovers the same policy from reward instead of having it hard-coded,
-still using privileged/oracle feasibility as its input, so still not the
-"full self-supervised feasibility-conditioned agent" this list's last
-entry describes. None of the other required baselines (domain-randomized,
-frame-difference detector, task-reward-only encoder, symbolic replanner)
-have first instances yet.
+still using privileged/oracle feasibility as its input. **"Simple
+frame-difference change detector plus rules" built 2026-08-06 (D-063,
+`src/atr/feasibility/frame_diff.py`):** zero learned parameters, same
+calibrated crops CLIP uses. Real measured result on one scenario
+(kitchen_cabinet, `chef_can_destroyed`, seed=0, confirmed reproducible
+across 5 reruns): destroyed object scores ~1.8x the survivor's — a real
+but much weaker separation than CLIP's or DINOv2's near-100% margins,
+testing whether their added complexity earns its keep rather than
+replacing them. **"Full self-supervised feasibility-conditioned agent
+with intent guard" built 2026-08-06 (D-064,
+`run_end_to_end_episode_dinov2_with_intent_guard()` in
+`spikes/task_schema_draft/dinov2_probe.py`):** closes this list's last
+entry — not new capability, DINOv2 perceptual feasibility (D-054/D-055)
+plus a substitution attempt on the graph's own never-move-constrained
+object plus the intent guard blocking it, combined for the first time.
+Verified both directions: guarded run avoids the constraint violation
+(zero wasted steps), unguarded run on the identical episode actually
+violates it — confirming the guard's block is doing real work, not
+passing vacuously. None of the other remaining required baselines
+(domain-randomized policy, task-reward-only encoder, symbolic replanner,
+pretrained frozen-vs-fine-tuned encoder comparison) have first instances
+yet.
 
 ## Core ablations
 

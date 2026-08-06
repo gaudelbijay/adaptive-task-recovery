@@ -2,6 +2,117 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-064: Combined DINOv2, substitution, and the intent guard — the last required baseline
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** docs/10's required-baselines list ends with "full self-
+  supervised feasibility-conditioned agent with intent guard." Not new
+  capability — three already-separately-validated pieces, combined for
+  the first time: DINOv2 perceptual feasibility (D-054/D-055, the
+  robustness gap found and closed), `naive_substitution_policy`'s own
+  pattern of reaching for an unrequested-but-nearby object when a real
+  goal looks infeasible, and the intent guard (`validate_action()`,
+  D-015/D-058) blocking that substitution when it would violate a real
+  constraint. Built `run_end_to_end_episode_dinov2_with_intent_guard()`
+  in `spikes/task_schema_draft/dinov2_probe.py` (stays alongside
+  `run_end_to_end_episode_dinov2()`, not promoted, same reason that
+  module already isn't). Unlike the existing function, a perceived-
+  infeasible `master_chef_can` doesn't just get skipped -- it triggers a
+  substitution attempt on this graph's own never-move-constrained object
+  (`bowl`, found from the graph via its `never_move` constraint, not
+  hardcoded), so there's something real for the guard to actually block.
+
+  Verified with a standalone script before writing formal tests (this
+  project's standing practice): guarded run — DINOv2 correctly perceives
+  the destroyed can as infeasible (D-055's fix holding), the guard blocks
+  the bowl substitution, `dont_move_bowl_violated=False`, zero wasted
+  steps. Unguarded run, same episode — the naive policy actually
+  substitutes bowl, and the constraint actually gets violated
+  (`dont_move_bowl_violated=True`), confirming the guarded run's pass
+  isn't vacuous. 3 new tests in `test_dinov2_probe.py`
+  (`TestFullSelfSupervisedAgentWithIntentGuard`), mirroring D-015's
+  original oracle-feasibility guard test pattern exactly, one layer
+  down (perception instead of privileged state).
+
+  Refactored `test_dinov2_probe.py` along the way: `_make_env()`/
+  `q_table`/`probe` were defined inside `TestLiveDecisionLoopMatchesOracle`
+  only, inaccessible to the new class. Promoted to module level
+  (`q_table`/`probe` now `scope="module"` fixtures, fit once for the
+  whole file instead of once per class) rather than duplicating the
+  Q-table training and probe fitting a second time -- both classes need
+  the exact same trained artifacts, not separately-refit ones.
+- **Reason:** Direct instruction to build another required baseline,
+  picked as the natural, highest-narrative-value one remaining: it's the
+  "put it all together" milestone the self-supervised research arm has
+  been building toward since D-023, and it needed less new
+  infrastructure than the other open baselines (domain-randomized
+  policy, symbolic replanner, task-reward-only encoder) since every
+  underlying piece already existed and was independently validated.
+- **Consequences:** Two required baselines now closed this session
+  (D-063's pixel-difference detector, this one); domain-randomized
+  policy, symbolic replanner with learned state, task-reward-only visual
+  encoder, and pretrained frozen-vs-fine-tuned encoder comparison remain
+  open. `dinov2_probe.py` still not promoted -- this is a real
+  integration milestone, not a promotion-readiness claim on its own.
+  Full suite re-verified green.
+
+## D-063: Built the frame-difference change detector — the one required baseline with no first instance
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** docs/10-evaluation-and-benchmarks.md's required-baselines
+  list ("simple frame-difference change detector plus rules") and
+  docs/08's stage 3 gate ("beat simple pixel-difference... baselines")
+  both named this explicitly; nothing had built it. Built
+  `src/atr/feasibility/frame_diff.py` (real, promoted `src/atr/`
+  architecture from the start, no spike stage — same precedent as
+  D-056/D-057/D-060/D-062's additions): `frame_difference_score()` (mean
+  absolute pixel difference between two same-shaped crops, zero learned
+  parameters) and `object_changed()` (a fixed threshold on that score —
+  the "plus rules" half). Deliberately reuses
+  `clip_feasibility._OBJECT_VISUAL_CONFIG`'s calibrated crop regions
+  rather than a new set, for the fairest possible three-way comparison:
+  same crop, three different judgments (CLIP's language-supervised
+  zero-shot margin, DINOv2's self-supervised probe, this detector's raw
+  pixel difference).
+
+  Measured before writing a threshold into any test (this project's
+  standing practice, same as CLIP's/DINOv2's own calibration): on the
+  `kitchen_cabinet` scene, `chef_can_destroyed` intervention, seed=0 —
+  `master_chef_can` (destroyed) scores 1.052, `potted_meat_can`
+  (untouched) scores 0.593. Confirmed reproducible across 5 reruns
+  (identical every time, since the scene layout is pinned per D-021 and
+  `onset_step_range=(2, 3)` only ever samples onset_step=2 — one
+  scenario measured repeatedly, not several independent ones, disclosed
+  as a real scope limit rather than presented as broader validation than
+  it is). Picked threshold=0.8, the real midpoint between the two
+  measured values, not tuned toward either one.
+
+  The finding worth stating plainly: the separation is real (destroyed >
+  survivor, correctly, every time measured) but weak — roughly 1.8x, not
+  CLIP's or DINOv2's near-100% margins on their own comparisons. That's
+  the actual point of building this baseline: it exists to test whether
+  CLIP/DINOv2's added complexity (a pretrained backbone, a hand-tuned
+  prompt or a fitted probe) earns its keep over the simplest possible
+  alternative, and on this one measured case, it does — the dumb detector
+  works, but with much less margin for error than either learned
+  approach.
+- **Reason:** Direct instruction to build a missing required baseline,
+  picked as the most tractable of the remaining gap (domain-randomized
+  policy, symbolic replanner, and task-reward-only visual encoder all
+  need substantially more new infrastructure; this needed none beyond
+  reusing an already-calibrated crop).
+- **Consequences:** One required baseline closed
+  (docs/10's list still has domain-randomized policy, symbolic replanner
+  with learned state, task-reward-only visual encoder, and pretrained
+  frozen-vs-fine-tuned encoder comparison open). Only one scene layout
+  and one scenario measured so far — matches D-020's own original scope
+  (CLIP's first instance was also one scene, extended later by D-027) —
+  extending to `kitchen_sink` or a wider `onset_step_range` for genuine
+  seed variation is a real, scoped next step, not attempted here. 3 new
+  tests, real live episode, not mocked. Full suite: 157 passed (154 + 3).
+
 ## D-062: Resolved I-004 — CLIP is the pipeline's feasibility backend; DINOv2 is the committed self-supervised baseline, not a discarded alternative
 
 - **Date:** 2026-08-06

@@ -15,9 +15,19 @@ calibration, not generalization, a meaningfully different (weaker) claim
 than `oracle.py` or `instruction_parser.py`'s evidence.
 
 `dinov2_probe.py` (D-023, self-supervised, no calibrated prompt needed)
-remains spike-stage in `spikes/task_schema_draft/` -- its own evidence
-(one scene layout only, never wired into a live decision loop) hasn't
-made its own promotion case yet.
+remains spike-stage in `spikes/task_schema_draft/` -- tested on 2 scene
+layouts now (D-053) and wired into a real live decision loop (D-054/
+D-055, including a found-and-fixed robustness gap), but a closed gap in
+one scenario isn't a general promotion-readiness claim on its own.
+
+`frame_diff.py` (D-063) is the "simple pixel-difference change detector
+plus rules" required baseline (docs/10) -- zero learned parameters, zero
+supervision, just a thresholded pixel-difference score on the same
+calibrated crops `clip_feasibility.py` uses. Weaker separation than
+either CLIP or DINOv2 on the one scenario measured so far (real: destroyed
+scores ~1.8x the survivor's, not either model's near-100% margins) --
+exists to test whether their added complexity earns its keep, not to
+replace them.
 """
 
 from __future__ import annotations

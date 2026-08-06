@@ -311,3 +311,102 @@ def run_end_to_end_episode_dinov2(
             per_goal[goal.id] = result
 
     return _summarize(per_goal)
+
+
+def run_end_to_end_episode_dinov2_with_intent_guard(
+    env, q_table: dict, probe, scene_variant: str = "kitchen_cabinet", use_intent_guard: bool = True,
+) -> dict:
+    """The "full self-supervised feasibility-conditioned agent with intent
+    guard" docs/10-evaluation-and-benchmarks.md's required-baselines list
+    names as its last entry (D-063 built the list's other remaining first
+    instance, the pixel-difference detector; this closes the list's final
+    one). Not a new capability built from scratch -- three already-
+    separately-validated pieces, combined for the first time: DINOv2
+    perceptual feasibility (D-054/D-055, the robustness gap found and
+    closed), `naive_substitution_policy`'s own pattern of reaching for an
+    unrequested-but-nearby object when the real goal looks infeasible
+    (`tidy_up_replicacad_humanoid_policies.py`, driven by DINOv2's
+    judgment here instead of oracle state), and the intent guard
+    (`validate_action()`, D-015/D-058) blocking that substitution when it
+    would violate a real constraint.
+
+    Unlike `run_end_to_end_episode_dinov2()` above, a perceived-infeasible
+    master_chef_can does NOT simply get skipped here -- it triggers a
+    substitution attempt on this graph's own never-move-constrained
+    object (`bowl`, found via the graph the same way
+    `naive_substitution_policy` already does, not hardcoded), so there is
+    something real for the intent guard to actually block. Scoped to
+    master_chef_can only, same reason as above -- potted_meat_can never
+    goes absent under this env's intervention, so it has no negative
+    example to ever look infeasible from."""
+    from atr.pipeline import _instruction_graph
+    from atr.envs.tidy_up_replicacad_humanoid_policies import _TRAY_SLOTS, _summarize, attempt_goal
+    from atr.constraints.intent_guard import validate_action
+    from atr.feasibility.oracle import constraint_violated
+    from atr.language.goal_graph import Goal
+    from atr.policies.q_learning import SKIP, greedy_action
+
+    cfg = _OBJECT_VISUAL_CONFIG[scene_variant]["master_chef_can"]
+    y0, y1, x0, x1 = cfg.crop
+
+    graph = _instruction_graph()
+    guarded_constraint = next(c for c in graph.constraints if c.kind == "never_move")
+    substitute_object = guarded_constraint.target_object
+    initial_state = env.unwrapped._world_state()
+
+    per_goal = {}
+    substitution_attempted = False
+    for i, goal in enumerate(graph.goals):
+        if goal.target_object == "master_chef_can":
+            frame = env.render()[0].cpu().numpy()
+            crop = frame[y0:y1, x0:x1]
+            embedding = dinov2_embed(crop).reshape(1, -1)
+            perceived_feasible = bool(probe.predict(embedding)[0])
+        else:
+            perceived_feasible = True  # never intervened on here -- see docstring above
+
+        key = (goal.id, perceived_feasible)
+        action = greedy_action(q_table, key)
+
+        if action != SKIP:
+            result = attempt_goal(env, goal, _TRAY_SLOTS[i])
+            result["perceived_feasible"] = perceived_feasible
+            result["substitution_attempted"] = False
+            per_goal[goal.id] = result
+            continue
+
+        # Perceived infeasible: the naive half of this policy tries a
+        # substitution instead of accepting the loss, same as
+        # naive_substitution_policy -- gated by the intent guard.
+        state = env.unwrapped._world_state()
+        if use_intent_guard:
+            allowed, reason = validate_action(substitute_object, graph, state=state)
+        else:
+            allowed, reason = True, "unchecked (no intent guard)"
+
+        if not allowed:
+            per_goal[goal.id] = {
+                "achieved": False, "steps_used": 0, "skipped": True,
+                "perceived_feasible": perceived_feasible,
+                "substitution_attempted": False, "blocked_reason": reason,
+            }
+            continue
+
+        substitution_attempted = True
+        fake_goal = Goal(id=f"substitute_for_{goal.id}", predicate="on_tray", target_object=substitute_object)
+        substitution_result = attempt_goal(env, fake_goal, _TRAY_SLOTS[i])
+        per_goal[goal.id] = {
+            # Never credited, same reason naive_substitution_policy's own
+            # docstring gives: moving the substitute does not satisfy the
+            # real (perceived-infeasible) goal.
+            "achieved": False, "steps_used": substitution_result["steps_used"], "skipped": False,
+            "perceived_feasible": perceived_feasible, "substitution_attempted": True,
+        }
+
+    final_state = env.unwrapped._world_state()
+    result = _summarize(per_goal)
+    result[f"dont_move_{substitute_object}_violated"] = constraint_violated(
+        guarded_constraint, initial_state, final_state
+    )
+    result["substitution_attempted"] = substitution_attempted
+    return result
