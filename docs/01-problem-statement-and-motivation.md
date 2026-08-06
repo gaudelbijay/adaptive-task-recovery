@@ -75,7 +75,11 @@ unrequested object, or violate the glass constraint for reward.
   no shift-specific data at all — only once the training data actually
   covers that shift. That gap in what each approach needs to generalize is
   itself relevant evidence for H1, not fully for the self-supervised side
-  and not fully against it.
+  and not fully against it. **Roles formalized 2026-08-06 (D-062, closing
+  I-004):** DINOv2 is the project's committed self-supervised baseline for
+  this comparison; CLIP is kept permanently as the required language-
+  supervised reference point, not a competing "selection" to eliminate —
+  H1's own claim can't be tested without both.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in

@@ -1,12 +1,12 @@
 # Measured comparison: zero-shot CLIP vs. DINOv2 linear probe
 
-**Status:** evidence toward I-004 (`ai-notes/issues_and_risks.md`), **not a
-formal selection.** I-004's own mitigation note says selection should wait
-until the task schema and compute budget are known, and D-013's schema is
-still out for teammate review (`ai-notes/review-request-task-schema.md`).
-This document exists so that decision, whenever it's made, has real
-numbers behind it instead of vibes — same spirit as `Goal.condition` (D-026)
-being flagged PROPOSED rather than smuggled in as settled.
+**Status:** evidence toward I-004 (`ai-notes/issues_and_risks.md`).
+**Formal selection made 2026-08-06 (D-062)** — see that decision in
+`ai-notes/decisions.md` for the actual call and reasoning; this document
+remains the numbers behind it, updated as new evidence landed (D-053
+closed the "no kitchen_sink DINOv2 result" gap noted below; D-054/D-055
+wired DINOv2 into a live decision loop, found a real robustness gap, and
+closed it).
 
 **Scope:** both models are already implemented and validated for this
 project's narrow task (`spikes/task_schema_draft/clip_feasibility.py`, D-020;
@@ -102,10 +102,10 @@ misremember as still current.
 
 | | CLIP | DINOv2 |
 |---|---|---|
-| Matches oracle feasibility | 4/4 cases, `kitchen_cabinet` (D-020); 2/2 further cases, `kitchen_sink` (D-027) | 100% LOO accuracy, 8→20 examples grown over D-023/D-026, `kitchen_cabinet` only |
-| Scene layouts validated | 2 (`kitchen_cabinet`, `kitchen_sink`) | 1 (`kitchen_cabinet`) — `kitchen_sink` support exists in code (D-027) but has no DINOv2 test/result against it yet |
-| Wired into the live decision loop | Yes — `end_to_end.py` (D-029) uses it for real, matching oracle end-to-end | No — deliberately not wired in (D-029's "Consequences": needs a pre-fit probe from multiple examples, not a single-frame judgment; kept as a separately-validated alternative backend |
-| Needs labeled data to operate | No (zero-shot) | Yes (a probe fit from labeled present/absent crops per object) |
+| Matches oracle feasibility | 4/4 cases, `kitchen_cabinet` (D-020); 2/2 further cases, `kitchen_sink` (D-027) | 100% LOO accuracy, `kitchen_cabinet` (8→20 examples, D-023/D-026) **and** `kitchen_sink` (12/12, D-053) |
+| Scene layouts validated | 2 (`kitchen_cabinet`, `kitchen_sink`) | 2 (`kitchen_cabinet`, `kitchen_sink` — closed 2026-08-04, D-053) |
+| Wired into the live decision loop | Yes — `end_to_end.py`/`atr.pipeline` (D-029) uses it for real, matching oracle end-to-end on the first try | Yes, as of D-054/D-055 (`run_end_to_end_episode_dinov2()`) — **not a clean first try**: the initial version misjudged a destroyed object as present (81% confidence) once G1's reaching arm entered the calibrated crop, an out-of-distribution frame relative to arm-at-rest-only training data. CLIP's zero-shot judgment on the identical frame was correct without any extra data. Closed by training on examples covering that same post-first-attempt state (D-055), verified across 5 held-out seeds/conditions — matches oracle now too, but needed a second round of targeted data collection CLIP never required. |
+| Needs labeled data to operate | No (zero-shot) | Yes (a probe fit from labeled present/absent crops per object) — and, per D-054/D-055, needs that labeled set to cover the actual deployment distribution (arm-in-frame states included), not just calibration-style captures, or it silently fails on a realistic frame it was never shown. |
 
 ## Integration cost (qualitative, not measured — a real axis docs/08 asks for anyway)
 
@@ -123,18 +123,24 @@ misremember as still current.
 
 ## Bottom line
 
-Neither model dominates on every axis, which is exactly why this stays
-evidence-for-a-future-decision rather than a selection:
+Neither model dominates on every axis. As of D-062, that's not a reason
+to leave the question open any longer — see that decision for the actual
+selection and reasoning — but it is why the selection isn't "pick a
+winner, drop the other":
 
-- CLIP: zero training data, already wired into the real decision loop,
-  fails loudly on unknown inputs, validated on 2 scene layouts — costs
-  more compute per call and needs a hand-tuned prompt per object.
+- CLIP: zero training data, wired into the real decision loop and correct
+  on the first try including a distribution shift (the arm-in-frame case)
+  it was never specifically calibrated for, fails loudly on unknown
+  inputs, validated on 2 scene layouts — costs more compute per call and
+  needs a hand-tuned prompt per object.
 - DINOv2: ~7x cheaper per call, no text-prompt engineering, matches CLIP's
-  accuracy on the one scene it's been tested on — needs labeled data to
-  operate at all, more constrained data-collection process (D-022), and
-  one fewer scene layout's worth of validation.
+  accuracy on both scene layouts now (D-053) — needs labeled data to
+  operate at all, and D-054/D-055 showed that data has to actually cover
+  the deployment distribution or it fails silently and confidently on a
+  realistic frame; CLIP's zero-shot judgment generalized to that same
+  shift with no extra data at all.
 
-Revisit once D-013's schema review resolves and the benchmark's actual
-scale (episode count, real-time constraints, how many objects need
-calibration) is known — that's what determines whether the latency/memory
-gap above is decisive or irrelevant.
+D-013's schema review resolved (D-037, self-resolved) and the compute
+budget is known (CPU-only, no CUDA on the dev machine, R-012) — the two
+preconditions this document's original "not a formal selection" status
+was waiting on are both satisfied now.

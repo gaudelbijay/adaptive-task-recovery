@@ -2,6 +2,59 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-062: Resolved I-004 — CLIP is the pipeline's feasibility backend; DINOv2 is the committed self-supervised baseline, not a discarded alternative
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** I-004 asked for a language backbone and SSL visual
+  baseline selection, deliberately left open (D-034) pending two things:
+  D-013's schema review resolving, and the compute budget being known.
+  Both are true now — D-037 (self-resolved 2026-08-02) and R-012 (CPU-
+  only, no CUDA, confirmed since the project's first dev session) — so
+  the blocker this row's own mitigation note named is gone.
+
+  First: "language backbone" and "SSL visual baseline" are two separate
+  selections, which I-004's original wording conflated. **Language
+  backbone** — `instruction_parser.py`'s controlled-grammar parser
+  (D-019/D-026, promoted D-038) — was already effectively selected; it's
+  the only language-to-goal-graph component that exists, is used
+  everywhere, and nothing in this project ever proposed an alternative
+  to compare it against. Recording that here explicitly closes that half
+  of I-004, which had drifted into implicitly meaning "CLIP vs. DINOv2"
+  even though CLIP's text prompting isn't the same "language backbone"
+  role at all.
+
+  **SSL visual baseline**: DINOv2. Not a "CLIP loses" call — updated
+  `ai-notes/model-comparison-clip-vs-dinov2.md` first with evidence that
+  didn't exist when it was written (D-053's kitchen_sink DINOv2 result;
+  D-054/D-055's live-loop wiring, the robustness gap it found, and the
+  fix), then made the actual call: CLIP remains the pipeline's real,
+  working feasibility backend (`atr.pipeline`/`clip_feasibility.py`) --
+  zero-shot, no training data, generalized correctly to the D-054
+  arm-in-frame distribution shift with no extra work, exactly the
+  robustness a deployed system benefits from. DINOv2 is *not* being
+  dropped in favor of it — it's this project's actual answer to H1's own
+  question ("do self-supervised visual representations...", docs/01),
+  which a language-supervised zero-shot model structurally cannot be
+  evidence for or against on its own. Selecting DINOv2 as the committed
+  SSL baseline, with CLIP retained permanently as the language-supervised
+  reference point H1's comparison requires, is the only selection that
+  doesn't quietly abandon the project's own central research question.
+- **Reason:** Direct instruction to decide I-004 now that it's actually
+  unblocked, following the held-out-scene-layout attempt. Real evidence
+  existed on both sides already (D-020/D-023/D-027/D-034/D-053/D-054/
+  D-055) — this was about making the call and recording the reasoning,
+  not generating new measurements.
+- **Consequences:** I-004 closed in `ai-notes/issues_and_risks.md`
+  (moved to Resolved). No code changes — both models already occupy
+  exactly the roles this decision assigns them (`clip_feasibility.py` is
+  already `atr.pipeline`'s real backend; `dinov2_probe.py` is already the
+  self-supervised comparison arm feeding H1's evidence in
+  `docs/01-problem-statement-and-motivation.md`). This decision makes
+  that arrangement an explicit, reasoned choice instead of an unresolved
+  open question sitting alongside code that had already, in practice,
+  settled it.
+
 ## D-061: Attempted a third scene layout to unlock held-out-scene-layout split — investigated, not resolved
 
 - **Date:** 2026-08-06
