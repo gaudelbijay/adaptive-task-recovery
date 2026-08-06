@@ -100,20 +100,29 @@ def _dinov2_model():
     return model, device
 
 
-def dinov2_embed(crop: np.ndarray) -> np.ndarray:
-    """Self-supervised embedding of an image crop -- no text, no labels.
-    Returns the 384-dim CLS token from DINOv2 ViT-S/14."""
+def _preprocess_crop(crop: np.ndarray, device):
+    """DINOv2's standard preprocessing (resize to 224 -- a multiple of
+    its 14px patch size and its own pretraining resolution -- plus
+    ImageNet normalization), factored out so `dinov2_embed()` and the
+    fine-tuning functions below (D-068) share exactly one implementation
+    rather than two copies that could silently drift apart."""
     import torch
     from PIL import Image
 
-    model, device = _dinov2_model()
-    # DINOv2 wants a multiple of the 14px patch size; 224 is its standard
-    # pretraining resolution.
     img = Image.fromarray(crop).resize((224, 224))
     x = torch.from_numpy(np.array(img)).float().permute(2, 0, 1).unsqueeze(0).to(device) / 255.0
     mean = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)
     std = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)
-    x = (x - mean) / std
+    return (x - mean) / std
+
+
+def dinov2_embed(crop: np.ndarray) -> np.ndarray:
+    """Self-supervised embedding of an image crop -- no text, no labels.
+    Returns the 384-dim CLS token from DINOv2 ViT-S/14."""
+    import torch
+
+    model, device = _dinov2_model()
+    x = _preprocess_crop(crop, device)
     with torch.no_grad():
         embedding = model(x)
     return embedding[0].cpu().numpy()
@@ -221,6 +230,104 @@ def fit_and_evaluate_probe(examples: list[tuple[np.ndarray, bool]]) -> dict:
         predictions.append(probe.predict(embeddings[test_idx])[0])
     predictions = np.array(predictions)
 
+    return {
+        "accuracy": float((predictions == labels).mean()),
+        "n_examples": len(examples),
+        "n_positive": int(labels.sum()),
+        "predictions": predictions.tolist(),
+        "labels": labels.tolist(),
+    }
+
+
+def _finetunable_dinov2_model():
+    """A fresh DINOv2 instance, NOT the shared `@lru_cache`-d one
+    `_dinov2_model()` returns -- fine-tuning mutates weights, so each
+    LOO fold needs its own copy starting from the same pretrained
+    weights, not a shared instance that previous folds already trained."""
+    import torch
+
+    device = resolve_torch_device()
+    model = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14", verbose=False)
+    model.to(device)
+    return model, device
+
+
+def fit_finetuned(
+    examples: list[tuple[np.ndarray, bool]],
+    unfreeze_last_n_blocks: int = 1, epochs: int = 10, lr: float = 1e-5, seed: int = 0,
+):
+    """The "fine-tuned" half of docs/10's "pretrained frozen and
+    fine-tuned visual encoders" required baseline (D-068) --
+    `fit_and_evaluate_probe()` above is the "frozen" half (backbone
+    weights never change; only a separately-fit linear probe is
+    trained). This unfreezes the last `unfreeze_last_n_blocks`
+    transformer block(s) of DINOv2's 12-block ViT-S/14 backbone (out of
+    12 total -- standard fine-tuning practice, not the whole network,
+    given ~11 training examples per fold) and trains them plus a linear
+    head end-to-end via backprop, instead of treating the backbone as
+    fixed. Returns `(model, head, device)`; predict with
+    `predict_finetuned()`."""
+    import torch
+    import torch.nn as nn
+
+    torch.manual_seed(seed)
+    model, device = _finetunable_dinov2_model()
+    for param in model.parameters():
+        param.requires_grad = False
+    for block in model.blocks[-unfreeze_last_n_blocks:]:
+        for param in block.parameters():
+            param.requires_grad = True
+    head = nn.Linear(model.embed_dim, 1).to(device)
+
+    inputs = torch.cat([_preprocess_crop(crop, device) for crop, _ in examples], dim=0)
+    labels = torch.tensor([float(label) for _, label in examples], device=device)
+
+    trainable_params = [p for p in model.parameters() if p.requires_grad] + list(head.parameters())
+    opt = torch.optim.Adam(trainable_params, lr=lr)
+    loss_fn = nn.BCEWithLogitsLoss()
+
+    model.train()
+    for _ in range(epochs):
+        opt.zero_grad()
+        logits = head(model(inputs)).squeeze(-1)
+        loss = loss_fn(logits, labels)
+        loss.backward()
+        opt.step()
+    model.eval()
+    head.eval()
+    return model, head, device
+
+
+def predict_finetuned(model, head, device, crop: np.ndarray) -> bool:
+    import torch
+
+    with torch.no_grad():
+        logit = head(model(_preprocess_crop(crop, device))).squeeze(-1)
+    return bool(logit.item() > 0)
+
+
+def fit_and_evaluate_finetuned(
+    examples: list[tuple[np.ndarray, bool]],
+    unfreeze_last_n_blocks: int = 1, epochs: int = 10, lr: float = 1e-5, seed: int = 0,
+) -> dict:
+    """Leave-one-out cross-validation for the fine-tuned encoder, the
+    exact same procedure and sample size `fit_and_evaluate_probe()`
+    uses, so the two are directly comparable. Each fold fine-tunes a
+    fresh copy of the pretrained backbone from scratch (excluding the
+    held-out example) -- the honest LOO discipline this project already
+    established, not a cheaper shortcut."""
+    predictions = []
+    labels = [label for _, label in examples]
+    for i in range(len(examples)):
+        train_examples = examples[:i] + examples[i + 1:]
+        held_out_crop, held_out_label = examples[i]
+        model, head, device = fit_finetuned(
+            train_examples, unfreeze_last_n_blocks=unfreeze_last_n_blocks, epochs=epochs, lr=lr, seed=seed,
+        )
+        predictions.append(predict_finetuned(model, head, device, held_out_crop))
+
+    predictions = np.array(predictions, dtype=int)
+    labels = np.array(labels, dtype=int)
     return {
         "accuracy": float((predictions == labels).mean()),
         "n_examples": len(examples),

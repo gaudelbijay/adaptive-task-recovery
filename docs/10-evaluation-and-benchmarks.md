@@ -79,10 +79,49 @@ it unconditionally. Measured consequence on two live episodes: matches
 (costs nothing), but wrongly skips a genuinely achievable goal when it
 isn't (`goals_achieved` drops from 2 to 1) — a real, measured recall
 cost `feasibility_aware_policy` doesn't pay, since it can actually tell
-the two cases apart. Task-reward-only visual encoder, symbolic
-replanner with learned state, and pretrained frozen-vs-fine-tuned
-encoder comparison remain the only required baselines with no first
-instance yet.
+the two cases apart. **"Adaptive policy with task-reward-only visual
+encoder" built 2026-08-06 (D-066,
+`src/atr/feasibility/task_reward_encoder.py`):** the baseline H1's own
+wording actually asks for ("pixels trained only through task reward") —
+a small conv encoder, no pretraining at all, trained from scratch on the
+identical toy-scale data CLIP/DINOv2 were evaluated against. Measured
+result, root-caused not assumed: 0% LOO accuracy, from a confirmed
+majority-class collapse (every held-out example in every fold gets the
+identical output regardless of image content) rather than noisy
+guessing — real gradient flow and real weight changes were checked
+directly, ruling out a training bug. The clearest evidence for H1's
+comparative claim in the project so far: both pretrained representations
+reach 100% LOO accuracy on this data; training from scratch on the same
+data doesn't learn to discriminate at all. See
+docs/01-problem-statement-and-motivation.md's H1 entry for the full
+writeup. **"Symbolic replanner with learned state" built 2026-08-06
+(D-067, `src/atr/policies/symbolic_replanner.py`):** unlike every other
+policy here (one fixed pass through `graph.goals` in order), `plan()`
+genuinely searches over goal orderings using `Goal.priority`/
+`Goal.depends_on` -- schema fields defined since D-013 but never
+actually used to choose a plan before this, only to gate a fixed order.
+Verified on `dependent_goals_example()`'s real ordering constraint
+(a higher-priority goal that depends on a lower-priority one being
+achieved first) and end-to-end on a live episode, both with privileged
+state and with real CLIP perception as the feasibility estimate --
+"learned state" is not a claim the function can't be given oracle state
+too, just that it doesn't require it. **"Pretrained frozen and fine-
+tuned visual encoders" built 2026-08-06 (D-068,
+`fit_finetuned()`/`fit_and_evaluate_finetuned()` in
+`spikes/task_schema_draft/dinov2_probe.py`), closing this list
+entirely:** unfreezes DINOv2's last transformer block and trains it plus
+a linear head end-to-end, compared against the existing frozen-backbone-
+plus-probe approach on the identical LOO set — both reach 100% (no
+headroom either way at this scale, no overfitting cost observed either,
+confirmed via a direct weight-change check). The more informative
+measurement: neither the frozen probe nor the fine-tuned encoder gets
+D-054's out-of-distribution arm-occluded case right when both are
+trained on the same narrow (arm-at-rest-only) data — fine-tuning the
+backbone doesn't substitute for D-055's actual fix (training data that
+covers the real deployment distribution). See D-068 in
+`ai-notes/decisions.md`.
+
+**All required baselines above now have a first instance.**
 
 ## Core ablations
 

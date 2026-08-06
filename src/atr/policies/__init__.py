@@ -23,6 +23,16 @@ in the state key (`goal_id -> {SKIP, ATTEMPT}`, not
 unconditionally (real expected-value math, verified on the trained
 table, not assumed), trading real recall for safety it didn't need to
 give up whenever the goal actually was feasible that episode.
+
+`symbolic_replanner.py` (D-067) is docs/10's "symbolic replanner with
+learned state" required baseline -- unlike every other policy here
+(one fixed pass through `graph.goals` in tuple order), `plan()`
+genuinely searches over goal orderings, using `Goal.priority`/
+`Goal.depends_on` (D-013/D-037, previously read only to gate a fixed
+order, never to choose a plan) to pick the highest-value valid one.
+"Learned state" means the feasibility estimate it plans against can be
+privileged state or a real perceptual judgment (CLIP) -- the function
+doesn't care which, verified against both.
 """
 
 from __future__ import annotations

@@ -79,7 +79,34 @@ unrequested object, or violate the glass constraint for reward.
   I-004):** DINOv2 is the project's committed self-supervised baseline for
   this comparison; CLIP is kept permanently as the required language-
   supervised reference point, not a competing "selection" to eliminate —
-  H1's own claim can't be tested without both.
+  H1's own claim can't be tested without both. **The missing comparison
+  point built and measured (2026-08-06, D-066):** the original test above
+  explicitly flagged "pixels trained only through task reward" as not
+  existing yet — it now does
+  (`src/atr/feasibility/task_reward_encoder.py`): a small conv encoder,
+  no pretraining of any kind, trained from scratch on the identical
+  toy-scale data (same object, same scene, same 6-present/6-absent LOO
+  setup) CLIP and DINOv2 were both evaluated against. Result, root-caused
+  before trusting it: 0% LOO accuracy, and not from noisy guessing —
+  every held-out example in every fold got the exact same output
+  regardless of image content, confirmed directly (near-zero logit
+  variance across all 12 images, in every fold), meaning the model
+  never learned to look at the image at all; it just predicted whichever
+  class happened to be the majority in that fold's own training split.
+  Real gradient flow and real weight changes were confirmed too, ruling
+  out a training bug rather than assuming the result. This is the
+  clearest, most direct evidence for H1's actual comparative claim in
+  the project so far: given the exact same tiny amount of task data,
+  both pretrained representations (CLIP's zero-shot judgment, needing no
+  training data at all, and DINOv2's self-supervised pretraining plus a
+  fitted probe) reach 100% LOO accuracy, while training visual features
+  from scratch on that same data doesn't learn to discriminate at all.
+  Still bounded: toy-scale, one object/scene, and a reward-*derived*
+  supervised loss standing in for literal online policy-gradient RL
+  (disclosed, not hidden) — not a claim that no amount of task-reward
+  training could ever work, only that it doesn't at this project's
+  current data scale, in contrast to the pretrained alternatives which
+  succeed at that same scale.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in

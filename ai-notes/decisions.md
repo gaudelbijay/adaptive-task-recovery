@@ -2,6 +2,181 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-068: Pretrained frozen vs. fine-tuned encoders — the last required baseline, and a second data point on D-054/D-055's robustness story
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** docs/10's last remaining required baseline: "pretrained
+  frozen and fine-tuned visual encoders." `fit_and_evaluate_probe()`
+  (D-023) is already the "frozen" half -- DINOv2's backbone weights
+  never change, only a separately-fit linear probe. Added the "fine-
+  tuned" half to `dinov2_probe.py`: `fit_finetuned()` unfreezes the last
+  transformer block of DINOv2's 12-block ViT-S/14 (standard practice --
+  not the whole network, given ~11 training examples per fold) and
+  trains it plus a linear head end-to-end via backprop, instead of
+  treating the backbone as fixed. `fit_and_evaluate_finetuned()` runs
+  the identical leave-one-out procedure `fit_and_evaluate_probe()` uses,
+  on the identical data, for a direct comparison.
+
+  Two real measurements, not one:
+  1. **Standard LOO set** (the same 12-example `master_chef_can`/
+     `kitchen_cabinet` set every other DINOv2 baseline was evaluated
+     against): frozen and fine-tuned both reach 100% accuracy --
+     no headroom for fine-tuning to add, and no cost either (no
+     overfitting/catastrophic forgetting observed on ~11 examples per
+     fold, confirmed real gradient flow first via a direct weight-change
+     check, same rigor D-066 used).
+  2. **The more informative measurement**: does fine-tuning the backbone
+     provide extra robustness to D-054's out-of-distribution shift
+     (G1's reaching arm entering the calibrated crop) "for free," beyond
+     D-055's already-established fix (broader training data)? Trained
+     both a frozen probe and a fine-tuned encoder on identical arm-at-
+     rest-only data (D-054's original, narrow setup, deliberately not
+     D-055's fix) and evaluated both on the same held-out arm-occluded
+     examples. Reproduced D-054's exact 81.2% confident misjudgment for
+     the frozen probe first, confirming the measurement itself was
+     faithful -- then found the fine-tuned encoder fails *identically*
+     (6/12 wrong, same direction, same examples). Fine-tuning the
+     backbone doesn't help here either.
+- **Reason:** Direct instruction to build the last required baseline.
+  Worth measuring the OOD case specifically, not just the standard LOO
+  comparison, because the standard comparison alone (100% vs. 100%) is
+  genuinely uninformative at this toy scale -- there's no headroom for
+  either approach to distinguish itself, so the real question worth
+  asking was whether fine-tuning changes the *other* finding this
+  project already has evidence about.
+- **Consequences:** docs/10's entire required-baselines list is now
+  closed. Reinforces (does not merely repeat) D-055's own conclusion:
+  the D-054 gap is about training *data coverage*, not about how much of
+  the model is allowed to adapt -- giving the optimizer more freedom
+  (fine-tuning a real transformer block, not just a linear head) doesn't
+  substitute for showing it examples from the actual deployment
+  distribution. Locked in as a regression test
+  (`TestFinetuningInheritsTheSameOodRobustnessGap`,
+  `tests/drafts/test_dinov2_finetuning.py`), same pattern as D-054's own
+  test before the D-055 fix -- if a future change makes this pass, that's
+  real progress, and the test should be updated to expect it. Full suite
+  re-verified green.
+
+## D-067: Symbolic replanner with learned state — the second-to-last required baseline
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** docs/10's required-baselines list names "symbolic
+  replanner with learned state" as distinct from every existing policy
+  in this project -- all of them (`baselines.py`, `q_learning.py`,
+  `imitation.py`, `domain_randomized.py`) make one fixed pass through
+  `graph.goals` in tuple order; none actually searches over alternative
+  plans. Built `src/atr/policies/symbolic_replanner.py`: `plan()`
+  enumerates every ordering of not-yet-achieved goals, keeps only
+  orderings where each goal's `Goal.depends_on` is satisfied by goals
+  earlier in that same ordering (`goal_dependencies_satisfied()`,
+  D-037), scores each valid ordering by `sum(priority + 1)` over the
+  goals it can achieve, and returns the best-scoring one. "Learned
+  state" means the feasibility estimate `plan()` searches against can be
+  privileged oracle state or a real perceptual judgment (CLIP) -- the
+  function takes a plain `{object_id: exists}` dict and doesn't know or
+  care which; `_state_from_exists()` wraps it into the same `WorldState`
+  shape `goal_feasible()` already expects, so `Goal.condition` (D-026)
+  resolves correctly regardless of the state's source too.
+  `run_replanner_episode()` genuinely *replans*, not just plans once:
+  calls `plan()` again after every single goal attempt with whatever
+  actually happened, rather than committing blindly to the rest of an
+  earlier plan.
+
+  The real test case this baseline exists for:
+  `dependent_goals_example()` (`atr.language.goal_graph`) -- `place_bowl`
+  (priority 1) depends on `place_mug` (priority 0) being *achieved*.
+  Verified `plan()` reasons about this correctly, not just that the
+  final outcome happens to look right: orders `place_mug` before
+  `place_bowl` when both are feasible (the lower-priority prerequisite
+  first, to unlock the higher-value goal); correctly excludes only
+  `place_bowl` when `blue_bowl` alone is infeasible; correctly excludes
+  *both* goals when `red_mug` is infeasible, since that makes
+  `place_bowl` permanently unachievable too, not merely inconvenient --
+  a genuine cascading-infeasibility case a fixed-order pass has no way
+  to express, only to get right by coincidence of tuple order (mug
+  already comes first).
+
+  Verified `run_replanner_episode()` end-to-end on the real
+  `TidyUp-ReplicaCAD-Humanoid-v1` env, both ways: with privileged state
+  (`env.unwrapped._exists`) and with real CLIP perception
+  (`visual_object_exists()` on a rendered frame) as the exists function
+  -- both match oracle exactly after `chef_can_destroyed`.
+- **Reason:** Direct instruction to build another required baseline.
+  Picked the remaining one that most directly exercises schema fields
+  (`Goal.priority`/`Goal.depends_on`) this project had defined since
+  D-013 but never actually used to make a planning decision, only to
+  gate a fixed order.
+- **Consequences:** Only "pretrained frozen and fine-tuned visual
+  encoders" remains open on docs/10's required-baselines list. 7 new
+  tests -- 5 pure-function (`plan()`, no simulator, runs in the fast-
+  checks CI tier), 2 real live-episode integration tests (privileged and
+  CLIP-perceived state). Full suite re-verified green.
+
+## D-066: Built the task-reward-only visual encoder — the baseline H1's own wording actually asks for, and the strongest direct evidence for it in the project so far
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** H1 (docs/01) claims self-supervised visual representations
+  improve feasibility prediction "over pixels trained only through task
+  reward and standard supervised features" — a comparison the project's
+  own docs/01 text had flagged as not existing since D-023 first tested
+  DINOv2. Neither CLIP (language-supervised pretraining) nor DINOv2
+  (self-supervised pretraining) is that baseline; both start from a
+  large pretrained backbone. Built
+  `src/atr/feasibility/task_reward_encoder.py`: a small conv encoder (3
+  conv/pool layers + a linear head), randomly initialized, no pretrained
+  weights of any kind, trained end-to-end via a reward-*derived*
+  supervised loss (binary cross-entropy against the reward-optimal
+  action — for this project's decision, "attempt iff exists" is also
+  exactly reward-optimal under `q_learning.py`'s own reward shape, so
+  the existence label doubles as that label; disclosed as a
+  simplification of literal online policy-gradient RL, not claimed to
+  be that). Evaluated with the identical leave-one-out procedure and
+  the identical toy sample size (`master_chef_can`, `kitchen_cabinet`,
+  6 present + 6 absent) CLIP and DINOv2 were both evaluated against, for
+  a genuinely apples-to-apples comparison.
+
+  Measured result, root-caused before trusting it, not just reported:
+  0% LOO accuracy — not noise around chance, an exactly-inverted
+  prediction pattern. Diagnosed rather than assumed: checked the raw
+  logits per fold and found every held-out example in every fold gets
+  the *identical* logit regardless of which image it is
+  (`train_logit_std=0.000` in every fold, confirmed directly) — the
+  model has collapsed to predicting each fold's own majority class,
+  which happens to be the opposite of the held-out label by
+  construction (holding out a "present" example leaves an "absent"-
+  majority fold, and vice versa; that's why accuracy is exactly 0%, not
+  ~50%). Confirmed this is a genuine training pathology, not a bug:
+  conv weights and the linear head both change substantially during
+  training (real gradient flow, checked directly — weight delta norm
+  ~1.9, not near-zero), and the collapse persists at 3x more epochs and
+  10x higher learning rate — more optimization doesn't fix it. Repeated
+  the whole measurement on two further, independently-captured example
+  sets (different seeds) before writing it into a formal test — same
+  qualitative result each time.
+- **Reason:** Direct instruction to build the baseline most central to
+  H1's actual comparative claim, following the progress-check
+  conversation that flagged it as the biggest real gap. Worth building
+  even though (especially because) the result is a clean failure for
+  this baseline, not a success — that's the informative case docs/01's
+  own comparative wording is actually asking about.
+- **Consequences:** This is the most direct evidence for H1's
+  comparative claim anywhere in this project so far: given the
+  identical toy-scale data, CLIP (zero-shot, no training data at all)
+  and DINOv2 (self-supervised pretraining + a fitted probe) both reach
+  100% LOO accuracy; training visual features from scratch on that same
+  data does not learn to discriminate at all. Still toy-scale and still
+  a simplification of literal RL-from-pixels — not a claim that no
+  amount of task-reward-only training could ever work, only that it
+  doesn't at this project's current data scale. Updated
+  `docs/01-problem-statement-and-motivation.md`'s H1 entry and
+  `docs/10-evaluation-and-benchmarks.md`'s required-baselines list. Only
+  symbolic replanner with learned state and pretrained frozen-vs-fine-
+  tuned encoder comparison remain open on that list. 3 new tests. Full
+  suite re-verified green.
+
 ## D-065: Domain-randomized policy without explicit feasibility — a third required baseline
 
 - **Date:** 2026-08-06

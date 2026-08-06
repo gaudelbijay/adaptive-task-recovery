@@ -28,6 +28,21 @@ either CLIP or DINOv2 on the one scenario measured so far (real: destroyed
 scores ~1.8x the survivor's, not either model's near-100% margins) --
 exists to test whether their added complexity earns its keep, not to
 replace them.
+
+`task_reward_encoder.py` (D-066) is the "pixels trained only through
+task reward" baseline H1's own wording (docs/01) actually asks for --
+neither CLIP nor DINOv2 qualifies, since both start from a large
+pretrained backbone (language-supervised, self-supervised). A small
+conv encoder, no pretraining at all, trained from scratch on the same
+~24-example toy dataset CLIP/DINOv2 were evaluated against. Measured
+result, root-caused not just reported: it fails to learn any real
+visual discrimination -- its output is a near-constant regardless of
+image content (confirmed directly), converging to the training fold's
+own majority class instead of anything about the image. The most direct
+piece of evidence for H1's actual comparative claim in this project so
+far: the pretrained representations both succeed at 100% LOO accuracy
+on this data; training from scratch on the identical data does not
+learn to discriminate at all.
 """
 
 from __future__ import annotations
