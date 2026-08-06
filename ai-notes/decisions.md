@@ -2,6 +2,133 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-061: Attempted a third scene layout to unlock held-out-scene-layout split — investigated, not resolved
+
+- **Date:** 2026-08-06
+- **Status:** Investigated, not implemented — reverted, not a documented
+  limitation baked into shipped code (same category as D-024's grasp-
+  confirmation attempt, not a confirmed-and-kept finding like D-022's)
+- **Decision:** Attempted to add a third calibrated `scene_variant` to
+  `tidy_up_env_replicacad_humanoid.py` (`"kitchen_cabinet"`/`"kitchen_sink"`
+  already existed) to unlock a real held-out-scene-layout split, the same
+  need D-059 already closed for interventions. Searched all 61 valid
+  `build_config_idx` values (6-68) for one placing both target objects
+  close together; found and raycast-verified a strong candidate
+  (`build_config_idx=13`, real open floor clearance, clean rendered
+  frame, visually confirmed).
+
+  Extensive validation (15+ standalone runs across several different
+  script structures) showed it working correctly and reproducibly. But
+  wiring it into the real `_SCENE_CONFIGS` dict and testing it through
+  the actual registered `scene_variant="..."` path showed a real,
+  reproducible discrepancy: `master_chef_can`/`bowl` came back hidden,
+  and `potted_meat_can` landed at a *different* position than every one
+  of the validation runs found — 15/15 identical wrong results, fully
+  deterministic, not flaky. The discrepancy tracked some difference
+  between the validation harness (a dynamically-patched scene-config
+  entry, accessed via various import patterns) and the real code path
+  (the entry as written into the file, accessed the way every other test
+  in this project already imports and constructs an env) that was never
+  successfully isolated, despite ruling out: seed, `torch.manual_seed`
+  pinning (already correct per D-021), `PYTHONHASHSEED`, which module-
+  level imports ran first, `env.step()` calls, and whether a different-
+  build-config env had been constructed earlier in the same process.
+  Tried the D-022-precedent fix (subprocess-isolating every check into
+  its own fresh process, exactly like `capture_episode_subprocess.py`)
+  on the theory that this was cross-instantiation scene-builder
+  statefulness (D-022's known class of bug, just affecting privileged
+  state instead of pixels this time) — it did not fix it: the
+  discrepancy reproduced identically even as the *first and only* env
+  built in a fresh process, ruling out that theory too.
+- **Reason:** Given a real, deterministic disagreement between validation
+  and production that resisted a long, methodical investigation (several
+  independently-tested hypotheses, each checked rather than assumed) and
+  a further real reversibility check (the standard D-022-style fix
+  didn't apply here), continuing to guess had a bad cost/evidence
+  ratio. Reverted cleanly (`git checkout --` on the two touched files,
+  new subprocess script deleted) rather than land a scene variant known
+  to sometimes silently mis-report which objects exist.
+- **Consequences:** Held-out-scene-layout split remains blocked, exactly
+  as before this attempt — no new capability shipped, no regression
+  either. A real, disclosed finding for whoever picks this up next: the
+  existing two layouts (`kitchen_cabinet`/`kitchen_sink`) are confirmed
+  robust; a new `build_config_idx` is not guaranteed to be, and the
+  actual mechanism remains unidentified. Worth a fresh, more targeted
+  investigation into the ManiSkill3 scene builder's actual object-
+  visibility-assignment code path before trying another candidate index,
+  not another round of black-box trial and error.
+
+## D-060: Added imitation learning, compared against Q-learning under matched conditions
+
+- **Date:** 2026-08-05
+- **Status:** Accepted
+- **Decision:** Direct request to add imitation learning and compare it
+  against reinforcement learning in this project. Built
+  `src/atr/policies/imitation.py` (real, promoted `src/atr/` architecture
+  from the start, no spike stage -- same precedent as D-056/D-057, since
+  the gap was "never built," not "built once as a spike"): behavioral
+  cloning over the identical `(goal_id, feasible) -> {SKIP, ATTEMPT}`
+  state/action space `atr.policies.q_learning` already learns via
+  reward, parameterized the same way (`attempt_goal_fn`/`tray_slots`),
+  so the two are trained and compared under genuinely matched conditions,
+  not just described side by side.
+
+  `collect_demonstrations()` rolls out episodes with an expert deciding
+  every action (`ATTEMPT` iff `goal_feasible()` says so -- the same rule
+  `feasibility_aware_policy` hard-codes and D-025 already showed
+  Q-learning recovers independently), recording every `(state_key,
+  action)` pair. `train_bc_table()` predicts the majority demonstrated
+  action per state key (standard frequency-based behavioral cloning),
+  falling back to the *global* majority action for a key never
+  demonstrated at all -- documented as the standard default for an
+  unseen class, not a hand-picked value chosen to force a particular
+  result.
+
+  Built and verified two comparisons, not just one:
+  1. **Full-coverage demonstrations** (both `intervention_kind="none"`
+     and `"bowl_destroyed"` episodes, matching `train_q_table()`'s own
+     default coverage): the resulting BC table matches the expert rule
+     at every key, and `imitation_policy()` matches
+     `feasibility_aware_policy()` exactly on a live episode
+     (`goals_achieved`/`wasted_steps` identical). Confirms imitation
+     *can* recover the same rule Q-learning does, given comparable
+     coverage.
+  2. **Narrow-coverage demonstrations** (`intervention_kind="bowl_destroyed"`
+     only): `place_bowl` is *always* infeasible by check time in every
+     demo episode (the intervention always fires before goal 2 is
+     reached), so `("place_bowl", True)` is never demonstrated at all --
+     confirmed directly, not assumed (a test asserts the key is absent
+     from the trained BC table). Evaluated on a live `"none"` episode
+     (bowl actually feasible): the narrow BC table wrongly skips
+     `place_bowl` (falls back to the global-majority default, which in
+     this exact scenario ties 40-40 between the two goals'
+     always-consistent demonstrated actions and breaks toward SKIP by
+     dict insertion order -- documented honestly as this scenario's own
+     tie, not claimed as "IL is inherently pessimistic" in general),
+     while a normally-trained Q-table (`train_q_table_canonical()`,
+     which explores both feasible and infeasible states directly via
+     reward) gets both goals right. Verified with a standalone script
+     first, matching this project's habit of confirming a result exists
+     before writing it into a formal test.
+- **Reason:** Direct instruction. Framed as the standard, textbook
+  IL-vs-RL coverage trade-off (behavioral cloning can't correct a
+  demonstration distribution's own gaps; reward-driven exploration can),
+  made concrete and empirically checked in this project's own toy
+  setting rather than asserted from the literature. Documented in
+  docs/07-adaptive-policy-design.md, including an explicit note on where
+  this project's setup is a poor match for IL's usual motivation (a
+  free, perfect privileged-state "expert" already exists here, so
+  demonstrations cost nothing to generate -- unlike the usual cases IL
+  is valuable for) and where it would be a better match (cloning the
+  low-level `attempt_goal_fn` reach trajectory, currently hand-tuned,
+  not learned at all -- a real future extension, not attempted here).
+- **Consequences:** Third real learned-policy instance in this project
+  (hard-coded rule / Q-learned / imitation-learned), all converging to
+  the same decision given comparable evidence, with one genuine, checked
+  divergence when evidence coverage differs. 5 new tests
+  (`test_imitation_policy.py`), all against real live episodes, not
+  mocked. Full suite re-verified green.
+
 ## D-059: Third intervention kind, matched pair, unlocking a real held-out-intervention split
 
 - **Date:** 2026-08-05

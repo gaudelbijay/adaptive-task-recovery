@@ -38,7 +38,7 @@ logic in docs/04-benchmark-environment.md aren't just prose anymore.
 | [`../../src/atr/envs/tidy_up_replicacad_humanoid_policies.py`](../../src/atr/envs/tidy_up_replicacad_humanoid_policies.py) *(promoted, D-049)* | The same three policies, arm-reach only (no navigation — G1 can't move its base). |
 | [`../../src/atr/language/instruction_parser.py`](../../src/atr/language/instruction_parser.py) *(promoted, D-038)* | `parse_instruction()` — turns an instruction sentence into a `GoalGraph`, instead of writing one by hand. Controlled grammar, closed object vocabulary. Wired into `tidy_up_env.py`. See "Language layer" below. |
 | [`../../src/atr/feasibility/clip_feasibility.py`](../../src/atr/feasibility/clip_feasibility.py) *(promoted, D-039)* | `visual_object_exists()` — judges object presence from a rendered camera frame using zero-shot CLIP, instead of reading privileged state. Calibrated against `tidy_up_env_replicacad_humanoid.py`. See "Vision layer" below. |
-| [`dinov2_probe.py`](dinov2_probe.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. See "Self-supervised representation layer" below. |
+| [`dinov2_probe.py`](dinov2_probe.py) | `dinov2_embed()` + `fit_and_evaluate_probe()` — a self-supervised (no text/labels) embedding plus a linear probe, instead of CLIP's language-aligned zero-shot judgment. `fit_probe()`/`run_end_to_end_episode_dinov2()`/`collect_arm_occluded_examples()` (D-054/D-055) wire it into a real live decision loop and close the robustness gap doing so first surfaced. Still not promoted. See "Self-supervised representation layer" below. |
 | [`../../src/atr/envs/capture_episode_subprocess.py`](../../src/atr/envs/capture_episode_subprocess.py) *(promoted, D-052)* | One-shot render capture, run only as a subprocess — works around D-022 (a confirmed upstream ManiSkill3 rendering bug) by making every labeled example the OS's "first" render-producing reset. |
 | [`rl_policy.py`](rl_policy.py) | `train_q_table_canonical()` + `learned_policy()` — tabular Q-learning that discovers "attempt iff feasible" from reward, instead of `feasibility_aware_policy`'s hard-coded rule. Thin wrapper over [`../../src/atr/policies/q_learning.py`](../../src/atr/policies/q_learning.py) since D-041. See "Learned policy" below. |
 | [`../../src/atr/control/ik_solver.py`](../../src/atr/control/ik_solver.py) *(promoted, D-051)* | `solve_right_arm_ik()` + `best_reachable_distance()` — a real analytic-Jacobian IK solver on `pinocchio`, built to retry D-024's grasp confirmation properly. See "Real IK retry" below. |
@@ -607,12 +607,17 @@ True)` converged to a *negative* Q-value, which should never happen for a
 feasible goal. Fixed the same way (`_wait()`, keeping elapsed time
 consistent regardless of which action gets explored).
 
-**Not wired in:** `dinov2_probe.py`'s DINOv2 probe (D-023) as an
-alternative to CLIP for the live perception step. It needs a probe
-pre-fit on multiple labeled examples, not a single-frame judgment the way
-CLIP's zero-shot scoring is — swapping it in would add real complexity for
-a demonstration that already has what it needs. It remains a
-separately-validated alternative perceptual backend, not integrated here.
+**Later wired in for real (D-054/D-055):** `dinov2_probe.py`'s DINOv2
+probe (D-023) as an alternative to CLIP for the live perception step,
+via `run_end_to_end_episode_dinov2()`. Not a clean success at first — a
+real live episode surfaced a genuine robustness gap (the probe,
+calibrated only on arm-at-rest captures, misjudged a destroyed object as
+present once G1's own reaching arm entered frame). Closed for real
+(D-055) by training on examples that reflect that same post-first-attempt
+state, not by tuning the failing test. See D-054/D-055 in
+`ai-notes/decisions.md` — this module remains not promotion-ready
+regardless, since a closed gap in one scenario isn't a general
+readiness claim.
 
 ## What this deliberately doesn't cover yet
 

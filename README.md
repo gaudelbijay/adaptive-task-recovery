@@ -59,13 +59,18 @@ to [`src/atr/`](src/atr/) (D-037). **Read the review's status banner before
 treating that as settled**: it was self-resolved by the project owner, not
 independently reviewed by the teammate it was written for — see
 [`ai-notes/review-request-task-schema.md`](ai-notes/review-request-task-schema.md).
-Everything else remains spike work in `spikes/task_schema_draft/`, substantial
-and tested but not yet promoted: confirmed embodiment-agnostic across four
-robot/scene combinations (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD
-apartment with a mobile Fetch robot, and G1 placed in that same apartment), plus
-one working build-up-order pass through language parsing, zero-shot vision,
-self-supervised representations, and a learned (Q-learning) policy — 103
-tests passing.
+The promotion sweep is now effectively complete: language parsing, zero-shot
+CLIP feasibility, the policy baselines (static/oracle-feasibility/naive-
+substitution), Q-learning, imitation learning, every embodiment/scene
+environment (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD apartment
+with a mobile Fetch robot, and G1 placed in that same apartment), the
+end-to-end pipeline, the evaluation harness, a queryable dataset-split
+registry (instruction- and intervention-level), a log interface, and
+experiment tracking all live in `src/atr/`, tested and `git`-committed
+architecture. Only `dinov2_probe.py` remains spike-stage in
+`spikes/task_schema_draft/` — DINOv2 wired into a real live decision loop,
+a genuine robustness gap found and closed (D-054/D-055), still not
+promotion-ready. 154 tests passing.
 See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study design.
 
 ## Roadmap

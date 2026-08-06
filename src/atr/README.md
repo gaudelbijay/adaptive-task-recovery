@@ -28,7 +28,10 @@ D-013's core schema has been reviewed and promoted here.
 | [`envs/tidy_up_replicacad_humanoid_policies.py`](envs/tidy_up_replicacad_humanoid_policies.py) | Same policy API, arm-reach only (no navigation). Positions already imported, not duplicated. | `spikes/task_schema_draft/policy_baselines_replicacad_humanoid.py` | D-049 |
 | [`pipeline.py`](pipeline.py) | `run_end_to_end_episode()` — language parsing, real vision-based feasibility, and a learned policy combined into one real episode. Last of the six build-up stages promoted. Uses `atr.policies.q_learning.greedy_action()` (new, D-050) instead of a duplicated argmax lookup. | `spikes/task_schema_draft/end_to_end.py` | D-050 |
 | [`control/ik_solver.py`](control/ik_solver.py) | `solve_right_arm_ik()`/`best_reachable_distance()` — real analytic-Jacobian IK on `pinocchio`, deterministic, verified against ManiSkill's own kinematics. Zero project-internal dependency, plain `git mv`. | `spikes/task_schema_draft/ik_solver.py` | D-051 |
-| [`envs/capture_episode_subprocess.py`](envs/capture_episode_subprocess.py) | Standalone script (never imported, run via subprocess) that captures one render-producing reset in its own fresh process — works around D-022's confirmed upstream ManiSkill3 rendering bug. Promoted even though its main caller (`dinov2_probe.py`) isn't ready, same situation D-039 handled for `device_utils.py`. | `spikes/task_schema_draft/capture_episode_subprocess.py` | D-052 |
+| [`envs/capture_episode_subprocess.py`](envs/capture_episode_subprocess.py) | Standalone script (never imported, run via subprocess) that captures one render-producing reset in its own fresh process — works around D-022's confirmed upstream ManiSkill3 rendering bug. Promoted even though its main caller (`dinov2_probe.py`) isn't ready, same situation D-039 handled for `device_utils.py`. `--attempt-object` option added D-055 (real `attempt_goal()` replay, not just an arm reach) for DINOv2 robustness-gap training data. | `spikes/task_schema_draft/capture_episode_subprocess.py` | D-052 |
+| [`evaluation/logging.py`](evaluation/logging.py) | `build_episode_log()`/`append_episode_log()`/`read_episode_logs()` — the log interface docs/03's data-flow step 6 described but nothing had implemented. Attaches oracle labels + normalized violations to the `per_goal`/`goals_achieved`/`wasted_steps` shape every policy already produces; persists as JSONL. Wired into `evaluation/harness.py` as an opt-in `log_path`/`log_dir`. | new (D-056) | D-056 |
+| [`evaluation/tracking.py`](evaluation/tracking.py) | `track_comparison()`/`list_runs()` — experiment tracking on top of `harness.py`/`logging.py`, no new dependency. Persists a `summary.json` (run id, git commit, seeds, bootstrap-CI report) plus per-policy episode logs to `data/runs/<run_id>/` (gitignored). | new (D-057) | D-057 |
+| [`policies/imitation.py`](policies/imitation.py) | `collect_demonstrations`/`train_bc_table`/`imitation_policy` — behavioral cloning over the identical `(goal_id, feasible) -> {SKIP, ATTEMPT}` state/action space `q_learning.py` learns via reward, so the two are trained and compared under matched conditions. See docs/07-adaptive-policy-design.md for the actual IL-vs-RL comparison this supports. | new (D-060) | D-060 |
 
 This is D-013's original proposal (goal/constraint schema, oracle
 feasibility, intent guard) plus the two schema questions that came up
@@ -86,17 +89,27 @@ status, not the underlying evidence's scale. See
 
 ## What's still in `spikes/task_schema_draft/`, not here
 
-Only `dinov2_probe.py` — the one module flagged early on as not ready
-(D-039's write-up: weaker evidence than CLIP, one scene layout, never
-wired into a live decision loop) and still true. Everything else that
-started in `spikes/task_schema_draft/` has now either been promoted or
-explicitly evaluated and held back. Each promotion so far (D-038 through D-052)
-was made on that module's own evidence, not as a side effect of an
-earlier one, and each carries whatever caveat its own evidence actually
-supports (D-039's calibration-not-generalization note, D-040/D-041's
-"this interface came from real implementations, not from docs/03's
-untested pseudocode" — see each decision's own reasoning) — see
-`spikes/task_schema_draft/README.md` for the full narrative.
+Only `dinov2_probe.py` — the one module flagged early on as not ready.
+Its live-decision-loop gap (D-039's original write-up) is no longer
+open: D-054 wired it in for real and found a genuine robustness gap,
+D-055 closed that gap for real (training data covering the same
+post-first-attempt state the live loop actually renders, not a tuned
+test). Still not promoted — a closed gap in one specific scenario isn't
+a general promotion-readiness claim, and the weaker-evidence caveat
+(calibration, not generalization, per D-039) still applies. Everything
+else that started in `spikes/task_schema_draft/` has now either been
+promoted or explicitly evaluated and held back. Each promotion so far
+(D-038 through D-052) was made on that module's own evidence, not as a
+side effect of an earlier one, and each carries whatever caveat its own
+evidence actually supports (D-039's calibration-not-generalization note,
+D-040/D-041's "this interface came from real implementations, not from
+docs/03's untested pseudocode" — see each decision's own reasoning) —
+see `spikes/task_schema_draft/README.md` for the full narrative.
+`evaluation/logging.py` (D-056), `evaluation/tracking.py` (D-057), and
+`policies/imitation.py` (D-060) are real, `src/atr/`-committed
+architecture too, but never had a spike stage to promote from — each
+closed a gap ("this was never built," not "built once as a draft") the
+same way `evaluation/splits.py` (D-044) originally did.
 
 [`configs/`](../../configs/) and [`data/`](../../data/) (added alongside
 this package, D-032) are still empty — nothing here yet needs

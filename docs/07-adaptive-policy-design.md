@@ -55,6 +55,54 @@ itself is now learned rather than hand-coded. Matches
 `feasibility_aware_policy`'s behavior exactly once trained. Still toy scale
 (2 goals, 3 meaningful states) — see D-025's own "Consequences" note.
 
+**A second learned variant, for comparison against the first
+(2026-08-05, D-060):** `atr.policies.imitation` (promoted from the start —
+see D-060 in `ai-notes/decisions.md`) learns the same #4 attempt/skip
+decision by behavioral cloning from demonstrations of
+`feasibility_aware_policy`'s own rule, instead of Q-learning's
+trial-and-reward. Same `(goal_id, feasible) -> {SKIP, ATTEMPT}` state/
+action space and `attempt_goal_fn`/`tray_slots` parameterization as
+`q_learning.py`, so the two are trained and compared under matched
+conditions, not just described side by side.
+
+Where imitation learning is used here, concretely, and where it isn't:
+this project's environments already provide a cheap, perfect "expert" —
+`goal_feasible()`'s privileged-state rule — so demonstrations cost
+nothing to generate (no human teleoperation, no separately-trained
+policy to imitate). That's a genuinely different regime from where
+imitation learning usually earns its keep (expensive-to-generate reward
+signals, or a real robot where trial-and-error exploration is costly or
+unsafe) — worth stating plainly rather than overselling the toy result.
+The actual finding this comparison produces (D-060, verified, not
+assumed):
+
+- Given demonstration coverage comparable to what Q-learning explores
+  (both feasible and infeasible states shown), imitation matches
+  Q-learning's behavior exactly — the same "recovers the hand-coded
+  rule" result D-025 already got for Q-learning, now for a second,
+  differently-trained policy.
+- Given *narrower* demonstration coverage (e.g. only ever demonstrated
+  with the intervention already fired, so the expert is only ever seen
+  skipping the bowl goal, never attempting it), imitation inherits that
+  narrowness in a way Q-learning's own exploration doesn't: querying a
+  state nobody ever demonstrated falls back to a global-majority default
+  that, in this exact narrow setup, wrongly abandons a goal that was
+  actually achievable. Q-learning, trained with real exploration across
+  both feasible and infeasible episodes, doesn't have this gap, since it
+  visits the state directly instead of relying on a demonstrator having
+  visited it first.
+
+This is the standard, textbook IL-vs-RL coverage trade-off (behavioral
+cloning can't correct a demonstration distribution's own gaps; on-policy
+exploration can), made concrete and empirically checked in this
+project's own toy setting rather than only asserted. A real future
+extension, not attempted here: using imitation learning for something
+Q-learning's reward signal genuinely *can't* cheaply supervise — e.g.
+cloning a scripted or human-teleoperated low-level reach/grasp
+trajectory (this project's `attempt_goal_fn` is currently a fixed,
+hand-tuned reach, not learned at all), rather than the high-level
+attempt/skip decision, where a privileged-state reward is already free.
+
 ## Strategy adaptation
 
 The initial implementation should use a high-level policy that selects the next
