@@ -2,6 +2,65 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-069: First real held-out-intervention generalization run — D-059's split registry finally exercised
+
+- **Date:** 2026-08-06
+- **Status:** Accepted
+- **Decision:** D-059 built `INTERVENTION_SPLITS`/`HELD_OUT_INTERVENTION`
+  (`atr.evaluation.splits`) to unlock a real held-out-intervention split,
+  but nothing had ever actually trained on the "train" split and
+  evaluated on "held_out_intervention" -- the registry existed, the
+  experiment didn't. Ran it for real: trained `train_q_table()`
+  (reward-driven) and `collect_demonstrations()`/`train_bc_table()`
+  (demonstration-driven) with `intervention_kinds` restricted to exactly
+  `INTERVENTION_TRAIN`'s two entries (`bowl_destroyed`,
+  `temporary_obstacle` -- both blind-timer mechanisms), then evaluated
+  both trained policies on `HELD_OUT_INTERVENTION`'s two entries
+  (`resource_contention`/`resource_contention_temporary`, D-059's
+  progress-contingent mechanism -- genuinely different, not a relabeled
+  copy of the same trigger).
+
+  Real, measured result: both learned policies match
+  `feasibility_aware_policy` (the oracle reference) exactly on the
+  never-seen intervention -- confirmed first on a standalone script
+  across 5 seeds, then formally via `track_comparison()`
+  (`atr.evaluation.tracking`, D-057 -- its first real use for a
+  substantive comparison, not just its own tests) across 20 paired
+  seeds: `goals_achieved`/`wasted_steps` both exactly 1.0/0.0 for
+  `feasibility_aware_oracle`, `learned`, and `imitation` alike, zero
+  variance across every seed. A real tracked artifact now exists in
+  `data/runs/` (gitignored, generated, per D-032) with the full
+  bootstrap-CI report. Locked in as a regression test
+  (`tests/drafts/test_held_out_intervention_generalization.py`),
+  checking both held-out kinds (the permanent and the reversible one),
+  not just one.
+
+  Not a coincidence to be surprised by, and said so directly rather than
+  oversold: both learned policies' state is keyed on `(goal_id,
+  feasible)`, where `feasible` comes from `goal_feasible()` (privileged
+  existence) -- a representation that never encoded *how* an object
+  became infeasible, only *whether* it currently is. Generalizing
+  correctly to a new *mechanism* is close to guaranteed by that
+  abstraction; this run is the first actual confirmation that guarantee
+  holds in practice, not a discovery that it might not have.
+- **Reason:** Direct instruction to run a real held-out generalization
+  eval, following the progress-check conversation that flagged this
+  registry as built-but-never-exercised -- the biggest concrete gap
+  named in that discussion, alongside the now-closed task-reward-only
+  baseline (D-066).
+- **Consequences:** D-059's split registry has now actually been used
+  for its intended purpose, not just built. Same zero-variance
+  limitation D-042 already found for every other paired-seed comparison
+  in this project applies here too -- the bootstrap CI has nothing to
+  say yet because nothing in this toy setup varies. What this run does
+  *not* test: held-out-change generalization for *perception* (CLIP/
+  DINOv2) rather than privileged-state policy decisions --
+  `INTERVENTION_SPLITS`'s `env_id` (`TidyUp-v1`) has no vision
+  calibration at all (only the ReplicaCAD-Humanoid env's real YCB
+  objects do), so a genuinely analogous vision-generalization
+  experiment would need new calibration work, not attempted here. Full
+  suite re-verified green.
+
 ## D-068: Pretrained frozen vs. fine-tuned encoders — the last required baseline, and a second data point on D-054/D-055's robustness story
 
 - **Date:** 2026-08-06
