@@ -157,6 +157,25 @@ mattering once either intervention timing is randomized across a window
 that changes outcomes, or a perceptual policy (real CLIP/DINOv2 error
 variance, not privileged-state ground truth) is what's compared.
 
+**Root cause found and fixed, 2026-08-07 (D-070):** the zero-variance
+result above (and D-069's, after it) traced to `onset_step_range=(2, 3)`
+-- `tidy_up_env.py` samples via `rng.integers(*self.onset_step_range)`,
+and numpy's `Generator.integers()` is exclusive on the upper bound
+(unlike Python's inclusive `random.randint`), so `(2, 3)` always samples
+exactly `2`. Every prior comparison in this project used a range this
+narrow or narrower. Fixed by using a genuinely wide range, `(10, 60)` --
+wide enough to span both goals' own ~25-step attempt durations, not just
+to vary the onset value itself; narrower ranges like `(5, 15)`/`(5, 40)`
+still don't produce outcome variance. `static`/`feasibility_aware` both
+got real, non-degenerate bootstrap CIs for the first time
+(`tests/drafts/test_wide_onset_timing_variance.py`). Investigating why
+`learned`'s result didn't fit that pattern surfaced a substantive,
+unplanned finding of its own -- see D-070 in `ai-notes/decisions.md` and
+docs/01's H2 update: under this wider, more realistic timing regime,
+"currently feasible" stops reliably predicting "will complete," and a
+reward-trained policy's resulting extra caution is the mathematically
+correct response to that risk, not a bug.
+
 ## Critical controls
 
 - unchanged worlds, to measure unnecessary adaptation;

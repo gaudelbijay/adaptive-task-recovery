@@ -2,6 +2,97 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-070: Gave the statistics machinery real variance — and found the reward-optimal policy under it isn't "attempt iff feasible"
+
+- **Date:** 2026-08-07
+- **Status:** Accepted
+- **Decision:** D-042's harness and D-069's held-out-intervention run both
+  reported zero outcome variance across every seed. Root-caused it: every
+  comparison in this project so far passed an onset-timing range like
+  `(2, 3)` or `(5, 15)` (`onset_step_range`, `tidy_up_env.py`), and
+  `rng.integers(*self.onset_step_range)` — numpy's `Generator.integers()`
+  is exclusive on the upper bound, unlike Python's inclusive
+  `random.randint` — means `(2, 3)` always samples exactly `2`. Not an env
+  bug; nothing in those earlier tests needed timing variance for what they
+  were checking. But it meant the bootstrap-CI machinery (D-042) has never
+  had anything non-degenerate to report on.
+
+  Fixed by using a genuinely wide range, `(10, 60)` — wide enough to span
+  both `place_mug`'s and `place_bowl`'s own ~25-step attempt durations, not
+  just to vary the onset value itself. Confirmed directly: real
+  `goals_achieved` variance across seeds (1 vs. 2), narrower ranges like
+  `(5, 15)`/`(5, 40)` still don't produce any. Ran a real 3-way comparison
+  via `track_comparison()` (`static`/`feasibility_aware`/`learned`,
+  `bowl_destroyed`, 40 paired seeds): `static` and `feasibility_aware` both
+  got real, non-degenerate bootstrap CIs for the first time in this
+  project's history (e.g. `static` goals_achieved mean=1.175,
+  CI=[1.075, 1.3]).
+
+  `learned` didn't fit that pattern — flat at goals_achieved=1.0,
+  wasted_steps=0.0 across every seed. Its trained Q-table had a *negative*
+  Q-value for `(place_bowl, True)` + ATTEMPT (`-0.316`, vs. `-1.275` for
+  SKIP... inverted from every other run in this project, where perceived-
+  feasible always favored attempting). Treated it as a hypothesis to test,
+  not a bug to assume or a result to shrug off (project convention: D-061
+  investigated exhaustively before reverting; D-066 investigated exhaustively
+  before accepting a striking negative result as real). Ran a targeted
+  diagnostic: always attempt both goals across 60 seeds with the same wide
+  `(5, 60)` range, check `goal_feasible()` for `place_bowl` right when its
+  own decision point is reached (after `place_mug`'s attempt completes), then
+  check whether it actually got achieved.
+
+  **Result: of 40/60 episodes where `place_bowl` was perceived feasible at
+  its own decision point, 29 (72.5%) were destroyed *during* that goal's own
+  attempt anyway** — because attempting itself takes ~25 steps, comparable
+  to the intervention's own timing spread, so "feasible right now" is a
+  snapshot that a wide-enough intervention window can invalidate before the
+  attempt even finishes. Given this project's reward shape (+1.0 on success,
+  -0.1 × steps_used ≈ -2.5 on a full failed attempt otherwise), the expected
+  value of attempting under a 72.5% failure rate is strongly negative
+  (≈ -1.54, against 0.0 for skipping) — so the Q-learning agent's negative
+  Q-value is the mathematically correct, reward-maximizing response to its
+  training distribution, not a bug.
+
+  The consequence worth naming plainly: under this specific reward shape and
+  timing distribution, **`feasibility_aware_policy`'s hard-coded "attempt
+  iff currently feasible" rule is not itself reward-optimal.** It captures
+  the ~18% of cases (11/60) where attempting a perceived-feasible goal
+  actually pays off, at the cost of wasting steps in the other ~82% where it
+  doesn't — a different, defensible trade-off (favoring goal recall over
+  step efficiency), but a different one, not a strictly better one, from
+  what a reward-trained policy converges to. Locked in as regression tests
+  (`tests/drafts/test_wide_onset_timing_variance.py`): real variance exists
+  under the wide range; perceived-feasible-now measurably fails to predict
+  completion; the Q-table's SKIP preference and its zero-waste/zero-extra-
+  achievement trade-off are both asserted directly, not just described.
+- **Reason:** Direct instruction to give the paired-seed bootstrap-CI
+  machinery (D-042) real variance to measure — the concrete gap named
+  repeatedly since D-042 first flagged it as untested on non-degenerate
+  data. The Q-learning finding was not sought; it surfaced investigating why
+  `learned`'s result under the new wide range looked qualitatively different
+  from the other two policies, and was root-caused rather than asserted or
+  dismissed, per established project practice.
+- **Consequences:** The statistical machinery (D-042/D-057) now has a real,
+  reusable example of non-degenerate paired-seed data to point to, closing
+  that specific gap. More significant: this is the first concrete evidence
+  in this project that *instantaneous* existence-based feasibility
+  (`goal_feasible()`, used everywhere as ground truth, including inside
+  `feasibility_aware_policy` itself) is an incomplete signal once
+  intervention timing is realistic enough to span an attempt's own
+  duration — the binary check doesn't distinguish "safe" from "feasible now
+  but at risk of being invalidated mid-attempt." A calibrated
+  *probability* of remaining feasible through completion, not just a
+  feasible/infeasible bit, would be needed to make "attempt iff feasible"
+  actually reward-optimal in this regime — not attempted here, a real
+  candidate for H5 (calibration) rather than H2. Directly validates a design
+  choice this project's own docs already argued for on different grounds
+  (docs/01/docs/10: report goals-achieved and wasted-steps *separately*
+  rather than collapsing into one reward number) — this finding is a
+  concrete case where two policies trade those two metrics against each
+  other in genuinely different, non-dominated ways, exactly the scenario
+  that separation exists to surface rather than hide. Full suite re-verified
+  green (pending final run).
+
 ## D-069: First real held-out-intervention generalization run — D-059's split registry finally exercised
 
 - **Date:** 2026-08-06

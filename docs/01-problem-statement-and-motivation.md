@@ -119,6 +119,30 @@ unrequested object, or violate the glass constraint for reward.
   from reward alone, rather than having it hand-coded, and matches the
   hard-coded policy's behavior exactly. Still toy-scale (privileged-state
   feasibility, 2-goal instructions); still not the general claim.
+  **A real limitation of the "condition on feasibility" strategy itself
+  surfaced 2026-08-07 (D-070), not sought — found investigating an
+  unexpected result while giving the evaluation harness genuine timing
+  variance to measure:** once intervention timing is wide enough to span a
+  goal's own ~25-step attempt duration (not the narrow windows every
+  earlier H2 comparison used), "currently feasible" stops reliably
+  predicting "will complete" -- measured directly, 72.5% (29/40) of cases
+  perceived feasible at decision time were destroyed mid-attempt anyway.
+  Under this project's reward shape, that makes attempting a
+  perceived-feasible goal have strongly negative expected value, so a
+  reward-trained Q-learning policy correctly (not buggily) learns to skip
+  it -- meaning `feasibility_aware_policy`'s hard-coded "attempt iff
+  currently feasible" rule, used throughout this project as the H2
+  reference behavior, is *not itself reward-optimal* under this more
+  realistic timing regime. It still captures real upside (the ~18% of
+  cases where attempting does pay off) at the cost of wasted steps in the
+  rest -- a defensible, different trade-off, not simply a worse policy,
+  and exactly why goals-achieved and wasted-steps are reported separately
+  rather than collapsed into one number (see docs/10). The deeper
+  implication for H2: a binary existence check is an incomplete feasibility
+  signal once mid-attempt risk is real; a calibrated *probability* of
+  remaining feasible through completion would be needed for "attempt iff
+  feasible" to be reward-optimal here -- closer to H5's calibration
+  question than H2's original framing, and not attempted yet.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and
