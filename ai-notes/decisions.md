@@ -2,10 +2,123 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-071: Built an explicit calibration primitive for H5 — and it caught a real overclaim in D-070
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** D-070 flagged, as unattempted future work, a calibrated
+  probability of remaining feasible through completion (H5's question)
+  instead of a binary `goal_feasible()` check. Built it
+  (`src/atr/feasibility/calibrated_feasibility.py`):
+  `calibrate_survival_probability()` runs real rollouts and directly
+  measures P(achieved | perceived feasible at decision time) per goal, via
+  Monte Carlo, not TD learning; `calibrated_feasibility_policy()` attempts
+  a perceived-feasible goal only when that calibrated probability gives
+  positive expected value under the same reward shape `train_q_table()`
+  uses.
+
+  The first version calibrated one probability per goal, pooled across
+  every `intervention_kind`. Verifying it before trusting it (this
+  project's standing practice) surfaced a direct contradiction: a 338-
+  episode Monte Carlo estimate of the exact same quantity D-070's Q-table
+  converged on — `EV(ATTEMPT | place_bowl, feasible=True)` — came out
+  **positive** (+0.037), not negative. Investigated rather than picked a
+  side: re-trained the Q-table across 6 independent seeds (all 6
+  converged SKIP-favored, ruling out pure noise) and re-trained with 8x
+  more episodes (1200 vs. 150) across 4 more seeds — the negative bias
+  *shrank* substantially (from a -0.31 to -1.66 range down to -0.03 to
+  -0.38) but didn't fully close, consistent with slow convergence toward
+  a near-zero true value, not a stable discovery. Computed a proper
+  bootstrap CI (`atr.evaluation.harness.bootstrap_ci`, D-042, reused
+  rather than hand-derived) on two versions of the same underlying
+  quantity: pooled across `"none"`/`"bowl_destroyed"` (matching what the
+  Q-table's `(goal_id, feasible)` state key actually sees), and
+  conditional on `"bowl_destroyed"` alone (matching what D-070's original
+  diagnostic script actually measured).
+
+  **Result: the pooled quantity's 95% CI straddles zero** (`n=441`,
+  mean=0.0000, CI=[-0.15, 0.15]) — genuinely statistically ambiguous, not
+  confidently negative. **The conditional-on-active-risk quantity is
+  robustly, confidently negative** (`n=198`, mean=-1.23,
+  CI=[-1.46, -0.98]) — this is the part of D-070 that holds up exactly:
+  attempting a perceived-feasible goal while the risky intervention is
+  actually in play really does have strongly negative expected value,
+  matching D-070's own 72.5%-mid-attempt-failure measurement almost
+  exactly. What doesn't hold up is treating the Q-table's specific
+  point estimate — trained on the *pooled* state, on only ~32 visits to
+  that exact state-action pair — as a reliable measurement of that
+  quantity. It isn't one; it's a recency-biased artifact of constant-
+  learning-rate TD learning on a rarely-visited, mixed-sign-reward state,
+  landing on a confidently-wrong-looking number because pooling
+  "risk-free" and "genuinely risky" episodes under one state key erases
+  exactly the distinction that made the true answer decisive.
+
+  Fixed by keying calibration on `(goal_id, intervention_kind)` instead
+  of pooling — `env.unwrapped.intervention_kind` is privileged state at
+  the same privilege level `goal_feasible()` itself already uses
+  throughout this project, not a new kind of access. Re-verified: this
+  gives a decisive, non-ambiguous answer — `place_bowl` under
+  `bowl_destroyed` calibrates to survival=0.26 (EV=-1.58, confidently
+  skip), under `"none"` calibrates to survival=1.0 (EV=+1.0, never skip).
+  Deployed across seeds: skips the risky goal 20/20 times under real
+  risk, never skips (0/20) when genuinely safe — correctly adapting to
+  the actual active intervention, something neither the binary
+  `feasibility_aware_policy` rule nor the pooled-state Q-table can
+  express. Also ran the calibration-vs-deployment-distribution-mismatch
+  experiment originally planned: calibrating under a wide onset window
+  then deploying under a much narrower one (where the intervention, if it
+  fires, always resolves before the second goal's own decision point, so
+  attempting is actually safe there) keeps the pessimistic wide-regime
+  probability — over-conservative for the regime actually deployed in,
+  not automatically recalibrated. A real, disclosed limitation: unlike
+  D-069's intervention-*mechanism* generalization (free by construction,
+  since the `(goal_id, feasible)` state never encoded mechanism),
+  generalizing across intervention-*timing distributions* is not free the
+  same way.
+
+  Locked in as 8 regression tests
+  (`tests/drafts/test_calibrated_feasibility.py`), including the pooled-
+  vs-conditional contrast and the mismatch experiment. Added a forward-
+  pointer correction directly to D-070's entry above rather than editing
+  its original text, so a reader scanning it alone isn't misled by the
+  now-superseded Q-value claim.
+- **Reason:** Direct continuation of D-070's own named next step (a
+  calibrated probability instead of a binary check, motivated by H5).
+  The correction to D-070 wasn't sought — it surfaced from this project's
+  standing practice of verifying a new measurement against an existing
+  one before trusting either, applied here to two different estimators
+  (Monte Carlo vs. TD learning) of the same underlying quantity.
+- **Consequences:** `calibrated_feasibility.py` is a real, working,
+  tested H5 building block — the first place in this project a
+  calibrated probability (not a binary feasibility bit or an opaque
+  Q-value) directly drives a policy decision, and the first place a
+  bootstrap CI is used to validate a *training signal* rather than a
+  final policy comparison. It also surfaces a real, generalizable lesson
+  about the `(goal_id, feasible)` state abstraction every Q-learning/
+  imitation/domain-randomized policy in this project uses: pooling across
+  `intervention_kind` inside that state key is fine when the *mechanism*
+  doesn't matter to the correct decision (exactly D-069's finding), but
+  actively harmful when it does — here, the correct decision genuinely
+  depends on which intervention is active, and no state key that erases
+  that distinction can reliably express it, no matter how much training
+  data it gets. Retraining Q-learning itself on a richer state key (e.g.
+  `(goal_id, feasible, intervention_kind)`) to see whether it also
+  recovers the decisive conditional answer is a natural next step, not
+  attempted here. Full suite re-verified green (pending final run).
+
 ## D-070: Gave the statistics machinery real variance — and found the reward-optimal policy under it isn't "attempt iff feasible"
 
 - **Date:** 2026-08-07
-- **Status:** Accepted
+- **Status:** Accepted — **partially corrected by D-071 below.** The
+  timing-risk *mechanism* this entry identifies is real and still holds
+  (mid-attempt destruction under wide onset timing is a genuine effect).
+  What does **not** hold up: treating the trained Q-table's specific
+  negative value for `(place_bowl, True)` + ATTEMPT as "the mathematically
+  correct, reward-maximizing response." D-071 found that value is a
+  small-sample training artifact on a *pooled* (across `intervention_kind`)
+  quantity whose true expected value is statistically indistinguishable
+  from zero — not confidently negative as stated below. Read D-071 before
+  citing this entry's Q-value claim.
 - **Decision:** D-042's harness and D-069's held-out-intervention run both
   reported zero outcome variance across every seed. Root-caused it: every
   comparison in this project so far passed an onset-timing range like

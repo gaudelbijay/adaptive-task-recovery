@@ -43,6 +43,19 @@ piece of evidence for H1's actual comparative claim in this project so
 far: the pretrained representations both succeed at 100% LOO accuracy
 on this data; training from scratch on the identical data does not
 learn to discriminate at all.
+
+`calibrated_feasibility.py` (D-071) is H5's (calibration) first real
+building block -- a probability of remaining feasible through completion,
+not a binary `goal_feasible()` bit, calibrated via direct Monte-Carlo
+rollouts and validated with a bootstrap CI (`atr.evaluation.harness`,
+D-042) rather than trusted as a point estimate. Verifying its first draft
+before trusting it caught a real overclaim in D-070 (see that entry's
+forward-pointer note in `ai-notes/decisions.md`): pooling across
+`intervention_kind` produces a statistically ambiguous number; keying
+calibration on `(goal_id, intervention_kind)` instead recovers a decisive
+one. Also confirmed a real, disclosed limitation: calibrating under one
+timing distribution and deploying under a mismatched one stays
+over-conservative, not automatically recalibrated.
 """
 
 from __future__ import annotations

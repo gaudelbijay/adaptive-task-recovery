@@ -126,23 +126,35 @@ unrequested object, or violate the glass constraint for reward.
   goal's own ~25-step attempt duration (not the narrow windows every
   earlier H2 comparison used), "currently feasible" stops reliably
   predicting "will complete" -- measured directly, 72.5% (29/40) of cases
-  perceived feasible at decision time were destroyed mid-attempt anyway.
-  Under this project's reward shape, that makes attempting a
-  perceived-feasible goal have strongly negative expected value, so a
-  reward-trained Q-learning policy correctly (not buggily) learns to skip
-  it -- meaning `feasibility_aware_policy`'s hard-coded "attempt iff
-  currently feasible" rule, used throughout this project as the H2
-  reference behavior, is *not itself reward-optimal* under this more
-  realistic timing regime. It still captures real upside (the ~18% of
-  cases where attempting does pay off) at the cost of wasted steps in the
-  rest -- a defensible, different trade-off, not simply a worse policy,
-  and exactly why goals-achieved and wasted-steps are reported separately
-  rather than collapsed into one number (see docs/10). The deeper
-  implication for H2: a binary existence check is an incomplete feasibility
-  signal once mid-attempt risk is real; a calibrated *probability* of
-  remaining feasible through completion would be needed for "attempt iff
-  feasible" to be reward-optimal here -- closer to H5's calibration
-  question than H2's original framing, and not attempted yet.
+  perceived feasible at decision time were destroyed mid-attempt anyway,
+  *conditional on the risky intervention actually being active*. That
+  conditional mechanism is real and held up under further scrutiny (D-071,
+  bootstrap CI clearly excludes zero, `n=198`). **D-070's further claim —
+  that a reward-trained Q-learning policy "correctly (not buggily) learns
+  to skip it," as the mathematically optimal response — was an overclaim,
+  corrected 2026-08-08 (D-071):** the Q-table's negative value was trained
+  on a *pooled* state key (`(goal_id, feasible)`, averaged across both the
+  risky intervention and episodes with no risk at all), and the true
+  expected value of that pooled quantity is statistically indistinguishable
+  from zero (CI straddles zero, `n=441`) — the confidently-negative Q-value
+  was a small-sample TD-learning artifact, not a genuine discovery, shown
+  directly by its instability under more training. Building an explicit
+  calibration primitive that keys on `(goal_id, intervention_kind)` instead
+  of pooling (`src/atr/feasibility/calibrated_feasibility.py`, D-071)
+  recovers the decisive conditional answer directly and adapts correctly
+  when no risk is present, something `feasibility_aware_policy`'s hard-coded
+  binary rule and the pooled-state Q-table both cannot express. The deeper,
+  still-standing implication for H2: a binary existence check is an
+  incomplete feasibility signal once mid-attempt risk is real, and a state
+  representation that pools across *why* a goal might currently be at risk
+  is not enough either — a calibrated probability keyed on the actual
+  mechanism was needed here, closer to H5's calibration question than H2's
+  original framing. Whether attempting is worth the risk once the true
+  conditional trade-off is properly captured — the ~18%-of-cases upside
+  D-070 originally described — is real and matches
+  `feasibility_aware_policy`'s own measured behavior; a fully reward-
+  optimal policy needs both the calibration *and* the mechanism-aware
+  state, not either alone.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and

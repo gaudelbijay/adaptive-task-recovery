@@ -172,9 +172,24 @@ got real, non-degenerate bootstrap CIs for the first time
 `learned`'s result didn't fit that pattern surfaced a substantive,
 unplanned finding of its own -- see D-070 in `ai-notes/decisions.md` and
 docs/01's H2 update: under this wider, more realistic timing regime,
-"currently feasible" stops reliably predicting "will complete," and a
-reward-trained policy's resulting extra caution is the mathematically
-correct response to that risk, not a bug.
+"currently feasible" stops reliably predicting "will complete" -- this
+part held up under further scrutiny. D-070's further claim that the
+trained Q-value itself was "the mathematically correct" response did not
+(**corrected 2026-08-08, D-071**): verifying a calibrated version of the
+same quantity against the Q-table's own point estimate surfaced that the
+Q-value was trained on a *pooled* state (across every `intervention_kind`,
+not just the risky one), and a proper bootstrap CI on that pooled quantity
+straddles zero (`n=441`) -- genuinely ambiguous, not confidently negative.
+Only the quantity conditional on the risky intervention actually being
+active is robustly negative (CI excludes zero, `n=198`). This is exactly
+the failure mode this section's own protocol exists to catch (a
+single-run point estimate stood in for a confidence interval, D-070's
+original miss) -- caught here by applying the same `bootstrap_ci()`
+machinery to a *training* signal, not just a final policy comparison, a
+first for this project. See D-071 for the fix (calibrate per
+`(goal_id, intervention_kind)` instead of pooling,
+`src/atr/feasibility/calibrated_feasibility.py`) and docs/01's H2 entry
+for the corrected research implication.
 
 ## Critical controls
 
