@@ -2,6 +2,64 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-072: Q-learning recovers the decisive conditional answer once the state key stops pooling across intervention_kind
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** D-071's own named next step: it fixed the pooling problem
+  for an explicit Monte-Carlo calibration
+  (`calibrated_feasibility.py`), but left open whether `train_q_table()`'s
+  own `(goal_id, feasible)` state key -- which pools across
+  `intervention_kind` the exact same way -- would also recover the
+  decisive conditional answer if given the same richer information,
+  rather than needing a separate calibration mechanism at all.
+
+  Added `include_intervention_kind: bool = False` to `train_q_table()`
+  and `learned_policy()` (`src/atr/policies/q_learning.py`) — opt-in,
+  defaulted off, confirmed to leave every existing caller's behavior
+  byte-identical (same Q-value reproduced exactly with the flag off).
+  When `True`, the state key becomes `(goal_id, feasible,
+  intervention_kind)`, reading `env.unwrapped.intervention_kind` — the
+  same privileged-state access `calibrated_feasibility_policy()` (D-071)
+  already uses.
+
+  Result: yes, cleanly. Across the same 6 training seeds D-071 used to
+  show the *pooled* key was unstable (Q-values ranging -0.31 to -1.66,
+  noisy), the richer key converges to a stable, confidently negative
+  value for `(place_bowl, True, "bowl_destroyed")` every single time
+  (-0.24 to -2.02, all clearly SKIP-favored) and a confident, near-exact
+  `+1.0` for `(place_bowl, True, "none")` every time — matching the
+  bootstrap-CI-backed conditional truth D-071 established (mean=-1.23,
+  CI=[-1.46,-0.98] for the risky case; deterministically +1.0 for the
+  safe case) far more reliably than the pooled key ever did. The deployed
+  policy is fully decisive: skips the risky goal 15/15 times under real
+  risk, never skips (0/15) when genuinely safe.
+
+  Locked in as 6 regression tests
+  (`tests/drafts/test_q_learning_intervention_aware_state.py`), including
+  an explicit backward-compatibility check that the default (flag off)
+  still produces exactly 2-tuple keys.
+- **Reason:** Direct continuation of D-071's own flagged next step:
+  "Retraining Q-learning itself on a richer state key... to see whether it
+  also recovers the decisive conditional answer is a natural next step,
+  not attempted here."
+- **Consequences:** Confirms the root cause D-071 identified was really
+  about the *state representation*, not something specific to Monte-Carlo
+  calibration vs. TD learning as estimators — either fixes it once the
+  state key stops averaging away the distinction that matters. This
+  doesn't retroactively make D-070's original (pooled) Q-value correct;
+  it independently confirms D-071's diagnosis of *why* it was wrong.
+  Practical trade-off worth naming: the richer key needs
+  `intervention_kind` to be known/observable at decision time (privileged
+  state here, same as `calibrated_feasibility_policy()`) — a policy that
+  only has `goal_feasible()`'s binary bit, with no visibility into *why*
+  or *what kind* of risk might be present, cannot use this fix and would
+  need `calibrated_feasibility.py`'s approach (a probability derived
+  without needing to observe the mechanism directly) instead. Both fixes
+  now exist in this project side by side, applicable under different
+  observability assumptions. Full suite re-verified green (pending final
+  run).
+
 ## D-071: Built an explicit calibration primitive for H5 — and it caught a real overclaim in D-070
 
 - **Date:** 2026-08-08

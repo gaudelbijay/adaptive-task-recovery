@@ -24,6 +24,22 @@ rule. The point isn't that the agent discovers feasibility from scratch
 for, a Q-learning agent trained purely on reward recovers the same rule
 on its own.
 
+D-071 found a real limitation of that state key: it pools every
+`intervention_kind` together, and for a goal whose true risk genuinely
+depends on which intervention is active, pooling produces a state-action
+pair whose true expected value is statistically indistinguishable from
+zero -- the negative Q-value D-070 originally found for one such pair was
+a small-sample training artifact of that pooling, not a genuine
+discovery (`ai-notes/decisions.md`, D-070's forward-pointer and D-071).
+`include_intervention_kind=True` (D-072) keys the state on
+`(goal_id, feasible, intervention_kind)` instead, using
+`env.unwrapped.intervention_kind` -- the same privileged-state read
+`calibrated_feasibility.py` (D-071) already uses -- so a state-action
+pair no longer needs to average across risk-free and genuinely-risky
+episodes. Opt-in and defaulted off: every existing caller keeps the
+original 2-tuple key and identical behavior unless it asks for the
+richer one.
+
 Promoted here already env-agnostic on purpose (D-030, before this
 promotion existed): this function originally existed twice, once
 specific to the canonical tabletop env and once again specific to the
@@ -90,6 +106,12 @@ def _wait(env, steps: int = _REACH_STEPS):
         env.step(zero_action)
 
 
+def _state_key(goal_id: str, feasible: bool, intervention_kind: str, include_intervention_kind: bool) -> tuple:
+    if include_intervention_kind:
+        return (goal_id, feasible, intervention_kind)
+    return (goal_id, feasible)
+
+
 def train_q_table(
     make_env: Callable[[str, tuple[int, int]], "gym.Env"],
     graph: GoalGraph,
@@ -100,8 +122,11 @@ def train_q_table(
     reach_steps: int = _REACH_STEPS,
     n_episodes: int = 120,
     seed: int = 0,
+    include_intervention_kind: bool = False,
 ) -> dict:
-    """Tabular Q-learning over (goal_id, feasible) -> {SKIP: q, ATTEMPT: q}.
+    """Tabular Q-learning over (goal_id, feasible) -> {SKIP: q, ATTEMPT: q}
+    (or (goal_id, feasible, intervention_kind) when
+    `include_intervention_kind=True`, D-072 -- see module docstring).
     Trained across randomized episodes (intervention present or not, timing
     varied) so "attempt iff feasible" has to be discovered from reward, not
     handed to the agent.
@@ -112,7 +137,7 @@ def train_q_table(
     parameterized function, not one per env.
     """
     rng = random.Random(seed)
-    q: dict[tuple[str, bool], dict[int, float]] = {}
+    q: dict[tuple, dict[int, float]] = {}
 
     for ep in range(n_episodes):
         epsilon = max(0.05, 1.0 - ep / (n_episodes * 0.6))
@@ -123,7 +148,7 @@ def train_q_table(
             env.reset(seed=rng.randint(0, 2**31 - 1))
             for i, goal in enumerate(graph.goals):
                 feasible = bool(goal_feasible(goal, env.unwrapped._world_state()))
-                key = (goal.id, feasible)
+                key = _state_key(goal.id, feasible, intervention_kind, include_intervention_kind)
                 q.setdefault(key, {SKIP: 0.0, ATTEMPT: 0.0})
 
                 if rng.random() < epsilon:
@@ -146,17 +171,20 @@ def train_q_table(
 
 def learned_policy(
     env, q_table: dict, graph: GoalGraph, attempt_goal_fn: Callable, tray_slots: list,
+    include_intervention_kind: bool = False,
 ) -> dict:
     """Runs the greedy (argmax) policy from a trained Q-table. Same result
     shape as static_policy/feasibility_aware_policy (baselines.py) for
     direct comparison. `attempt_goal_fn`/`tray_slots`: same parameterization
     as train_q_table(), no longer hardcoded to one env (a pre-promotion
     inconsistency within this same module -- train_q_table() was already
-    parameterized, this wasn't)."""
+    parameterized, this wasn't). `include_intervention_kind` must match
+    whatever the supplied `q_table` was trained with (D-072)."""
+    intervention_kind = env.unwrapped.intervention_kind
     per_goal = {}
     for i, goal in enumerate(graph.goals):
         feasible = bool(goal_feasible(goal, env.unwrapped._world_state()))
-        key = (goal.id, feasible)
+        key = _state_key(goal.id, feasible, intervention_kind, include_intervention_kind)
         action = greedy_action(q_table, key)
         if action == SKIP:
             per_goal[goal.id] = {"achieved": False, "steps_used": 0, "skipped": True}
