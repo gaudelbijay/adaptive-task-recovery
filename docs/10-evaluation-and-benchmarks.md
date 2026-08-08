@@ -134,6 +134,20 @@ covers the real deployment distribution). See D-068 in
 - forced classification versus calibrated abstention;
 - seen versus held-out goal-change combinations.
 
+The forced-classification-versus-abstention ablation now has an executable,
+leakage-resistant evaluator (D-074): calibration counts and held-out correct
+actions are passed separately to `compare_forced_vs_selective()`, which reports
+forced risk, selective risk, and selective coverage. Its controlled regression
+fixture verifies the metric and decision behavior but is not counted as a
+benchmark result; the real simulator-backed wide-timing comparison is still
+pending a renderer-capable runtime.
+
+The real wide-timing version is now predeclared as a simulator test (D-075):
+20 calibration episodes and 80 held-out episodes with disjoint seed ranges. It
+deliberately expects the plausible negative H5 outcome—zero risk for both
+methods but lower selective coverage—rather than changing the setup until
+abstention wins. Execution is pending the full-suite CI's lavapipe runtime.
+
 ## Statistical protocol
 
 Predeclare primary metrics and splits. Use paired episode seeds across methods,

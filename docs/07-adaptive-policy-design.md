@@ -144,6 +144,26 @@ or stop safely. Information-seeking actions must incur cost so abstention does
 not become a loophole. Compare forced decisions, calibrated thresholds, and a
 learned information-gathering strategy.
 
+**First operational abstention rule (2026-08-08, D-073):** D-071's calibrated
+survival point estimate now has a count-preserving counterpart with a 95%
+Wilson interval. The selective policy attempts or skips only when that entire
+interval lies on one side of the reward-optimal boundary; otherwise it waits
+for an explicit step cost and records `abstained=True`, separately from a
+confident skip. Risk and coverage are reported together. This implements the
+forced-vs-abstain interface, but a learned inspect/information-gathering action
+and a held-out empirical comparison remain open.
+
+**Forced-versus-selective ablation harness (2026-08-08, D-074):**
+`compare_forced_vs_selective()` now fits neither side on evaluation labels: it
+takes calibration estimates produced beforehand and a separate held-out set of
+correct actions. The forced baseline thresholds the point probability and must
+answer every case; the selective method uses the matching Wilson interval and
+reports risk together with coverage. A controlled threshold-near regression
+shows the intended trade-off (risk 1/3 to 0 at coverage 2/3), but this is an
+interface check, not simulator evidence. The real wide-timing run was attempted
+locally and blocked because the current process has no Metal/Vulkan renderer;
+it remains for the renderer-capable CI/runtime.
+
 ## Reward safeguards
 
 - Never reward the agent for merely predicting a goal is infeasible.

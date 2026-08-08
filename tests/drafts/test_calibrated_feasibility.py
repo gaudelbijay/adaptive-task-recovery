@@ -27,8 +27,12 @@ import task_schema_draft  # noqa: E402, F401
 from atr.envs.tidy_up_policies import _TRAY_SLOTS, attempt_goal  # noqa: E402
 from atr.evaluation.harness import bootstrap_ci  # noqa: E402
 from atr.feasibility.calibrated_feasibility import (  # noqa: E402
+    ATTEMPT,
+    SKIP,
     calibrate_survival_probability,
+    calibrate_survival_estimates,
     calibrated_feasibility_policy,
+    compare_forced_vs_selective,
     expected_value_of_attempt,
 )
 from atr.feasibility.oracle import goal_feasible  # noqa: E402
@@ -198,3 +202,59 @@ class TestCalibrationDeploymentMismatch:
         # attempting is actually safe there -- but a policy calibrated on
         # the wide regime doesn't know that, and stays pessimistic.
         assert skip_count == 15
+
+
+class TestHeldOutForcedVersusSelectiveWideTiming:
+    """D-075: execute D-074's ablation on real, disjoint simulator seeds.
+
+    This intentionally tests the likely negative result too: if the forced
+    point-estimate baseline is already correct on every held-out stratum,
+    abstention cannot improve its risk and merely gives up coverage. That is a
+    valid H5 result, not a reason to tune the calibration sample until the
+    selective method wins.
+    """
+
+    def test_real_held_out_ablation_without_label_leakage(self):
+        estimates = calibrate_survival_estimates(
+            _make_env, _GRAPH, _TRAY_SLOTS, attempt_goal,
+            intervention_kinds=("none", "bowl_destroyed"),
+            onset_step_bounds=_WIDE_ONSET_RANGE,
+            n_episodes=20,
+            seed=0,
+        )
+
+        # Derive each stratum's reward-optimal binary action exclusively from
+        # held-out seeds, far outside calibration's internally sampled range.
+        rewards = {key: [] for key in estimates}
+        for intervention_kind in ("none", "bowl_destroyed"):
+            for seed in range(10_000, 10_040):
+                env = _make_env(intervention_kind, _WIDE_ONSET_RANGE)
+                try:
+                    env.reset(seed=seed)
+                    for i, goal in enumerate(_GRAPH.goals):
+                        key = (goal.id, intervention_kind)
+                        if not bool(goal_feasible(goal, env.unwrapped._world_state())):
+                            continue
+                        outcome = attempt_goal(env, goal, _TRAY_SLOTS[i], _REACH_STEPS)
+                        rewards[key].append(
+                            1.0 if outcome["achieved"] else -0.1 * outcome["steps_used"]
+                        )
+                finally:
+                    env.close()
+
+        held_out_cases = []
+        for key in estimates:
+            assert rewards[key], f"held-out stratum unexpectedly empty: {key}"
+            mean_reward = sum(rewards[key]) / len(rewards[key])
+            held_out_cases.append((key, ATTEMPT if mean_reward > 0 else SKIP))
+
+        result = compare_forced_vs_selective(estimates, held_out_cases)
+        print("real wide-timing forced-vs-selective result:", result)
+
+        # D-071's strong per-intervention separation makes the point baseline
+        # correct on these held-out strata. With only 20 calibration episodes,
+        # Wilson uncertainty should abstain somewhere, yielding the honest
+        # negative H5 result: equal risk, lower coverage.
+        assert result.forced_risk == 0.0
+        assert result.selective_risk == 0.0
+        assert 0.0 < result.selective_coverage < 1.0

@@ -56,6 +56,12 @@ calibration on `(goal_id, intervention_kind)` instead recovers a decisive
 one. Also confirmed a real, disclosed limitation: calibrating under one
 timing distribution and deploying under a mismatched one stays
 over-conservative, not automatically recalibrated.
+
+D-073 extends that point calibration into finite-sample uncertainty and
+selective prediction: `SurvivalEstimate` retains success/trial counts with a
+95% Wilson interval; `selective_action()` returns attempt/skip only when the
+whole interval supports it and abstains otherwise; `selective_risk_coverage()`
+forces evaluation to report the coverage cost of that safety.
 """
 
 from __future__ import annotations

@@ -69,3 +69,13 @@ changes, to expose shortcut learning.
 Report all metrics by intervention type, goal structure, visibility, and held-out
 split. Aggregate accuracy alone can hide the harmful error of abandoning a goal
 that remains feasible.
+
+**First selective-prediction implementation (2026-08-08, D-073):**
+`atr.feasibility.calibrated_feasibility.SurvivalEstimate` retains Monte Carlo
+success/trial counts and exposes a 95% Wilson interval. `selective_action()`
+attempts only when the full interval is reward-positive, skips only when the
+full interval is reward-negative, and otherwise returns `abstain`.
+`selective_risk_coverage()` reports error on answered cases together with
+coverage, so abstaining everywhere cannot masquerade as success. This is a
+finite-sample uncertainty primitive, not yet evidence that abstention improves
+the complete visual-humanoid agent on a held-out distribution.

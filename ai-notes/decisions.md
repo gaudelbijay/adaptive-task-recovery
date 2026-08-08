@@ -2,6 +2,83 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-075: Predeclare the real wide-timing abstention ablation, including its likely negative result
+
+- **Date:** 2026-08-08
+- **Status:** Accepted (execution pending renderer-capable CI)
+- **Decision:** Added a simulator-backed test to
+  `tests/drafts/test_calibrated_feasibility.py`. It calibrates on 20 episodes,
+  derives reward-optimal binary labels from 80 separate episodes using seeds
+  10000--10039, then runs D-074's forced-versus-selective evaluator. The test
+  predeclares the result suggested by D-071's strong intervention-conditioned
+  separation: forced risk 0, selective risk 0, and selective coverage strictly
+  below 1 because finite-sample uncertainty abstains on at least one stratum.
+- **Reason:** The local renderer cannot create a ManiSkill environment, but the
+  repository's full-suite CI installs lavapipe and already runs all simulator
+  tests. Moving the experiment into that path makes it reproducible while
+  keeping calibration and held-out seeds disjoint.
+- **Consequences:** This does not tune the experiment until H5 wins. It explicitly
+  accepts the scientifically useful negative outcome that abstention may only
+  reduce coverage when the forced point estimate is already correct. The result
+  is not yet recorded as observed: the new test must run on renderer-capable CI
+  first. The controlled D-074 result remains the only result verified locally.
+
+## D-074: Keep calibration and held-out labels separate in the abstention ablation
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** Added `compare_forced_vs_selective()` and
+  `SelectiveAblationResult` to the D-073 calibration module. The evaluator takes
+  estimates fitted before evaluation plus separate held-out correct actions.
+  The forced baseline thresholds the point estimate and answers every case; the
+  selective method uses the same evidence and reward boundary but may abstain.
+  Both risks, selective coverage, and the raw decisions are returned.
+- **Reason:** D-073 supplied the policy primitive, but docs/10 explicitly asks
+  for a forced-classification-versus-calibrated-abstention ablation. Keeping
+  calibration counts and evaluation labels separate prevents the comparison
+  from choosing its uncertainty interval after seeing the answers.
+- **Consequences:** A controlled three-stratum regression gives forced risk
+  1/3 versus selective risk 0 at coverage 2/3; increasing calibration evidence
+  restores full coverage. This validates the comparison and its expected
+  risk/coverage trade-off, not H5 itself—the threshold-near fixture is designed,
+  not a sampled simulator benchmark. A real wide-timing run was attempted but
+  ManiSkill environment creation failed in this process because Metal/Vulkan is
+  unavailable. The simulator-backed claim remains pending on a renderer-capable
+  runtime rather than being inferred from the controlled test.
+
+## D-073: Preserve calibration uncertainty and abstain at the decision boundary
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** Take H5's next explicit step after D-071/D-072: retain the
+  evidence behind a calibrated survival probability and make uncertainty
+  actionable. Added `SurvivalEstimate(successes, trials)`, whose point estimate
+  is accompanied by a 95% Wilson interval, to
+  `src/atr/feasibility/calibrated_feasibility.py`. The interval drives a
+  three-way `selective_action()`: ATTEMPT only when expected value is positive
+  even at the lower endpoint, SKIP only when it is negative even at the upper
+  endpoint, and ABSTAIN when the interval crosses the reward decision boundary.
+
+  Added `selective_calibrated_policy()` so abstention is a distinct, explicitly
+  costed wait outcome rather than being conflated with a skip, plus
+  `selective_risk_coverage()` so correctness among answered cases and coverage
+  cannot hide each other. Refactored rollout counting into one shared helper;
+  the existing `calibrate_survival_probability()` point-estimate API and binary
+  policy remain backward compatible.
+- **Reason:** `docs/06`, `docs/07`, and H5 in `docs/01` all require uncertainty,
+  abstention, and selective risk versus coverage. D-071 supplied only a point
+  probability, which cannot distinguish one success in one observation from
+  hundreds of consistent observations. A decision boundary without evidence
+  uncertainty would make H5's abstention claim impossible to test honestly.
+- **Consequences:** Fifteen simulator-free regression tests cover Wilson interval
+  behavior, narrowing with evidence, all three decisions, risk/coverage, and
+  policy integration. In particular, the same 0.8 point estimate abstains with
+  10 trials but attempts with 1000 trials, demonstrating that evidence strength
+  now changes behavior. This is an implementation and evaluation primitive,
+  not evidence that H5 is already true: no held-out ambiguous-episode comparison
+  has yet shown selective abstention outperforming a forced decision, and
+  learned information gathering remains open.
+
 ## D-072: Q-learning recovers the decisive conditional answer once the state key stops pooling across intervention_kind
 
 - **Date:** 2026-08-08

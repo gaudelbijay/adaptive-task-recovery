@@ -171,6 +171,15 @@ unrequested object, or violate the glass constraint for reward.
   monolithic policy.
 - **H5 — calibration:** calibrated uncertainty and abstention outperform forced
   binary feasibility decisions when evidence is ambiguous.
+  **First operational selective-prediction primitive (2026-08-08, D-073):**
+  calibration now retains success/trial counts, derives a Wilson uncertainty
+  interval, and makes a three-way attempt/skip/abstain decision. It attempts
+  only when the interval's pessimistic endpoint has positive expected value,
+  skips only when its optimistic endpoint is negative, and otherwise pays an
+  explicit wait cost to abstain. Selective risk and coverage are reported
+  separately. This implements the evaluation interface H5 needs; it does not
+  yet establish the comparative claim, which still requires held-out ambiguous
+  episodes and a forced-decision-versus-abstention experiment.
 
 ## Success criteria
 
