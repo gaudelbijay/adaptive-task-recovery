@@ -170,16 +170,75 @@ unrequested object, or violate the glass constraint for reward.
   representations transfer better to unseen goal-change combinations than a
   monolithic policy.
 - **H5 — calibration:** calibrated uncertainty and abstention outperform forced
-  binary feasibility decisions when evidence is ambiguous.
+  binary feasibility decisions when evidence is ambiguous. **Sharpened
+  2026-08-09 (D-078) — this needs a condition the original phrasing didn't
+  name:** *only when the cost structure of being wrong is asymmetric in
+  abstention's favor.* Measured directly, not assumed (see the full
+  chronology below): outperforms when the true answer is SKIP and a wrong
+  forced ATTEMPT is the expensive mistake (D-076/D-077); loses when the
+  true answer is ATTEMPT and a wrong forced SKIP costs nothing in this
+  project's reward shape (D-078) — abstaining still pays its fixed cost
+  either way, so it only comes out ahead when what it's protecting against
+  is itself costly.
   **First operational selective-prediction primitive (2026-08-08, D-073):**
   calibration now retains success/trial counts, derives a Wilson uncertainty
   interval, and makes a three-way attempt/skip/abstain decision. It attempts
   only when the interval's pessimistic endpoint has positive expected value,
   skips only when its optimistic endpoint is negative, and otherwise pays an
   explicit wait cost to abstain. Selective risk and coverage are reported
-  separately. This implements the evaluation interface H5 needs; it does not
-  yet establish the comparative claim, which still requires held-out ambiguous
-  episodes and a forced-decision-versus-abstention experiment.
+  separately. **The forced-versus-selective ablation itself built and run
+  (2026-08-08, D-074/D-075):** calibrated on 20 real episodes, evaluated
+  against reward-optimal labels derived from 80 disjoint held-out episodes
+  (`bowl_destroyed`, wide onset timing). First real, observed result:
+  `forced_risk=0.0, selective_risk=0.0, selective_coverage=0.75` — both
+  methods answered every stratum correctly, but selective abstained on 1 of 4
+  strata purely from limited calibration evidence, buying zero risk reduction
+  at a real, measured 25% coverage cost. Honest negative/neutral evidence
+  against an unqualified reading of H5 in this specific regime — D-071's
+  strong per-intervention separation already made the point estimate correct,
+  so there was nothing genuinely ambiguous for abstention to protect against
+  here. **Given the fair test 2026-08-08 (D-076):** found a stratum whose
+  true expected value sits close to the reward decision boundary
+  (`bowl_destroyed`, `onset_step_bounds=(10, 100)`, true EV ≈ -0.41 from a
+  200-episode held-out estimate — found by sweeping onset ranges and
+  measuring directly, not guessed). Across 10 independent 20-episode
+  calibrations against that fixed ground truth: the forced point-estimate
+  baseline was wrong on 5/10 — a coin flip — while selective abstention was
+  never confidently wrong (0/10), abstaining on 8/10 and answering correctly
+  on the other 2. The first real, positive evidence in this project for H5's
+  comparative claim, paired honestly with D-075's negative case: abstention
+  doesn't help when the point estimate was already reliably correct, and
+  does help, substantially, when it genuinely isn't — the trade-off (here,
+  80% of coverage given up for a zero-wrong guarantee) still needs a
+  downstream cost model to say whether it's worth it in a real deployment.
+  **Built that model 2026-08-08 (D-077):** rather than inventing a new cost
+  function, extended the same reward shape used everywhere else in this
+  project (`+1.0` achieved, `-0.1 * steps_used` otherwise) to the ABSTAIN
+  action as a small explicit wait cost, then re-ran D-076's exact
+  stratum/seeds through it. Result: mean forced reward = -0.2044, mean
+  selective reward = -0.0800 — selective wins clearly in the project's own
+  reward units, not just on a risk/coverage count. Narrow, disclosed scope:
+  this stratum's true value is negative-EV under either strategy, so this
+  shows selective *loses less* here, not that it wins outright when the
+  true answer is actually worth attempting — that sharper case (a stratum
+  on the positive side of the boundary) is still untested.
+  **Tested that sharper case 2026-08-09 (D-078), and forced won:** found a
+  stratum whose true answer is ATTEMPT
+  (`bowl_destroyed`, `onset_step_bounds=(10, 120)`, true survival ~0.73,
+  true EV ~+0.07 from a 200-episode held-out estimate). Real result: forced
+  was wrong on 3/10 seeds, but every wrong decision was a SKIP that costs
+  exactly `0.0` in this reward shape — forced's mean reward is +0.0506,
+  positive. Selective abstained on 8/10 (each costing `-0.1`) and was
+  itself wrong once (a narrow interval landed entirely on the wrong side of
+  the true boundary by chance) — selective's mean reward is -0.0728,
+  negative. Forced clearly wins here, the opposite of D-077. The reason is
+  a real asymmetry in this project's reward shape: a wrong ATTEMPT costs
+  real reward, a wrong SKIP costs nothing (inaction is never penalized
+  directly, only a failed action is) — so abstention's fixed cost is worth
+  paying only when it protects against the expensive mistake. This
+  completes H5's first honest, three-part picture (D-076 positive, D-077
+  quantified, D-078 negative) and is why the hypothesis statement above now
+  carries its condition explicitly instead of claiming an unconditional win.
 
 ## Success criteria
 

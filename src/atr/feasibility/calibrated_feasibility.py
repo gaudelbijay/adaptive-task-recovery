@@ -214,6 +214,85 @@ def compare_forced_vs_selective(
     )
 
 
+@dataclass(frozen=True)
+class RewardComparisonResult:
+    """D-077: whether selective abstention's coverage cost is actually
+    "worth it" in the project's own reward terms, not just risk/coverage
+    counts. `forced_risk`/`selective_risk` (`compare_forced_vs_selective()`)
+    treat every wrong decision as equally bad and every abstention as free
+    -- neither is true here: a wrong ATTEMPT on a stratum with true
+    survival probability 0.6 costs less in expectation than one on a
+    stratum with true survival 0.05, and abstaining isn't free, it's a
+    small, explicit wait cost. This answers the question in the reward
+    units already used everywhere else in this project."""
+
+    forced_mean_reward: float
+    selective_mean_reward: float
+    forced_rewards: tuple[float, ...]
+    selective_rewards: tuple[float, ...]
+
+
+def expected_reward_of_decision(
+    decision: str,
+    true_survival_probability: float,
+    reach_steps: int = _REACH_STEPS,
+    abstain_steps: int = 1,
+) -> float:
+    """Real expected reward of a single ATTEMPT/SKIP/ABSTAIN decision, given
+    a stratum's *true* survival probability. Extends the same reward shape
+    `train_q_table()` and `expected_value_of_attempt()` already use
+    (`+1.0` achieved, `-0.1 * steps_used` otherwise) to the ABSTAIN action --
+    a small, explicit `-0.1 * abstain_steps` wait cost, matching
+    `selective_calibrated_policy()`'s own `abstain_steps` semantics -- rather
+    than inventing a new cost function. SKIP's reward is always 0.0, same as
+    every other policy in this project (`train_q_table()`'s SKIP branch,
+    `feasibility_aware_policy`'s skip case): no goal credit, no steps
+    wasted."""
+    if decision == ATTEMPT:
+        return expected_value_of_attempt(true_survival_probability, reach_steps)
+    if decision == SKIP:
+        return 0.0
+    if decision == ABSTAIN:
+        return -_STEP_COST * abstain_steps
+    raise ValueError(f"unknown decision {decision!r}")
+
+
+def compare_forced_vs_selective_reward(
+    calibration_estimates: dict[tuple[str, str], SurvivalEstimate],
+    held_out_true_probabilities: dict[tuple[str, str], float],
+    reach_steps: int = _REACH_STEPS,
+    abstain_steps: int = 1,
+) -> RewardComparisonResult:
+    """Reward-unit counterpart to `compare_forced_vs_selective()`. Each
+    held-out stratum's *true* survival probability (not just a binary
+    correct-action label) lets `expected_reward_of_decision()` score a wrong
+    ATTEMPT by how wrong it actually was, and score abstention by its real,
+    small cost rather than folding it into "coverage" as a separate axis.
+    `held_out_true_probabilities` should come from a held-out sample
+    disjoint from whatever produced `calibration_estimates`, same
+    requirement `compare_forced_vs_selective()` has."""
+    forced_rewards: list[float] = []
+    selective_rewards: list[float] = []
+    for key, true_p in held_out_true_probabilities.items():
+        if key not in calibration_estimates:
+            raise ValueError(f"no calibration estimate for held-out key {key!r}")
+        estimate = calibration_estimates[key]
+        forced_decision = (
+            ATTEMPT if expected_value_of_attempt(estimate.probability, reach_steps) > 0 else SKIP
+        )
+        selective_decision = selective_action(estimate, reach_steps)
+        forced_rewards.append(expected_reward_of_decision(forced_decision, true_p, reach_steps, abstain_steps))
+        selective_rewards.append(
+            expected_reward_of_decision(selective_decision, true_p, reach_steps, abstain_steps)
+        )
+    return RewardComparisonResult(
+        forced_mean_reward=sum(forced_rewards) / len(forced_rewards),
+        selective_mean_reward=sum(selective_rewards) / len(selective_rewards),
+        forced_rewards=tuple(forced_rewards),
+        selective_rewards=tuple(selective_rewards),
+    )
+
+
 def calibrate_survival_probability(
     make_env: Callable,
     graph: GoalGraph,

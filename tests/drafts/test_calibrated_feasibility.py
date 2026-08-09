@@ -27,13 +27,16 @@ import task_schema_draft  # noqa: E402, F401
 from atr.envs.tidy_up_policies import _TRAY_SLOTS, attempt_goal  # noqa: E402
 from atr.evaluation.harness import bootstrap_ci  # noqa: E402
 from atr.feasibility.calibrated_feasibility import (  # noqa: E402
+    ABSTAIN,
     ATTEMPT,
     SKIP,
     calibrate_survival_probability,
     calibrate_survival_estimates,
     calibrated_feasibility_policy,
     compare_forced_vs_selective,
+    compare_forced_vs_selective_reward,
     expected_value_of_attempt,
+    selective_action,
 )
 from atr.feasibility.oracle import goal_feasible  # noqa: E402
 from atr.language.goal_graph import canonical_example  # noqa: E402
@@ -258,3 +261,217 @@ class TestHeldOutForcedVersusSelectiveWideTiming:
         assert result.forced_risk == 0.0
         assert result.selective_risk == 0.0
         assert 0.0 < result.selective_coverage < 1.0
+
+
+class TestSelectiveAbstentionOnAGenuinelyAmbiguousCase:
+    """D-076: D-075 gave H5 an easy test -- D-071's strong per-intervention
+    separation for `bowl_destroyed` under `_WIDE_ONSET_RANGE` (true survival
+    ~0.28, true EV ~-1.5) meant the 20-episode point estimate was already
+    correct on every held-out stratum, so abstention had nothing to protect
+    against (it only cost coverage). This constructs the fair test D-075's own
+    "Consequences" section named as missing: a stratum whose true expected
+    value sits close to the reward-decision boundary, not confidently on
+    either side.
+
+    Found empirically (not guessed), by sweeping `onset_step_bounds` upper
+    limits for `bowl_destroyed` and measuring real survival probability
+    directly (`max_episode_steps=50` on `TidyUp-v1` means an onset past that
+    point simply never fires within the episode, not a longer "safe tail" --
+    the naive "wider always means safer" intuition from D-070/D-071 doesn't
+    linearly extrapolate, confirmed by measuring rather than assuming):
+    `onset_step_bounds=(10, 100)` puts `(place_bowl, "bowl_destroyed")`'s true
+    survival probability at ~0.60 (a 200-episode held-out estimate), giving a
+    true expected value of ~-0.41 -- close enough to the `EV=0` boundary that
+    a 20-episode calibration sample frequently lands its point estimate on the
+    wrong side of it.
+    """
+
+    _AMBIGUOUS_ONSET_RANGE = (10, 100)
+
+    def test_forced_baseline_is_frequently_wrong_under_genuine_ambiguity(self):
+        # Ground truth from a large, disjoint held-out sample (200 episodes,
+        # seeds 10000-10199) -- kept well outside every calibration seed used
+        # below (0-9) so no calibration run can see it.
+        n_feasible, n_achieved = 0, 0
+        for seed in range(10_000, 10_200):
+            env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=self._AMBIGUOUS_ONSET_RANGE)
+            try:
+                env.reset(seed=seed)
+                attempt_goal(env, _GRAPH.goals[0], _TRAY_SLOTS[0], _REACH_STEPS)
+                goal1 = _GRAPH.goals[1]
+                if bool(goal_feasible(goal1, env.unwrapped._world_state())):
+                    n_feasible += 1
+                    result = attempt_goal(env, goal1, _TRAY_SLOTS[1], _REACH_STEPS)
+                    if result["achieved"]:
+                        n_achieved += 1
+            finally:
+                env.close()
+        true_p = n_achieved / n_feasible
+        true_ev = expected_value_of_attempt(true_p)
+        # Confirms this stratum is actually the ambiguous case it's meant to
+        # be, not asserting the specific decision it happens to land on.
+        assert -1.0 < true_ev < 0.3
+        ground_truth_action = ATTEMPT if true_ev > 0 else SKIP
+
+        forced_wrong = 0
+        selective_wrong = 0
+        selective_abstain = 0
+        n_calibration_seeds = 10
+        for cal_seed in range(n_calibration_seeds):
+            estimates = calibrate_survival_estimates(
+                _make_env, _GRAPH, _TRAY_SLOTS, attempt_goal,
+                intervention_kinds=("bowl_destroyed",), onset_step_bounds=self._AMBIGUOUS_ONSET_RANGE,
+                n_episodes=20, seed=cal_seed,
+            )
+            estimate = estimates.get(("place_bowl", "bowl_destroyed"))
+            if estimate is None:
+                continue
+            forced_decision = ATTEMPT if expected_value_of_attempt(estimate.probability) > 0 else SKIP
+            selective_decision = selective_action(estimate)
+            if forced_decision != ground_truth_action:
+                forced_wrong += 1
+            if selective_decision == ABSTAIN:
+                selective_abstain += 1
+            elif selective_decision != ground_truth_action:
+                selective_wrong += 1
+
+        # The actual H5 claim, given a fair, genuinely ambiguous test: forced
+        # point-estimate decisions are wrong often (real, measured: 5/10
+        # calibration seeds), while selective abstention never confidently
+        # commits to the wrong answer -- it recognizes the ambiguity and
+        # abstains instead, at the cost of coverage. Loose bounds (not exact
+        # counts) since this is a real stochastic small-sample process, not a
+        # designed fixture -- the qualitative contrast is the claim.
+        assert forced_wrong >= 3
+        assert selective_wrong == 0
+        assert selective_abstain >= 1
+
+
+class TestDownstreamCostModelForTheCoverageTradeOff:
+    """D-077: D-075 and D-076 both flagged the same open question -- is
+    selective abstention's coverage cost actually *worth it*? Risk/coverage
+    counts alone can't answer that: they treat every wrong ATTEMPT as
+    equally bad and every abstention as free, neither of which is true.
+    Extends the exact reward shape `train_q_table()` already uses
+    (`+1.0` achieved, `-0.1 * steps_used` otherwise) to the ABSTAIN action
+    (a small, explicit wait cost) instead of inventing a new cost function,
+    then answers the question in those units directly, on the same
+    genuinely-ambiguous stratum D-076 already established
+    (`(place_bowl, "bowl_destroyed")`, `onset_step_bounds=(10, 100)`, true
+    survival ~0.60)."""
+
+    _AMBIGUOUS_ONSET_RANGE = (10, 100)
+
+    def test_selective_yields_higher_expected_reward_than_forced(self):
+        n_feasible, n_achieved = 0, 0
+        for seed in range(10_000, 10_200):
+            env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=self._AMBIGUOUS_ONSET_RANGE)
+            try:
+                env.reset(seed=seed)
+                attempt_goal(env, _GRAPH.goals[0], _TRAY_SLOTS[0], _REACH_STEPS)
+                goal1 = _GRAPH.goals[1]
+                if bool(goal_feasible(goal1, env.unwrapped._world_state())):
+                    n_feasible += 1
+                    result = attempt_goal(env, goal1, _TRAY_SLOTS[1], _REACH_STEPS)
+                    if result["achieved"]:
+                        n_achieved += 1
+            finally:
+                env.close()
+        true_p = n_achieved / n_feasible
+        key = ("place_bowl", "bowl_destroyed")
+        held_out_true_probabilities = {key: true_p}
+
+        forced_rewards = []
+        selective_rewards = []
+        for cal_seed in range(10):
+            estimates = calibrate_survival_estimates(
+                _make_env, _GRAPH, _TRAY_SLOTS, attempt_goal,
+                intervention_kinds=("bowl_destroyed",), onset_step_bounds=self._AMBIGUOUS_ONSET_RANGE,
+                n_episodes=20, seed=cal_seed,
+            )
+            if key not in estimates:
+                continue
+            result = compare_forced_vs_selective_reward(estimates, held_out_true_probabilities)
+            forced_rewards.append(result.forced_rewards[0])
+            selective_rewards.append(result.selective_rewards[0])
+
+        mean_forced = sum(forced_rewards) / len(forced_rewards)
+        mean_selective = sum(selective_rewards) / len(selective_rewards)
+        # Real measured: mean_forced=-0.2044, mean_selective=-0.0800 -- both
+        # negative (this stratum is genuinely marginal, so no strategy
+        # achieves the goal reliably), but selective's abstention cost is
+        # markedly smaller than forced's wrong-attempt cost. Loose bounds,
+        # not exact equality, for the same reason as the sibling test above.
+        assert mean_selective > mean_forced
+        assert mean_forced < -0.1
+        assert mean_selective > -0.15
+
+
+class TestAbstentionDoesNotAlwaysWin:
+    """D-078: D-077 disclosed its own scope limit -- the tested stratum's
+    true answer was SKIP, where a wrong forced ATTEMPT is expensive
+    (`-0.1 * steps_used`, real reward lost) and abstaining is cheap. The
+    sharper, still-untested case is the opposite: a stratum whose true
+    answer is ATTEMPT (worth doing), where a wrong forced SKIP costs
+    *nothing* in this reward shape (SKIP always yields 0.0, regardless of
+    whether it was the right call) but abstaining still pays its fixed
+    wait cost every time, forfeiting the real upside a correct ATTEMPT
+    would have earned.
+
+    Found the same way D-076 found its stratum -- swept onset ranges,
+    measured real survival probability, picked one close to the boundary
+    from the positive side: `onset_step_bounds=(10, 120)`, true survival
+    ~0.73 (a 200-episode held-out estimate), true EV ~+0.07.
+    """
+
+    _POSITIVE_ONSET_RANGE = (10, 120)
+
+    def test_forced_beats_selective_when_the_true_answer_is_attempt(self):
+        n_feasible, n_achieved = 0, 0
+        for seed in range(20_000, 20_200):
+            env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=self._POSITIVE_ONSET_RANGE)
+            try:
+                env.reset(seed=seed)
+                attempt_goal(env, _GRAPH.goals[0], _TRAY_SLOTS[0], _REACH_STEPS)
+                goal1 = _GRAPH.goals[1]
+                if bool(goal_feasible(goal1, env.unwrapped._world_state())):
+                    n_feasible += 1
+                    result = attempt_goal(env, goal1, _TRAY_SLOTS[1], _REACH_STEPS)
+                    if result["achieved"]:
+                        n_achieved += 1
+            finally:
+                env.close()
+        true_p = n_achieved / n_feasible
+        true_ev = expected_value_of_attempt(true_p)
+        # Confirms this stratum is the intended positive-but-close-to-the-
+        # boundary case, not asserting the specific decision it lands on.
+        assert 0.0 < true_ev < 0.3
+        key = ("place_bowl", "bowl_destroyed")
+        held_out_true_probabilities = {key: true_p}
+
+        forced_rewards = []
+        selective_rewards = []
+        for cal_seed in range(10):
+            estimates = calibrate_survival_estimates(
+                _make_env, _GRAPH, _TRAY_SLOTS, attempt_goal,
+                intervention_kinds=("bowl_destroyed",), onset_step_bounds=self._POSITIVE_ONSET_RANGE,
+                n_episodes=20, seed=cal_seed,
+            )
+            if key not in estimates:
+                continue
+            result = compare_forced_vs_selective_reward(estimates, held_out_true_probabilities)
+            forced_rewards.append(result.forced_rewards[0])
+            selective_rewards.append(result.selective_rewards[0])
+
+        mean_forced = sum(forced_rewards) / len(forced_rewards)
+        mean_selective = sum(selective_rewards) / len(selective_rewards)
+        # Real measured: mean_forced=+0.0506, mean_selective=-0.0728. Forced
+        # wins here -- the opposite of D-077's stratum -- because a wrong
+        # forced SKIP costs nothing in this reward shape (0.0, same as a
+        # correct one), while abstention's fixed wait cost is paid every
+        # time regardless, exceeding the small positive upside being
+        # protected. Abstention is not a free win; it's worth its cost only
+        # when it's protecting against the *expensive* mistake (a wrong
+        # ATTEMPT), not the cheap one (a wrong SKIP).
+        assert mean_forced > mean_selective
+        assert mean_forced > 0.0

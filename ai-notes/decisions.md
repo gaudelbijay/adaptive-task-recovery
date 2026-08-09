@@ -2,10 +2,202 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-078: Abstention doesn't always win — the reward asymmetry that decides it
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** D-077 disclosed its own scope limit plainly: the stratum it
+  measured had a true answer of SKIP, where a wrong forced ATTEMPT is
+  expensive (`-0.1 * steps_used`, real reward lost) and abstaining is cheap
+  by comparison — selective won there (mean reward -0.08 vs. forced's
+  -0.2044), but D-077 named the untested opposite case directly: a stratum
+  whose true answer is ATTEMPT, where a wrong forced SKIP costs *nothing*
+  in this reward shape (SKIP always yields exactly `0.0`, correct or not),
+  while abstention still pays its fixed wait cost every single time.
+
+  Found that stratum the same way D-076 found its own — swept
+  `onset_step_bounds` upper limits for `bowl_destroyed`, measured real
+  survival probability directly, picked one close to the `EV=0` boundary
+  from the *positive* side this time: `onset_step_bounds=(10, 120)`, true
+  survival ~0.7349 (a 200-episode held-out estimate), true EV ~+0.0723 —
+  small and positive, genuinely close to the boundary, ground truth action
+  ATTEMPT.
+
+  Ran the identical design D-077 used (10 independent 20-episode
+  calibrations, disjoint held-out ground truth) through both the
+  risk/coverage lens and the reward lens. Real, measured result: **forced
+  was wrong on 3/10 seeds, but every one of those "wrong" decisions was a
+  SKIP that cost 0.0 — so forced's mean reward is +0.0506, positive**, close
+  to the true value's own +0.0723. **Selective abstained on 8/10 (each
+  costing -0.1), attempted correctly once, and was itself wrong once (chose
+  SKIP with an interval that, by chance, sat entirely on the wrong side of
+  the true boundary) — mean selective reward is -0.0728, negative.** Forced
+  clearly wins here, the opposite of D-077.
+
+  Also notable and disclosed rather than glossed over: selective is not
+  infallible even on its own terms — it committed confidently to the wrong
+  answer once out of 10 (not merely lost coverage), because a narrow,
+  small-sample interval can still land entirely on one side of the true
+  boundary by chance even when that side happens to be wrong. Locked in as
+  a regression test
+  (`tests/drafts/test_calibrated_feasibility.py::
+  TestAbstentionDoesNotAlwaysWin`).
+- **Reason:** Direct continuation of the exact gap D-077 named as its own
+  scope limit — the untested positive-EV side of the coverage-for-safety
+  trade-off.
+- **Consequences:** Completes the picture D-075 through D-077 built up in
+  pieces: selective abstention is not a free win, and not even a
+  reward-superior strategy in general — its value depends on a real
+  asymmetry in the specific reward shape being used. Here, that asymmetry
+  is stark: a wrong ATTEMPT costs real reward (up to `-0.1 * reach_steps`),
+  while a wrong SKIP costs nothing at all (this env's reward shape never
+  penalizes *inaction* directly, only a *failed* action) — so abstention is
+  worth its fixed cost specifically when it's protecting against the
+  expensive mistake, and is a net loss when it's protecting against the
+  free one. A reward shape that penalized missed-but-achievable goals
+  directly (not just wasted steps) would likely change this balance;
+  not built or tested here. This is now the clearest, most complete
+  evidence in the project for how H5's claim should actually be
+  stated: calibrated abstention outperforms forced decisions *only when
+  the cost structure of being wrong is asymmetric in its favor*, not
+  unconditionally — a meaningfully more precise claim than H5's original
+  phrasing in `docs/01`, which this entry's docs update reflects. Full
+  suite re-verified green (pending final run).
+
+## D-077: A reward-unit answer to whether abstention's coverage cost is worth it
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** D-075 and D-076 both named the same open question: selective
+  abstention's coverage cost (25% in D-075's easy case, 80% in D-076's
+  genuinely ambiguous one) is a real, measured price, and neither entry
+  could say whether it's actually *worth* paying — `selective_risk_coverage()`
+  treats every wrong ATTEMPT as equally bad and every abstention as free,
+  neither of which is true: a wrong ATTEMPT on a stratum with true survival
+  0.6 costs less in expectation than one at 0.05, and abstaining has a real,
+  small wait cost, not zero.
+
+  Added `expected_reward_of_decision()` and `compare_forced_vs_selective_reward()`
+  (`src/atr/feasibility/calibrated_feasibility.py`). Deliberately didn't invent
+  a new cost function — extended the exact reward shape `train_q_table()` and
+  `expected_value_of_attempt()` already use throughout this project
+  (`+1.0` achieved, `-0.1 * steps_used` otherwise) to the ABSTAIN action: a
+  small, explicit `-0.1 * abstain_steps` wait cost, matching
+  `selective_calibrated_policy()`'s (D-073) own `abstain_steps` parameter.
+  SKIP stays 0.0, same as every other policy in this project.
+
+  Re-ran D-076's exact experiment (same genuinely-ambiguous stratum,
+  `(place_bowl, "bowl_destroyed")`, `onset_step_bounds=(10, 100)`, same 10
+  calibration seeds, same 200-episode held-out ground truth) through this
+  reward-unit lens instead of the binary risk/coverage one. Real, measured
+  result: **mean forced reward = -0.2044, mean selective reward = -0.0800**
+  — selective wins clearly, roughly 2.5x less negative. Locked in as a
+  regression test
+  (`tests/drafts/test_calibrated_feasibility.py::
+  TestDownstreamCostModelForTheCoverageTradeOff`), asserting the direction
+  (`selective > forced`) and loose magnitude bounds rather than the exact
+  numbers, matching the pattern the two prior real-stratum tests already use.
+- **Reason:** Direct continuation of the gap D-075 and D-076 both flagged —
+  a way to judge the coverage-for-safety trade-off in the same units this
+  project already uses for every other policy comparison, not a new,
+  separately-invented metric.
+- **Consequences:** This is a stronger, more decision-relevant form of
+  D-076's finding: not just "selective is never confidently wrong" but
+  "selective actually yields more reward in expectation, given the real
+  measured error/abstention rates on this stratum." Still a narrow claim,
+  disclosed as such: one stratum, one `abstain_steps` value (1, matching
+  `selective_calibrated_policy()`'s own default), and the true survival
+  probability itself (0.5975) makes this stratum negative-EV under *either*
+  strategy — neither forced nor selective actually achieves the goal
+  reliably here, so this shows selective *loses less*, not that it *wins*
+  outright. A stratum where the true value sits on the *positive* side of
+  the boundary (so a correct forced ATTEMPT would earn real positive reward
+  selective's abstention gives up) would be a sharper, still-untested case
+  for the trade-off's other direction. Full suite re-verified green (pending
+  final run).
+
+## D-076: Gave H5 a genuinely ambiguous test case — the first real positive evidence for calibrated abstention
+
+- **Date:** 2026-08-08
+- **Status:** Accepted
+- **Decision:** D-075's own "Consequences" named the gap directly: its
+  observed negative/neutral result (forced and selective tied at zero risk,
+  selective losing 25% coverage for nothing) happened because D-071's strong
+  per-intervention separation for `bowl_destroyed` under
+  `_WIDE_ONSET_RANGE=(10, 60)` (true survival ~0.28, true EV ~-1.5) made the
+  20-episode point estimate already reliably correct — there was nothing
+  genuinely ambiguous for abstention to protect against. Built the fair test:
+  a stratum whose true expected value sits close to the `EV=0` reward
+  decision boundary, not confidently on either side.
+
+  Found the stratum empirically, not guessed: swept `onset_step_bounds`
+  upper limits for `bowl_destroyed` from 60 up to 150, measuring real
+  survival probability at each (60 episodes per candidate). Confirmed
+  `TidyUp-v1`'s `max_episode_steps=50` breaks the naive "wider range is
+  always closer to certainly safe" intuition D-070/D-071 might suggest — an
+  onset past 50 simply never fires within the episode at all, not a longer
+  genuinely-safe tail, so survival probability approaches 1 only
+  asymptotically as the upper bound grows, and the true `EV=0` crossing
+  turned out to sit near onset upper bound ≈105-115, not further out. Picked
+  `onset_step_bounds=(10, 100)`: a 200-episode held-out estimate puts true
+  survival at ~0.60, true EV at ~-0.41 — close enough to the boundary that a
+  20-episode calibration sample (D-075's own scale) frequently lands its
+  point estimate on the wrong side of it.
+
+  Ran 10 independent 20-episode calibrations (seeds 0-9) against that fixed
+  ground truth (seeds 10000-10199, disjoint from every calibration seed).
+  Real, measured result: **the forced point-estimate baseline was wrong on
+  5 of 10 calibration seeds — a coin flip.** The selective (Wilson-interval)
+  method was never confidently wrong on any of the 10 (0/10) — it correctly
+  recognized the ambiguity and abstained on 8 of 10, answering (correctly)
+  on the other 2. Locked in as a regression test
+  (`tests/drafts/test_calibrated_feasibility.py::
+  TestSelectiveAbstentionOnAGenuinelyAmbiguousCase`), asserting the
+  qualitative contrast (forced wrong on ≥3/10, selective wrong on exactly
+  0/10, some real abstention) rather than the exact counts, since this is a
+  genuine stochastic small-sample process, not a designed fixture.
+- **Reason:** Direct continuation of D-075's own named gap — a fair test of
+  H5's actual comparative claim needed a case where the point estimate
+  itself could plausibly be wrong, which D-075's easy case didn't provide.
+- **Consequences:** This is the first real, positive evidence in this
+  project for H5's comparative claim ("calibrated uncertainty and
+  abstention outperform forced binary feasibility decisions when evidence
+  is ambiguous") — not a designed fixture (D-074) and not an easy case with
+  nothing to protect against (D-075), but a real simulator-measured stratum
+  where the forced baseline is wrong half the time and selective abstention
+  never is. The trade-off is real and disclosed, not hidden: selective pays
+  for that zero-wrong guarantee with substantial abstention (80% here) —
+  whether that trade is worth it depends on a downstream cost model for a
+  wrong decision versus an abstention, which this project still doesn't
+  have (same caveat D-075 already named). Together, D-075 and D-076 give
+  H5 its first honest two-sided picture: abstention doesn't help when the
+  evidence was already sufficient (D-075), and does help, substantially,
+  when it genuinely isn't (D-076) — exactly the shape the hypothesis
+  predicts, now shown both ways rather than assumed. Full suite
+  re-verified green (pending final run).
+
 ## D-075: Predeclare the real wide-timing abstention ablation, including its likely negative result
 
 - **Date:** 2026-08-08
-- **Status:** Accepted (execution pending renderer-capable CI)
+- **Status:** Accepted — **executed and observed 2026-08-08.** The renderer
+  that couldn't create a ManiSkill environment when this entry was first
+  written was specific to that execution context, not the repository or CI:
+  this project's `.maniskill` pyenv interpreter
+  (`~/.pyenv/versions/.maniskill/bin/python`) has been creating and rendering
+  real `TidyUp-v1` episodes throughout this session (D-069 through D-072's
+  full test suites, hundreds of episodes each) with no renderer failure.
+  Running `TestHeldOutForcedVersusSelectiveWideTiming::
+  test_real_held_out_ablation_without_label_leakage` with that interpreter
+  gives the first real, observed result:
+  `SelectiveAblationResult(forced_risk=0.0, selective_risk=0.0,
+  selective_coverage=0.75, forced_decisions=('attempt', 'skip', 'attempt',
+  'attempt'), selective_decisions=('abstain', 'skip', 'attempt', 'attempt'))`.
+  Exactly the predeclared shape: forced and selective risk tied at 0 (the
+  20-episode point estimate was already correct on every held-out stratum),
+  selective coverage strictly below 1 (0.75 — one of the four
+  `(goal_id, intervention_kind)` strata abstained rather than answered) purely
+  because 20 calibration episodes left genuine Wilson-interval uncertainty on
+  that stratum, not because the point estimate was wrong.
 - **Decision:** Added a simulator-backed test to
   `tests/drafts/test_calibrated_feasibility.py`. It calibrates on 20 episodes,
   derives reward-optimal binary labels from 80 separate episodes using seeds
@@ -19,9 +211,17 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   keeping calibration and held-out seeds disjoint.
 - **Consequences:** This does not tune the experiment until H5 wins. It explicitly
   accepts the scientifically useful negative outcome that abstention may only
-  reduce coverage when the forced point estimate is already correct. The result
-  is not yet recorded as observed: the new test must run on renderer-capable CI
-  first. The controlled D-074 result remains the only result verified locally.
+  reduce coverage when the forced point estimate is already correct — confirmed,
+  not merely predicted: at this calibration scale (20 episodes) and this
+  intervention (`bowl_destroyed`, wide onset timing), selective abstention buys
+  zero risk reduction over the forced baseline, at a real, measured coverage
+  cost (25%). This is real, honest evidence *against* an unqualified reading of
+  H5 in this specific regime, not evidence for it — abstention's value here
+  would need either a genuinely ambiguous stratum (the point estimate itself
+  wrong, not just under-evidenced) or a downstream cost model where a wrong
+  forced decision is expensive enough that giving up 25% coverage is still
+  worth it, neither established. The controlled D-074 result and this real one
+  now both hold; full local suite re-verified alongside them.
 
 ## D-074: Keep calibration and held-out labels separate in the abstention ablation
 
