@@ -11,6 +11,15 @@ confirmed the guard doesn't over-block a goal in direct conflict with a
 matching constraint, and found (then fixed) an opposite-direction gap:
 without privileged `state`, a conditional goal (`Goal.condition`)
 exempted its target object even while its condition didn't hold.
+
+D-082 reports recall and violation rate together. D-083 lets the guard check
+predicted incidental effects, and `effect_predictor.py` (D-084) supplies the
+first conservative producer using a straight-line swept corridor over object
+centers. It is a screening model, not collision-accurate robot geometry.
+D-085 extends that screening to every segment of a waypoint path.
+D-086 adds optional object radii so the check is not limited to point centers.
+`envs/navigation.py::screen_navigation_path()` (D-087) adapts real 2D planner
+waypoints to this prediction-and-guard interface before execution.
 """
 
 from __future__ import annotations

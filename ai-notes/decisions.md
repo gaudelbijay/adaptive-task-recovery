@@ -2,6 +2,326 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-088: Ran the project's own success-criteria benchmark for the first time — and it surfaced a real, undiscovered CLIP robustness gap
+
+- **Date:** 2026-08-10
+- **Status:** Accepted
+- **Decision:** docs/01's "Success criteria" has always specified: "demonstrates,
+  across multiple seeds, that the full agent improves feasible-goal
+  completion over a static-policy baseline... Oracle-feasibility
+  performance defines the headroom." This had never actually been run —
+  every rigorous multi-seed, bootstrap-CI comparison built so far (D-042,
+  D-069, D-070–D-078) uses privileged-state feasibility, not the real
+  perceptual pipeline (`atr.pipeline.run_end_to_end_episode()`, real
+  language parsing + real CLIP-perceived feasibility + a trained Q-table +
+  real arm motion); every use of the real perceptual pipeline (D-029,
+  D-054/D-055, D-062, D-064) has been a single episode or a handful, never
+  passed through the statistical harness.
+
+  Built it: `src/atr/evaluation/full_agent_benchmark.py` runs `static`
+  (real arm motion, no perception) and `oracle_feasibility`
+  (privileged-state headroom reference) in-process across paired seeds —
+  neither ever calls `env.render()`, so D-022's rendering-desync bug never
+  applies to them, same as every existing privileged-state comparison in
+  this project. `full_agent` does render (twice per episode, within
+  `run_end_to_end_episode()`'s own verified-safe budget), so it needs one
+  fresh subprocess per seed
+  (`src/atr/envs/run_full_agent_episode_subprocess.py`, D-052's exact
+  isolation pattern) — never accumulating resets within one process. Q-table
+  trained once, privileged-state, matching `atr.pipeline`'s own documented
+  split between cheap training and real-perception evaluation. Ran against
+  the ReplicaCAD-Humanoid env's `kitchen_cabinet` scene (the one CLIP is
+  actually calibrated for), `chef_can_destroyed` intervention.
+
+  First attempt (default `onset_step_bounds=(1, 3)` for training, evaluated
+  under that same narrow range) reproduced D-042's original zero-variance
+  problem exactly — swept wider onset ranges (matching D-070/D-076's own
+  practice: measure, don't guess) and found `(10, 60)` gives real variance
+  in this env too. Re-ran under that range and found `full_agent`
+  completely flat (`goals_achieved=1.0`, `wasted_steps=0.0`, all 15 seeds)
+  while `static`/`oracle_feasibility` both showed real spread — investigated
+  rather than accepted at face value. Traced it in stages: the trained
+  Q-table itself favors ATTEMPT when perceived feasible (`Q=0.993` vs.
+  `0.0`), so the flatness wasn't a policy bug. Comparing CLIP's
+  `perceived_feasible` for `master_chef_can` against privileged oracle
+  ground truth at the identical decision point (same seed, same post-
+  goal-1-attempt state) found CLIP said **"absent" in every one of 8
+  episodes tested, regardless of the true state** — 7 of those 8 were
+  genuinely feasible by the oracle; all 7 were misjudged. Visually
+  confirmed, not just measured: captured the actual frame and crop CLIP
+  saw (`master_chef_can`'s calibrated crop, kitchen_cabinet, D-020/D-027)
+  — the object is clearly visible in it, but G1's arm/hand, having just
+  completed a real `attempt_goal()` on the first goal, now occupies much of
+  the same calibrated crop region.
+
+  This is structurally the same mechanism D-054 found for DINOv2 (a
+  calibration validated on frames unlike what the live decision loop
+  actually renders after a prior real attempt) — in the opposite direction
+  (a false negative instead of a false positive) and never tested for CLIP
+  in this exact env/scene/post-attempt context before; D-020/D-027's CLIP
+  validation predates any live decision loop entirely. Not fixed here,
+  following D-054's own precedent exactly (disclosed as a real, informative
+  finding first; D-055 fixed the DINOv2 case as a distinct follow-up
+  decision) — and CLIP is zero-shot, so "retrain on more representative
+  examples" doesn't directly apply the way it did for DINOv2's linear
+  probe; a fix here would mean recalibrating the crop/prompt itself, a
+  separate decision.
+
+  Locked in as 4 regression tests
+  (`tests/drafts/test_full_agent_benchmark.py`) — including a real,
+  caught-and-fixed mistake in the test-writing itself: the first draft of
+  the CLIP-mismatch test rendered in-process across 5 sequential resets,
+  exactly the pattern D-022 warns against, and got a materially different,
+  unreliable result (1/4 mismatches) than the subprocess-isolated
+  investigation (7/7). Fixed by subprocess-isolating the render-dependent
+  half of that test too, matching every other render-producing check in
+  this project.
+- **Reason:** Direct instruction to run the project's own stated success
+  criterion, following the progress-check conversation that named it as
+  the single biggest remaining gap against docs/01's own definition of
+  success.
+- **Consequences:** The benchmark machinery itself is real, reusable, and
+  working — the first time this project's full-agent pipeline has been
+  evaluated with real bootstrap CIs rather than a single episode. But the
+  actual result it reports is currently dominated by a real, newly-found
+  CLIP perception bottleneck, not a demonstration of the policy's value —
+  reporting `full_agent` next to `oracle_feasibility` (docs/10's own
+  "decompose end-to-end failure into perception, feasibility, high-level
+  strategy" principle, applied directly here) is what makes that legible
+  instead of misleadingly reading as "the policy doesn't help." Success
+  criteria's actual comparative claim (full agent beats static, given
+  working perception) remains untested until this new gap is either fixed
+  or the comparison is re-run against a scene/object CLIP judges more
+  reliably. A natural, disclosed next step, not attempted here: recalibrate
+  `master_chef_can`'s kitchen_cabinet crop/prompt for post-attempt robustness
+  (matching D-055's fix in spirit, though not directly transferable since
+  CLIP has no training step), or re-run this exact benchmark against
+  `TidyUp-v1`'s canonical env/objects, whose CLIP calibration was never
+  stress-tested in a live post-attempt decision loop either. Full suite
+  re-verified green (pending final run).
+
+## D-087: Screen real navigation-plan waypoints before execution
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Added `screen_navigation_path()` to `envs/navigation.py`. It
+  converts the planner's real 2D waypoint format to a configured travel height,
+  predicts affected objects along the full path with D-084--D-086, and passes
+  them to D-083's state-aware intent guard. It returns the guard decision,
+  reason, and effects for logging or replanning.
+- **Reason:** The effect predictor was previously connected to the guard only
+  in direct unit tests. The Fetch navigation stack already produces waypoint
+  paths, making it the first real planner interface that can consume the new
+  safety layer.
+- **Consequences:** For the same legitimate red-mug target, a route whose later
+  leg passes protected glass is blocked and a detour is allowed. The adapter
+  deliberately does not yet alter `_navigate_to()`'s execution contract:
+  blocked-route behavior (stop versus replan) needs an explicit policy decision,
+  and `attempt_goal()` currently expects only a step count. Twenty predictor and
+  adapter tests pass.
+
+## D-086: Include object extent in side-effect screening
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Both D-084/D-085 predictor APIs now accept optional per-object
+  collision radii. An object is affected when its center-to-path distance is at
+  most the robot clearance plus its own radius. Unspecified radii default to
+  zero, exactly preserving point-center behavior.
+- **Reason:** A large glass can overlap the swept corridor even when its center
+  lies outside it. Treating every object as a point creates a systematic false
+  negative precisely where the intent guard should be conservative.
+- **Consequences:** A center 0.14 m from a path is ignored with 0.05 m robot
+  clearance alone but correctly flagged when the object's radius is 0.10 m.
+  Zero/unspecified radii match prior behavior and negative radii fail loudly.
+  Eighteen predictor tests pass. The model still approximates objects as
+  spheres and robot motion as a constant-radius swept path.
+
+## D-085: Screen the planned waypoint path, not its start-to-end chord
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Added `predict_affected_objects_along_path()`, which checks each
+  segment of a path containing two or more xyz waypoints. The D-084 straight-
+  line API now delegates to this implementation, preserving its behavior.
+- **Reason:** Navigation and manipulation trajectories bend. Replacing a bent
+  path with one direct chord can miss a protected object near a later leg and
+  can falsely flag an object near the chord that the actual route avoids.
+- **Consequences:** Tests demonstrate both directions and confirm that one
+  unsafe leg blocks the overall candidate through D-083's guard. Duplicate
+  waypoints retain D-084's spherical zero-motion behavior; incomplete paths
+  fail loudly. Fourteen predictor tests pass. Geometry remains based on object
+  centers and one clearance radius, not full robot links or object extents.
+
+## D-084: Predict affected objects with a conservative swept corridor
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Added `constraints/effect_predictor.py`. Given a planned
+  straight-line start/end motion and clearance radius, it returns every
+  existing object whose center lies within the swept corridor. The intended
+  target can be excluded because D-083 already treats it as an implicit effect.
+- **Reason:** D-083 supplied the guard interface but still required callers to
+  hand-author `affected_objects`. H3 needs at least one executable producer to
+  demonstrate how predicted physical effects reach the constraint check.
+- **Consequences:** The predictor catches objects near the middle of a path,
+  handles zero-length motions, ignores destroyed objects, and connects directly
+  to `validate_action()`: a mug reach whose corridor includes the protected
+  glass is blocked. This is deliberately conservative point-center geometry,
+  not robot-link collision checking, uncertainty propagation, or a learned
+  contact model. Eight predictor tests plus four D-083 effect tests pass.
+
+## D-083: Guard predicted side effects, not only the named action target
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Extended `validate_action()` with a backward-compatible
+  `affected_objects` set. The named target remains an implicit effect, while a
+  motion planner or semantic skill may add objects its trajectory could
+  disturb. Every effect is checked against active goals and `never_move`
+  constraints. `GuardEvalCase` and `evaluate_intent_guard()` carry the same
+  information so side-effect safety is measured.
+- **Reason:** D-082 closed the high-level target-choice trade-off but R-010's
+  remaining case was structurally unrepresentable: reaching for a legitimate
+  mug could knock a protected glass even though `target_object == "red_mug"`.
+- **Consequences:** A mug action predicted to disturb the protected glass is
+  blocked; the identical target predicted to affect only the unconstrained bowl
+  is allowed. The two-case effect-aware evaluation has legitimate recall 1.0
+  and violation rate 0.0, and an empty effect set exactly preserves old
+  behavior. This supplies the guard interface, not a collision predictor—the
+  low-level planner still must provide trustworthy affected-object estimates.
+  Four new focused tests pass.
+
+## D-082: Quantify the intent guard's safety-recall trade-off
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Added `GuardEvalCase`, `GuardEvaluation`, and
+  `evaluate_intent_guard()` to turn D-058's isolated edge cases into H3's two
+  required aggregate metrics: legitimate-action recall and unsafe-action
+  violation rate. Evaluation requires both classes so doing nothing cannot
+  masquerade as safety.
+- **Reason:** R-010's constructible cases were fixed, but docs/01 still noted
+  that H3 had never reported the actual recall/safety trade-off.
+- **Consequences:** Across five independently labelled candidates, the
+  state-aware guard has recall 1.0 and violation rate 0.0. The stateless
+  ablation retains recall 1.0 but has violation rate 0.5, permitting the
+  inactive conditional target. This closes the measurable high-level trade-off
+  at current action-space scope. The physical side-effect case remains
+  untestable because actions cannot represent incidentally disturbing a
+  protected object while targeting another one. Ten focused pure tests pass.
+
+## D-081: Expand H4 from one held-out composition to a role-recombination matrix
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Added `compositional_matrix_cases()`: four training graphs and
+  four semantically disjoint held-out graphs. Every object is familiar, but its
+  assignment to goal, maintain-orientation, or never-move roles is recombined.
+  Ground truth is constructed directly from the declared role assignments,
+  independently of `parse_instruction()`.
+- **Reason:** D-080 removed the unseen-string confound but still relied on one
+  training graph and one held-out composition. A result that turns on a single
+  composition could be accidental and gives a retriever almost no training
+  diversity.
+- **Consequences:** The factorized parser is correct on all 4/4 training and
+  4/4 held-out compositions. The trained whole-graph surface retriever fits all
+  4/4 training graphs and gets 0/4 held-out graphs because none can be assembled
+  from its indivisible outputs. This is stronger controlled-language evidence,
+  but still not a neural sequence baseline or simulator-level change
+  composition. Twelve focused tests pass.
+
+## D-080: A surface retriever removes D-079's unseen-string confound
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** Strengthened H4's comparison with a trained, non-factorized
+  character-trigram nearest-neighbor retriever. Unlike D-079's exact lookup,
+  it always transfers the whole semantic graph attached to the most similar
+  training instruction, so an unseen string does not automatically fail.
+  It still has no goal, object, or clause slots and cannot assemble a graph
+  whose parts came from different examples.
+- **Reason:** D-079's exact-string memorizer confounded robustness to
+  paraphrasing with transfer to a novel composition. A baseline that succeeds
+  on unseen paraphrases while retaining an indivisible output representation
+  isolates the latter more cleanly.
+- **Consequences:** The retriever is 1/1 on train and 3/3 on held-out
+  paraphrases, but 0/1 on held-out composition. The factorized parser remains
+  1/1, 3/3, and 1/1. H4's result is therefore no longer explained merely by
+  rejecting every unseen string. It remains small-scale: one training semantic
+  graph and one held-out composition are not evidence about a neural sequence
+  model or simulator-level goal-change combinations. Nine simulator-free tests
+  pass.
+
+## D-079: H4's first real comparative test — factorized vs. monolithic instruction representations
+
+- **Date:** 2026-08-09
+- **Status:** Accepted
+- **Decision:** H4 ("factorized goal and change representations transfer
+  better to unseen goal-change combinations than a monolithic policy") had
+  zero work done — the last of the five research hypotheses untouched.
+  Investigated the intervention-mechanism axis first, since that's the
+  literal "change" half of H4's wording, and found a real scoping problem
+  rather than building past it: every intervention kind in every env
+  variant (`bowl_destroyed`/`temporary_obstacle`/`resource_contention`/
+  `resource_contention_temporary` in `tidy_up_env.py`,
+  `chef_can_destroyed` in the ReplicaCAD-humanoid variant) threatens
+  exactly one specific goal each — no env has two goals independently
+  threatened by different intervention kinds, so there's no real
+  goal-by-intervention cross product to hold a combination out from at the
+  simulator level. Building an env with genuine multi-goal, multi-
+  intervention structure would be a real scope expansion (new intervention
+  mechanics, not just new analysis) — asked rather than assumed which
+  direction to take.
+
+  Scoped to the language axis instead: `atr.evaluation.splits`'s
+  `InstructionSpec` registry (D-044) already has real compositional
+  structure — known objects recombined into instructions never literally
+  seen together (`held_out_composition`) — and already-validated evidence
+  (D-019/D-038, `test_instruction_parser.py`'s `TestHeldOutComposition`)
+  that the real, factorized `instruction_parser.py` handles it correctly.
+  What was missing was the actual *comparative* half of H4's claim: nothing
+  had ever measured that against an explicit non-factorized alternative.
+
+  Built `src/atr/language/compositional_generalization.py`: a monolithic
+  baseline (`train_monolithic_lookup()`) that memorizes exact instruction
+  strings from training (using the real parser to produce each memorized
+  answer, so its training-set correctness is exactly as good as the
+  factorized parser's own — a fair baseline, not a strawman) and has no
+  mechanism at all for any string it wasn't shown verbatim.
+  `compare_factorized_vs_monolithic()` runs both across every split with
+  independently-available ground truth (train + 3 held-out-paraphrase
+  specs, checked against `canonical_example()`; 1 held-out-composition
+  spec, checked against ground truth copied verbatim from
+  `test_instruction_parser.py`'s existing hardcoded assertion — not the
+  parser's own output, which would make the comparison circular).
+
+  Real, measured result: **factorized parser — 100% correct on every
+  split (1/1 train, 3/3 held-out-paraphrase, 1/1 held-out-composition).
+  Monolithic baseline — 100% on train (1/1, exactly what it memorized), 0%
+  on both held-out splits (0/3, 0/1).** Locked in as 7 regression tests
+  (`tests/drafts/test_compositional_generalization.py`), zero mani_skill
+  dependency (fast — this is the first test in the entire H1–H5 body of
+  work this session that doesn't need the simulator at all).
+- **Reason:** H4 was the only hypothesis in `docs/01` with no work at all;
+  direct instruction to start it, following H5's own thread reaching a
+  natural, complete stopping point (D-076–D-078).
+- **Consequences:** This is a real, decisive, honest first data point for
+  H4's comparative claim — not a designed toy, and not overclaiming beyond
+  its scope: `parse_instruction()`'s "factorization" here is a
+  hand-written controlled grammar, not a learned representation, and the
+  monolithic baseline is a maximally weak strawman by construction (zero
+  generalization mechanism, not just a weaker learned one) — a genuinely
+  learned monolithic baseline (e.g., a sequence model trained end-to-end
+  on instruction-to-graph pairs) might do meaningfully better on
+  paraphrases (surface-level pattern matching could partially cover that
+  case) even if it still fails on genuinely novel compositions, and isn't
+  built or tested here. Confirms this is the right axis to have picked:
+  the intervention-mechanism axis had no real compositional structure to
+  test at all, so pursuing it first would have produced either a null
+  result or an artificial one. Full suite re-verified green (pending final
+  run).
+
 ## D-078: Abstention doesn't always win — the reward asymmetry that decides it
 
 - **Date:** 2026-08-09

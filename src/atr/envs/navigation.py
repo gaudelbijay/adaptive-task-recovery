@@ -10,6 +10,10 @@ we haven't verified installs on Apple Silicon, and we've been burned by that
 exact kind of dependency once already with `mplib`, see D-011) and runs
 Dijkstra shortest-path on it. Deliberately simple and inspectable over
 pulling in an external planner.
+
+D-087 connects planned 2D waypoints to D-086's geometric effect predictor and
+D-083's intent guard through `screen_navigation_path()`. Execution remains a
+separate step so a blocked route can be logged or replanned rather than driven.
 """
 
 from __future__ import annotations
@@ -17,6 +21,11 @@ from __future__ import annotations
 import numpy as np
 from scipy.sparse import lil_matrix
 from scipy.sparse.csgraph import dijkstra
+
+from atr.constraints.effect_predictor import predict_affected_objects_along_path
+from atr.constraints.intent_guard import validate_action
+from atr.feasibility.oracle import WorldState
+from atr.language.goal_graph import GoalGraph
 
 _NEIGHBOR_OFFSETS = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
@@ -107,3 +116,35 @@ def plan_path(
         path_idx.append(cur)
     path_idx.reverse()
     return [(float(xs[p // ny]), float(ys[p % ny])) for p in path_idx]
+
+
+def screen_navigation_path(
+    waypoints: list[tuple[float, float]],
+    target_object: str,
+    graph: GoalGraph,
+    state: WorldState,
+    travel_height: float,
+    clearance_radius: float,
+    object_radii: dict[str, float] | None = None,
+) -> tuple[bool, str, frozenset[str]]:
+    """Screen real `plan_path()` output through D-083's intent guard.
+
+    Returns ``(allowed, reason, affected_objects)`` so an executor can log the
+    prediction or request a different route. The intended target is excluded
+    from incidental effects because the guard checks it implicitly.
+    """
+    path_xyz = tuple((x, y, travel_height) for x, y in waypoints)
+    effects = predict_affected_objects_along_path(
+        state,
+        path_xyz,
+        clearance_radius,
+        exclude_objects=frozenset({target_object}),
+        object_radii=object_radii,
+    )
+    allowed, reason = validate_action(
+        target_object,
+        graph,
+        state=state,
+        affected_objects=effects,
+    )
+    return allowed, reason, effects

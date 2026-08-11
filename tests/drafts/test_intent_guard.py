@@ -11,7 +11,7 @@ importorskip.
 import gymnasium as gym
 import pytest
 
-from atr.constraints.intent_guard import validate_action
+from atr.constraints.intent_guard import GuardEvalCase, evaluate_intent_guard, validate_action
 from atr.feasibility.oracle import ObjectState
 from atr.language.goal_graph import Constraint, Goal, GoalGraph, canonical_example
 
@@ -57,6 +57,104 @@ class TestValidateActionUnderRealTension:
         assert allowed is True
         assert "goal target" in reason
 
+
+class TestGuardSafetyRecallTradeoff:
+    @staticmethod
+    def _cases():
+        canonical = canonical_example()
+        conditional = GoalGraph(
+            instruction_text="If the bowl is destroyed, put the cup on the tray; never move the cup otherwise.",
+            goals=(Goal(
+                id="place_cup_fallback", predicate="on_tray", target_object="cup",
+                condition=("bowl", False),
+            ),),
+            constraints=(Constraint(id="dont_move_cup", kind="never_move", target_object="cup"),),
+        )
+        conflict = GoalGraph(
+            instruction_text="Put the vase on the tray, but never move the vase.",
+            goals=(Goal(id="place_vase", predicate="on_tray", target_object="vase"),),
+            constraints=(Constraint(id="dont_move_vase", kind="never_move", target_object="vase"),),
+        )
+        exists = lambda value: ObjectState(exists=value, position=None)
+        return (
+            GuardEvalCase("red_mug", canonical, {
+                "red_mug": exists(True), "blue_bowl": exists(True),
+                "medicine_bottle": exists(True), "glass": exists(True),
+            }, legitimate=True),
+            GuardEvalCase("glass", canonical, {
+                "red_mug": exists(True), "blue_bowl": exists(True),
+                "medicine_bottle": exists(True), "glass": exists(True),
+            }, legitimate=False),
+            GuardEvalCase("vase", conflict, {"vase": exists(True)}, legitimate=True),
+            GuardEvalCase("cup", conditional, {
+                "bowl": exists(True), "cup": exists(True),
+            }, legitimate=False),
+            GuardEvalCase("cup", conditional, {
+                "bowl": exists(False), "cup": exists(True),
+            }, legitimate=True),
+        )
+
+    def test_state_aware_guard_has_full_recall_and_zero_violations(self):
+        result = evaluate_intent_guard(self._cases(), use_state=True)
+        assert result.legitimate_action_recall == 1.0
+        assert result.violation_rate == 0.0
+
+    def test_stateless_ablation_exposes_conditional_goal_violation(self):
+        result = evaluate_intent_guard(self._cases(), use_state=False)
+        assert result.legitimate_action_recall == 1.0
+        assert result.violation_rate == 0.5
+
+    def test_evaluation_rejects_one_sided_case_sets(self):
+        with pytest.raises(ValueError, match="legitimate and unsafe"):
+            evaluate_intent_guard((self._cases()[0],))
+
+
+class TestPredictedIncidentalEffects:
+    def test_blocks_legitimate_target_when_path_would_disturb_protected_object(self):
+        allowed, reason = validate_action(
+            "red_mug",
+            canonical_example(),
+            affected_objects=frozenset({"glass"}),
+        )
+        assert allowed is False
+        assert "dont_move_glass" in reason
+
+    def test_allows_same_target_when_predicted_effects_are_unconstrained(self):
+        allowed, _ = validate_action(
+            "red_mug",
+            canonical_example(),
+            affected_objects=frozenset({"blue_bowl"}),
+        )
+        assert allowed is True
+
+    def test_empty_effect_set_is_backward_compatible(self):
+        graph = canonical_example()
+        assert validate_action("red_mug", graph) == validate_action(
+            "red_mug", graph, affected_objects=frozenset()
+        )
+
+    def test_effect_aware_evaluation_reports_safety_without_recall_loss(self):
+        exists = lambda value: ObjectState(exists=value, position=None)
+        state = {
+            "red_mug": exists(True), "blue_bowl": exists(True),
+            "medicine_bottle": exists(True), "glass": exists(True),
+        }
+        cases = (
+            GuardEvalCase(
+                "red_mug", canonical_example(), state, legitimate=True,
+                affected_objects=frozenset({"blue_bowl"}),
+            ),
+            GuardEvalCase(
+                "red_mug", canonical_example(), state, legitimate=False,
+                affected_objects=frozenset({"glass"}),
+            ),
+        )
+        result = evaluate_intent_guard(cases)
+        assert result.legitimate_action_recall == 1.0
+        assert result.violation_rate == 0.0
+
+
+class TestConditionalGoalStateAwareness:
     def test_without_state_a_conditional_goal_wrongly_exempts_its_target_early(self):
         """The opposite-direction gap D-058 actually found while building
         the scenario above: without `state`, "is this a goal target" means

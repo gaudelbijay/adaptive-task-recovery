@@ -54,6 +54,14 @@ also serves the already-promoted `clip_feasibility.py`'s kitchen_sink
 tests, and `dinov2_probe.py` depending on promoted code is the expected
 direction, not a problem. Callers now locate it via its own module
 `__file__` rather than a hardcoded relative path.
+
+`run_full_agent_episode_subprocess.py` (D-088) is the same isolation
+pattern as `capture_episode_subprocess.py`, for a different caller: runs
+exactly one real `atr.pipeline.run_end_to_end_episode()` episode (real
+CLIP perception, a trained Q-table, real arm motion) in its own fresh
+process and writes the result to JSON, so `atr.evaluation.
+full_agent_benchmark`'s multi-seed comparison can call it once per seed
+without accumulating render-producing resets in one process.
 """
 
 from __future__ import annotations

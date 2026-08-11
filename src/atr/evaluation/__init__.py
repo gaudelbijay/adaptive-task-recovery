@@ -26,6 +26,19 @@ comparison and persists a `summary.json` (run metadata + the bootstrap-CI
 report) alongside the per-policy episode logs, under `data/runs/`
 (gitignored, generated, per D-032). `list_runs()` is the queryable
 registry over what's been tracked so far.
+
+`full_agent_benchmark.py` (D-088) runs docs/01's own "Success criteria"
+benchmark for the first time: a real, paired, multi-seed comparison of
+`static`, `oracle_feasibility`, and the real full-agent pipeline (real
+language parsing, real CLIP-perceived feasibility, a trained Q-table, real
+arm motion), reusing `harness.py`'s `bootstrap_ci()`. Since the full-agent
+policy renders (unlike every other privileged-state comparison in this
+project), it runs each episode in a fresh subprocess
+(`atr.envs.run_full_agent_episode_subprocess`), one per seed, to respect
+D-022's confirmed rendering-desync bug. First real run surfaced an
+undiscovered CLIP robustness gap rather than demonstrating the success
+criterion outright -- see the module's own docstring and D-088 in
+`ai-notes/decisions.md`.
 """
 
 from __future__ import annotations

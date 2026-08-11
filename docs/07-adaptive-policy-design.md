@@ -137,6 +137,32 @@ in `ai-notes/decisions.md`. Does not yet handle equivalence classes,
 ordering/dependency edges, or the harder recall/safety trade-off this
 section's design implies.
 
+**Safety/recall and side effects (2026-08-09, D-082/D-083):** the state-aware
+guard now has an explicit evaluator and achieves legitimate-action recall 1.0
+with unsafe-action violation rate 0.0 on the constructible target-choice set;
+the stateless ablation has violation rate 0.5. `validate_action()` also accepts
+predicted `affected_objects`, allowing a legitimate target to be blocked when
+its trajectory would disturb a protected object. This is an interface for a
+motion/skill predictor, not a claim that contacts are inferred automatically.
+
+**First effect producer (2026-08-09, D-084):** a conservative swept-corridor
+predictor flags privileged-state object centers within a clearance radius of a
+planned straight-line motion. Its output feeds D-083's `affected_objects`
+directly; a mug reach passing near the protected glass is blocked. This is a
+screening baseline, not collision-accurate robot geometry or learned contact
+prediction.
+
+**Waypoint paths (2026-08-09, D-085):** effect screening now evaluates every
+segment of a multi-waypoint plan. This catches hazards on later legs and avoids
+the false geometry of treating a bent route as its direct endpoint chord.
+**Object extents (2026-08-09, D-086):** callers may also provide per-object
+collision radii; the corridor expands by each radius so large objects are not
+missed merely because their centers lie outside the robot clearance.
+**Navigation integration (2026-08-09, D-087):** the ReplicaCAD Fetch planner's
+2D waypoint format can now be screened before execution. The adapter returns
+allowed/reason/effects so policy code can log, stop, or request another route;
+automatic replanning is not selected yet.
+
 ## Uncertainty and abstention
 
 When evidence is ambiguous, the agent may gather information, delay commitment,

@@ -22,16 +22,84 @@ including a conditional goal (`Goal.condition`, D-026) whose condition
 doesn't currently hold -- confirmed too *permissive* in that case, which
 is a genuine tension the original easy-case test couldn't have surfaced
 either. See D-058.
+
+D-082 aggregates those cases instead of leaving them as isolated assertions:
+`evaluate_intent_guard()` reports legitimate-action recall and unsafe-action
+violation rate separately. On the constructible evaluation set, state-aware
+validation achieves recall 1.0 and violation rate 0.0; the stateless ablation
+keeps recall 1.0 but permits half of unsafe candidates.
+
+D-083 makes R-010's remaining side-effect case representable at the semantic
+skill boundary: callers may pass `affected_objects` predicted by a motion or
+skill model, and the guard checks every predicted effect, not only the named
+target. It does not itself predict contacts or trajectories.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 from atr.feasibility.oracle import WorldState, goal_feasible
 from atr.language.goal_graph import GoalGraph
 
 
+@dataclass(frozen=True)
+class GuardEvalCase:
+    """One candidate action with an independently declared safety label."""
+
+    target_object: str
+    graph: GoalGraph
+    state: WorldState
+    legitimate: bool
+    affected_objects: frozenset[str] = frozenset()
+
+
+@dataclass(frozen=True)
+class GuardEvaluation:
+    legitimate_action_recall: float
+    violation_rate: float
+    allowed: tuple[bool, ...]
+
+
+def evaluate_intent_guard(
+    cases: tuple[GuardEvalCase, ...], *, use_state: bool = True,
+) -> GuardEvaluation:
+    """Measure H3's safety/recall trade-off without collapsing either side.
+
+    `legitimate_action_recall` is the fraction of independently labelled
+    legitimate candidates the guard permits. `violation_rate` is the fraction
+    of unsafe candidates it permits. Both classes must be present so a guard
+    cannot look safe by doing nothing or look permissive by seeing no hazards.
+    """
+    legitimate = [case for case in cases if case.legitimate]
+    unsafe = [case for case in cases if not case.legitimate]
+    if not legitimate or not unsafe:
+        raise ValueError("guard evaluation requires legitimate and unsafe cases")
+    allowed = tuple(
+        validate_action(
+            case.target_object, case.graph, state=case.state if use_state else None,
+            affected_objects=case.affected_objects,
+        )[0]
+        for case in cases
+    )
+    legitimate_allowed = sum(
+        decision for decision, case in zip(allowed, cases) if case.legitimate
+    )
+    unsafe_allowed = sum(
+        decision for decision, case in zip(allowed, cases) if not case.legitimate
+    )
+    return GuardEvaluation(
+        legitimate_action_recall=legitimate_allowed / len(legitimate),
+        violation_rate=unsafe_allowed / len(unsafe),
+        allowed=allowed,
+    )
+
+
 def validate_action(
-    target_object: str, graph: GoalGraph, state: WorldState | None = None,
+    target_object: str,
+    graph: GoalGraph,
+    state: WorldState | None = None,
+    affected_objects: frozenset[str] | None = None,
 ) -> tuple[bool, str]:
     """(allowed, reason). Rejects only objects under a never_move constraint
     that aren't themselves a goal target — i.e., moving them could never be
@@ -50,15 +118,29 @@ def validate_action(
     ever combined `condition` with a `never_move` constraint on its own
     target object before D-058's test, so this is the minimal fix, not a
     signature break for callers that have no state to give it."""
-    if state is not None:
-        is_goal_target = any(
-            g.target_object == target_object and goal_feasible(g, state) for g in graph.goals
-        )
-    else:
-        is_goal_target = any(g.target_object == target_object for g in graph.goals)
-    if is_goal_target:
+    # D-083: the target is always an effect; callers with a motion/skill
+    # predictor may additionally name objects the trajectory could disturb.
+    effects = frozenset({target_object}) | (affected_objects or frozenset())
+    for affected in effects:
+        if state is not None:
+            is_goal_target = any(
+                g.target_object == affected and goal_feasible(g, state)
+                for g in graph.goals
+            )
+        else:
+            is_goal_target = any(g.target_object == affected for g in graph.goals)
+        if is_goal_target:
+            continue
+        for constraint in graph.constraints:
+            if constraint.kind == "never_move" and constraint.target_object == affected:
+                return False, (
+                    f"blocked: would violate constraint '{constraint.id}' "
+                    f"(never_move on {affected})"
+                )
+    if target_object in effects and any(
+        g.target_object == target_object
+        and (state is None or goal_feasible(g, state))
+        for g in graph.goals
+    ):
         return True, "ok: object is an actual goal target"
-    for constraint in graph.constraints:
-        if constraint.kind == "never_move" and constraint.target_object == target_object:
-            return False, f"blocked: would violate constraint '{constraint.id}' (never_move on {target_object})"
     return True, "ok"

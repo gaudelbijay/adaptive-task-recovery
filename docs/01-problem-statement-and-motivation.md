@@ -106,7 +106,25 @@ unrequested object, or violate the glass constraint for reward.
   (disclosed, not hidden) — not a claim that no amount of task-reward
   training could ever work, only that it doesn't at this project's
   current data scale, in contrast to the pretrained alternatives which
-  succeed at that same scale.
+  succeed at that same scale. **CLIP's own "needs no shift-specific data"
+  framing above needed a correction, 2026-08-10 (D-088):** running the
+  full live-agent pipeline through a real multi-seed benchmark for the
+  first time (not just the single hand-checked episode D-054 used)
+  surfaced that CLIP has an analogous robustness gap of its own, in a
+  different env/scene (ReplicaCAD-Humanoid, `master_chef_can`,
+  `kitchen_cabinet`) and the opposite direction (a false negative, not a
+  false positive): once G1's arm occupies the calibrated crop region after
+  a real prior goal attempt, CLIP judged the object "absent" in every one
+  of 8 episodes tested, including all 7 where it was genuinely still
+  present. Visually confirmed, not just measured. D-054's specific
+  finding (CLIP correct where DINOv2 wasn't, on *that* frame, in the
+  canonical env) still holds — but "CLIP needs no shift-specific data"
+  was never actually tested against *this* shift (post-attempt arm
+  position in a different env/scene) before D-088, and doesn't hold up
+  once it is. Both representations tested so far turn out to have
+  real, distinct robustness gaps under a live decision loop's actual
+  rendered states — a more precise, and more interesting, H1-relevant
+  picture than either one being simply "robust."
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
@@ -160,15 +178,72 @@ unrequested object, or violate the glass constraint for reward.
   **First toy-scale test (2026-07-29):** see D-015 and
   `src/atr/constraints/intent_guard.py` (promoted from `spikes/task_schema_draft/`,
   D-037) — blocks one hand-authored
-  constraint violation at zero recall cost; does not yet test the harder
+  constraint violation at zero recall cost; this did not test the harder
   recall/safety trade-off the hypothesis is actually about (see R-010).
   Confirmed with the same result across the same four robot/scene
-  combinations as H2 (D-016–D-018, D-021). The recall/safety trade-off gap
-  R-010 flags is still open as of 2026-08-01 — nothing built since has
-  addressed it.
+  combinations as H2 (D-016–D-018, D-021). **Trade-off quantified
+  2026-08-09 (D-058/D-082):** on five independently labelled candidates,
+  including direct goal/constraint tension and conditional fallback before
+  and after activation, the state-aware guard has legitimate-action recall
+  1.0 and unsafe-action violation rate 0.0. Removing state keeps recall 1.0
+  but raises violation rate to 0.5. This closes the constructible high-level
+  case. **Predicted side effects represented (2026-08-09, D-083):** actions may
+  now carry an `affected_objects` set, so reaching for a legitimate target is
+  blocked when a motion/skill predictor says it would disturb a protected
+  object. The guard consumes those predictions; it does not yet infer physical
+  contacts itself. **A real predictor built and wired in (2026-08-09,
+  D-084–D-087):** `constraints/effect_predictor.py` supplies the
+  `affected_objects` set D-083's interface needed — every existing object
+  within a conservative swept corridor around a planned motion, excluding the
+  intended target (already handled as an implicit effect). Extended to check
+  every segment of a real bent multi-waypoint path, not a straight start-end
+  chord (D-085), and to account for each object's own extent/collision
+  radius, not just its center point (D-086) — both closing real, disclosed
+  false-negative gaps in the geometry, not just adding features. Wired into
+  the first real planner interface the safety layer actually consumes
+  (D-087, `screen_navigation_path()`, `envs/navigation.py`, on the real
+  Fetch navigation stack): for the same legitimate red-mug target, a route
+  whose later leg passes the protected glass is blocked, and a clear detour
+  is allowed. This closes R-010's long-standing "not fully closed" caveat
+  (the physical-obstruction scenario is now representable and tested
+  end-to-end) but the model is still conservative sphere/point-based
+  geometry, not real robot-link collision checking, and blocked-route
+  behavior (stop vs. replan) isn't yet wired into `_navigate_to()`'s actual
+  execution contract — a real, disclosed remaining gap, not a finished
+  claim.
 - **H4 — compositional generalization:** factorized goal and change
   representations transfer better to unseen goal-change combinations than a
-  monolithic policy.
+  monolithic policy. **First real comparative test (2026-08-09, D-079):**
+  investigated the intervention-mechanism axis first and found a real
+  scoping limit — every intervention kind in every env variant threatens
+  exactly one specific goal, so no env has genuine multi-goal ×
+  multi-intervention structure to hold a combination out from. Tested the
+  language axis instead, where that structure already exists
+  (`atr.evaluation.splits`'s `held_out_composition` spec, D-044): built a
+  monolithic exact-string-memorization baseline
+  (`src/atr/language/compositional_generalization.py`) and compared it
+  against the real, factorized `instruction_parser.py` across train,
+  held-out-paraphrase, and held-out-composition. Result: the factorized
+  parser is 100% correct on every split (1/1, 3/3, 1/1); the monolithic
+  baseline is 100% on train (exactly what it memorized) and 0% on both
+  held-out splits. A real, decisive first data point, honestly scoped —
+  the parser's factorization is a hand-written grammar, not a learned
+  representation, and the monolithic baseline is a maximally weak
+  strawman (zero generalization mechanism, not just a weaker learned one);
+  a genuinely learned monolithic baseline might do better on paraphrases
+  specifically. **Stronger surface baseline (2026-08-09, D-080):** a trained
+  character-trigram nearest-neighbor retriever removes that easy confound: it
+  transfers its indivisible training graph across every unseen paraphrase
+  (3/3) but still fails the novel composition (0/1), where the factorized
+  parser succeeds (1/1). This isolates composition from mere string novelty,
+  while remaining a tiny controlled-language result rather than evidence from
+  a neural sequence model or simulator-level goal-by-change cross product.
+  **Expanded composition matrix (2026-08-09, D-081):** four training semantic
+  graphs and four disjoint held-out role recombinations replace the original
+  one-versus-one comparison. The factorized parser gets 4/4 held-out graphs;
+  the trained whole-graph retriever fits 4/4 training graphs but gets 0/4
+  held-out compositions. Familiar objects appear on both sides; only their
+  goal/orientation/protection roles are recombined.
 - **H5 — calibration:** calibrated uncertainty and abstention outperform forced
   binary feasibility decisions when evidence is ambiguous. **Sharpened
   2026-08-09 (D-078) — this needs a condition the original phrasing didn't
@@ -247,6 +322,20 @@ across multiple seeds, that the full agent improves feasible-goal completion
 over a static-policy baseline while keeping hard-constraint violations below a
 predeclared threshold. Feasibility accuracy alone is insufficient: estimates
 must lead to better decisions. Oracle-feasibility performance defines the headroom.
+
+**Run for the first time, 2026-08-10 (D-088):** `src/atr/evaluation/full_agent_benchmark.py`
+now exists and works — a real, paired, multi-seed, bootstrap-CI comparison
+of `static`, `oracle_feasibility` (the headroom reference this section
+itself names), and the real `full_agent` pipeline (real language parsing,
+real CLIP-perceived feasibility, a trained Q-table, real arm motion). The
+benchmark machinery is real and reusable, but the comparative claim itself
+is not yet demonstrated: the current result is dominated by a newly-found
+CLIP perception gap (see H1's update above and D-088 in
+`ai-notes/decisions.md`), not a clean measurement of the policy's value.
+Re-running this same benchmark once that gap is addressed — or against a
+scene/object where CLIP's live-loop reliability is already established —
+is the direct next step toward actually closing this criterion, not
+starting it over.
 
 ## Threats to validity
 
