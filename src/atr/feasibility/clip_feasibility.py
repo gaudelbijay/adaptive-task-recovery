@@ -71,6 +71,12 @@ class VisualObjectConfig:
     crop: tuple[int, int, int, int]  # (y0, y1, x0, x1)
     positive_prompt: str
     negative_prompt: str = "a photo of an empty cabinet with nothing on it"
+    # D-089: optional second crop for a decision made *after* a prior goal's
+    # real attempt_goal() has already run (atr.pipeline's live decision
+    # loop) -- when the arm/hand may now occupy part of `crop`. None means
+    # "no separate calibration exists yet for this object/scene"; callers
+    # fall back to `crop`, unchanged from before this field existed.
+    post_attempt_crop: tuple[int, int, int, int] | None = None
 
 
 # Calibrated per scene variant (tidy_up_env_replicacad_humanoid.py's
@@ -90,8 +96,27 @@ class VisualObjectConfig:
 # ones the way instruction_parser.py generalizes to unseen paraphrases.
 _OBJECT_VISUAL_CONFIG: dict[str, dict[str, VisualObjectConfig]] = {
     "kitchen_cabinet": {
+        # D-089: `post_attempt_crop` is a second, narrower crop used only by
+        # atr.pipeline.run_end_to_end_episode()'s live decision loop for a
+        # goal checked *after* a prior goal's real attempt_goal() has run --
+        # not a replacement for `crop`. D-088 found `crop` (the original,
+        # wider one) misjudges this object as absent in 7/7 genuinely
+        # feasible cases once G1's arm occupies part of it post-attempt.
+        # Widening the search initially tried overwriting `crop` directly,
+        # which fixed that but broke a real, separate thing: dinov2_probe.py's
+        # collect_labeled_examples()/collect_arm_occluded_examples() (D-054,
+        # D-055, D-064, D-066, D-068) all read this exact same `crop` field
+        # to build their own labeled examples for an unrelated, already-
+        # published DINOv2/from-scratch-encoder comparison -- a *much*
+        # tighter crop made that discrimination task trivially easy for any
+        # model (including the from-scratch encoder D-066 found couldn't
+        # discriminate at all under the original, harder crop), silently
+        # invalidating those findings. Keeping `crop` untouched and adding
+        # `post_attempt_crop` as an explicit, separate, opt-in field keeps
+        # every existing caller's behavior exactly as it was.
         "master_chef_can": VisualObjectConfig(
             crop=(180, 380, 260, 460), positive_prompt="a photo of a coffee can",
+            post_attempt_crop=(265, 340, 325, 400),
         ),
         "potted_meat_can": VisualObjectConfig(
             crop=(180, 380, 60, 260), positive_prompt="a photo of a Spam can",
@@ -145,12 +170,20 @@ def clip_margin(image: np.ndarray, positive_prompt: str, negative_prompt: str) -
 
 def visual_object_exists(
     frame: np.ndarray, object_id: str, scene_variant: str = "kitchen_cabinet",
+    *, after_prior_attempt: bool = False,
 ) -> bool:
     """Zero-shot judgment of whether `object_id` is visible in `frame`,
     using the calibrated crop/prompt in _OBJECT_VISUAL_CONFIG[scene_variant].
     Raises for objects/variants that don't have a calibrated config -- there
     is no generic fallback, per this module's docstring finding that the
-    generic prompt template measurably doesn't work."""
+    generic prompt template measurably doesn't work.
+
+    `after_prior_attempt` (D-089, default False -- zero behavior change for
+    every existing caller): set True when this judgment is being made after
+    a prior goal's real `attempt_goal()` has already run in the same
+    episode, so the arm/hand may occupy part of the original `crop`. Uses
+    `cfg.post_attempt_crop` when set for this object/scene, falling back to
+    `cfg.crop` when it isn't (no separate calibration exists yet)."""
     if scene_variant not in _OBJECT_VISUAL_CONFIG:
         raise ValueError(
             f"no calibrated visual config for scene_variant={scene_variant!r}; "
@@ -163,7 +196,10 @@ def visual_object_exists(
             f"known objects: {sorted(variant_config)}"
         )
     cfg = variant_config[object_id]
-    y0, y1, x0, x1 = cfg.crop
+    if after_prior_attempt and cfg.post_attempt_crop is not None:
+        y0, y1, x0, x1 = cfg.post_attempt_crop
+    else:
+        y0, y1, x0, x1 = cfg.crop
     crop = frame[y0:y1, x0:x1]
     margin = clip_margin(crop, cfg.positive_prompt, cfg.negative_prompt)
     return margin > 0.0

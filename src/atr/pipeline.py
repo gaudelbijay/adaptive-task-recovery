@@ -92,12 +92,21 @@ def run_end_to_end_episode(env, q_table: dict, scene_variant: str = "kitchen_cab
     """The real integration: parse the instruction, then for each goal,
     render a frame, judge feasibility from it (not privileged state), and
     let the trained Q-table decide whether to attempt. Exactly one render
-    per goal -- two goals, two renders total, D-022's verified-safe budget."""
+    per goal -- two goals, two renders total, D-022's verified-safe budget.
+
+    `after_prior_attempt=(i > 0)` (D-089): every goal after the first is
+    judged from a frame rendered *after* a real `attempt_goal()` has
+    already run in this same episode, so CLIP needs the post-attempt crop
+    when one's calibrated (`atr.feasibility.clip_feasibility`'s
+    `VisualObjectConfig.post_attempt_crop`) -- D-088 found the original
+    crop has a severe false-negative gap in exactly this state."""
     graph = _instruction_graph()
     per_goal = {}
     for i, goal in enumerate(graph.goals):
         frame = env.render()[0].cpu().numpy()
-        perceived_feasible = visual_object_exists(frame, goal.target_object, scene_variant)
+        perceived_feasible = visual_object_exists(
+            frame, goal.target_object, scene_variant, after_prior_attempt=(i > 0),
+        )
         key = (goal.id, perceived_feasible)
         action = greedy_action(q_table, key)
 

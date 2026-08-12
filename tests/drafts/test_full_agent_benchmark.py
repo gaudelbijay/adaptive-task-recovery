@@ -1,33 +1,39 @@
-"""D-088: the project's own stated success criterion (docs/01 "Success
+"""D-088/D-089: the project's own stated success criterion (docs/01 "Success
 criteria") -- a multi-seed, bootstrap-CI comparison of the *full agent*
 (real language parsing, real CLIP-perceived feasibility, a trained Q-table,
 real arm motion) against a static baseline, with oracle-feasibility
 performance as the headroom reference -- had never actually been run.
-Running it for the first time surfaced a real, unplanned finding: CLIP's
-crop-based feasibility judgment for `master_chef_can` in the kitchen_cabinet
-scene, calibrated on clean reference frames (D-020/D-027), has a severe
-false-negative gap once evaluated in this exact live-pipeline context --
-*after* a real prior goal attempt has moved G1's arm into the calibrated
-crop region. Visually confirmed (not just measured): the object is clearly
-visible in the crop; the arm/hand now occupies much of it. Structurally the
-same mechanism D-054 found for DINOv2 (a calibration done on frames unlike
-what the live loop actually renders), in the opposite direction (a false
-negative instead of a false positive), and never tested for CLIP in this
-exact env/scene/post-attempt context before -- CLIP's D-020/D-027
-validation predates any live decision loop.
 
-Not fixed here, following D-054's own precedent (disclosed as a real,
-informative negative result first; D-055 fixed it as a distinct follow-up
-decision) -- CLIP is zero-shot, so "retrain on more representative
-examples" doesn't directly apply the way it did for DINOv2's linear probe;
-a fix would mean recalibrating the crop/prompt itself, a separate decision.
+Running it for the first time (D-088) surfaced a real, unplanned finding:
+CLIP's crop-based feasibility judgment for `master_chef_can` in the
+kitchen_cabinet scene, calibrated on clean reference frames (D-020/D-027),
+had a severe false-negative gap once evaluated in this exact live-pipeline
+context -- *after* a real prior goal attempt had moved G1's arm into the
+calibrated crop region. CLIP said "absent" in all 8 episodes tested,
+including all 7 that were genuinely feasible by oracle ground truth.
+Visually confirmed, not just measured: the object was clearly visible in
+the crop; the arm/hand occupied much of the same region, dominating the
+crop's overall gist enough to flip CLIP's zero-shot margin. Structurally
+the same mechanism D-054 found for DINOv2, in the opposite direction (a
+false negative, not a false positive), never tested for CLIP in this exact
+env/scene/post-attempt context before.
 
-This IS the honest first run of docs/01's success-criteria benchmark: it
-decomposes perception failure from policy failure exactly as docs/10 asks
-("Decompose end-to-end failure into perception, feasibility, high-level
-strategy...") -- the gap between `full_agent` and `oracle_feasibility` here
-reflects a measured perception bottleneck, not a policy bug, and reporting
-both together (not just `full_agent` alone) is what makes that legible.
+Fixed for real (D-089), following D-055's precedent for the analogous
+DINOv2 gap: recalibrated `master_chef_can`'s kitchen_cabinet crop (prompt
+left unchanged -- the fix is purely geometric) to a tighter region that
+still reliably contains the object while excluding most of where G1's arm
+ends up after a real completed attempt. Found by measuring several
+candidate crops directly against saved present/absent frames (not
+guessed), then validated against the original 8-seed sample: 0/8
+mismatches (down from 7/8), and re-confirmed the pre-existing arm-at-rest
+calibration test (`test_clip_feasibility.py`, D-020's original case) still
+passes unchanged -- the fix generalizes across both visual states, not just
+the one that was broken. Re-running the full benchmark with the fixed
+calibration gives the actual success-criteria result: `full_agent` now
+matches `oracle_feasibility` exactly on every metric across 15 seeds, and
+both meaningfully beat `static` on `wasted_steps` while matching it on
+`goals_achieved` -- the real, positive H2 confirmation this benchmark was
+built to demonstrate.
 """
 
 import gymnasium as gym
@@ -69,7 +75,7 @@ class TestFullAgentBenchmarkRunsEndToEnd:
     """The actual success-criteria benchmark: static, oracle_feasibility,
     and the real full agent, paired across the same seeds, real bootstrap
     CIs -- docs/01's own definition of project success, run for the first
-    time."""
+    time, and (D-089) with a real, working CLIP calibration underneath it."""
 
     @pytest.fixture(scope="class")
     def q_table(self):
@@ -85,28 +91,47 @@ class TestFullAgentBenchmarkRunsEndToEnd:
             for mean, lo, hi in policy_result.values():
                 assert lo <= mean <= hi
 
-    def test_oracle_feasibility_outperforms_full_agent_here(self, q_table):
-        """The real, measured, decomposed finding: not a policy bug -- the
-        Q-table itself is reward-consistent (see the diagnostic scripts
-        referenced in ai-notes/decisions.md's D-088 entry) -- but a real
-        CLIP perception gap in this exact live-pipeline context. Reported
-        honestly rather than only publishing `full_agent`'s number alone,
-        exactly the decomposition docs/10 asks for."""
+    def test_full_agent_matches_oracle_feasibility_now(self, q_table):
+        """The real, measured, positive result (D-089): with CLIP's
+        post-attempt crop bug fixed, the real perceptual pipeline performs
+        identically to the privileged-state headroom reference across
+        every seed -- not merely "close," an exact match on both metrics
+        in the real 15-seed run this test's 5-seed version mirrors at
+        smaller scale (ai-notes/decisions.md D-089)."""
         result = run_full_agent_benchmark(
             seeds=list(range(5)), q_table=q_table, onset_step_range=_WIDE_ONSET_RANGE,
         )
-        oracle_mean = result["oracle_feasibility"]["goals_achieved"][0]
-        full_agent_mean = result["full_agent"]["goals_achieved"][0]
-        assert oracle_mean > full_agent_mean
+        oracle_goals = result["oracle_feasibility"]["goals_achieved"][0]
+        full_agent_goals = result["full_agent"]["goals_achieved"][0]
+        oracle_wasted = result["oracle_feasibility"]["wasted_steps"][0]
+        full_agent_wasted = result["full_agent"]["wasted_steps"][0]
+        assert full_agent_goals == oracle_goals
+        assert full_agent_wasted == oracle_wasted
+
+    def test_feasibility_aware_policies_waste_fewer_steps_than_static(self, q_table):
+        """H2's actual comparative claim, in the real perceptual pipeline
+        for the first time: conditioning on feasibility saves wasted
+        effort without sacrificing goal completion -- goals_achieved is
+        identical to static (neither approach can complete a genuinely
+        infeasible goal), but wasted_steps is measurably lower, since
+        skipping a doomed goal costs nothing while a failed attempt costs
+        real steps."""
+        result = run_full_agent_benchmark(
+            seeds=list(range(5)), q_table=q_table, onset_step_range=_WIDE_ONSET_RANGE,
+        )
+        assert result["full_agent"]["wasted_steps"][0] < result["static"]["wasted_steps"][0]
+        assert result["full_agent"]["goals_achieved"][0] == result["static"]["goals_achieved"][0]
 
 
-class TestClipFalseNegativeAfterALiveFirstAttempt:
-    """The finding itself, isolated from the full benchmark: does CLIP's
-    calibrated crop for `master_chef_can` (kitchen_cabinet) correctly judge
-    it as present once G1 has completed a real attempt_goal() on the first
-    goal, the exact state the live pipeline's second-goal decision actually
-    renders? Measured directly against privileged oracle state, not
-    asserted from the aggregate benchmark result alone."""
+class TestClipCorrectlyJudgesAfterALiveFirstAttempt:
+    """D-089: the recalibrated crop for `master_chef_can` (kitchen_cabinet)
+    now correctly judges it as present once G1 has completed a real
+    attempt_goal() on the first goal -- the exact state the live pipeline's
+    second-goal decision actually renders. Measured directly against
+    privileged oracle state, not asserted from the aggregate benchmark
+    result alone. This locks in the fix for the exact case
+    `test_clip_feasibility.py`'s pre-existing arm-at-rest tests don't
+    cover."""
 
     def _make_env(self, onset_step_range, render_mode):
         return gym.make(
@@ -115,24 +140,22 @@ class TestClipFalseNegativeAfterALiveFirstAttempt:
             intervention_kind="chef_can_destroyed", onset_step_range=onset_step_range,
         )
 
-    def test_clip_mismatches_oracle_on_most_genuinely_feasible_cases(self, tmp_path):
+    def test_clip_matches_oracle_after_a_real_first_attempt(self, tmp_path):
         """D-022's confirmed rendering-desync bug means a render-producing
         reset must not repeat more than ~2 times in one process -- an
         earlier version of this test rendered directly across 5 in-process
-        resets and got a materially different, unreliable result (1/4
-        mismatches instead of the real 7/7 measured via subprocess
-        isolation). The oracle half never renders, so it stays in-process
-        (safe across any number of seeds, same as every other
-        privileged-state check in this project); the CLIP half must run
-        one fresh subprocess per seed, `run_full_agent_episode_subprocess.py`
-        (D-088), the same isolation `capture_episode_subprocess.py` (D-052)
-        already established for exactly this bug."""
+        resets and got a materially different, unreliable result. The
+        oracle half never renders, so it stays in-process (safe across any
+        number of seeds, same as every other privileged-state check in
+        this project); the CLIP half must run one fresh subprocess per
+        seed, `run_full_agent_episode_subprocess.py` (D-088), the same
+        isolation `capture_episode_subprocess.py` (D-052) already
+        established for exactly this bug."""
         import json
         import subprocess
         import sys
 
         from atr.evaluation.full_agent_benchmark import _SUBPROCESS_SCRIPT
-        from atr.pipeline import train_q_table_replicacad_humanoid
 
         graph = instruction_graph()
         goal1, goal2 = graph.goals[0], graph.goals[1]
@@ -141,7 +164,7 @@ class TestClipFalseNegativeAfterALiveFirstAttempt:
         q_table_path.write_text(json.dumps(serialize_q_table(train_q_table_replicacad_humanoid())))
 
         mismatches = 0
-        total_feasible = 0
+        total_seeds = 0
         for seed in range(5):
             env = self._make_env(_WIDE_ONSET_RANGE, render_mode=None)
             try:
@@ -150,9 +173,7 @@ class TestClipFalseNegativeAfterALiveFirstAttempt:
                 oracle_feasible = bool(goal_feasible(goal2, env.unwrapped._world_state()))
             finally:
                 env.close()
-            if not oracle_feasible:
-                continue
-            total_feasible += 1
+            total_seeds += 1
 
             out_path = tmp_path / f"episode_{seed}.json"
             subprocess.run(
@@ -169,10 +190,8 @@ class TestClipFalseNegativeAfterALiveFirstAttempt:
             if clip_perceived != oracle_feasible:
                 mismatches += 1
 
-        # Real measured: 7/7 mismatches among genuinely feasible cases
-        # across an 8-seed sample (D-088) -- CLIP said "absent" every time,
-        # regardless of the true state. Loose bound here (majority, not
-        # exact equality), same reasoning every other stochastic
-        # real-world assertion in this project uses.
-        assert total_feasible > 0
-        assert mismatches / total_feasible > 0.5
+        # Real measured: 0/8 mismatches after the D-089 crop fix (down from
+        # 7/8 before it). Asserting zero here, not a loose bound: this is
+        # exactly the case the fix targeted and was validated against.
+        assert total_seeds > 0
+        assert mismatches == 0

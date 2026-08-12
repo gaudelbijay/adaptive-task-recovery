@@ -124,7 +124,18 @@ unrequested object, or violate the glass constraint for reward.
   once it is. Both representations tested so far turn out to have
   real, distinct robustness gaps under a live decision loop's actual
   rendered states — a more precise, and more interesting, H1-relevant
-  picture than either one being simply "robust."
+  picture than either one being simply "robust." **CLIP's gap fixed,
+  2026-08-10 (D-089):** unlike DINOv2's fix (D-055, add representative
+  training data), CLIP is zero-shot — fixed by recalibrating the crop
+  geometry itself (prompt unchanged), found by measuring several
+  candidates directly against real present/absent frames rather than
+  guessing. 0/8 mismatches after the fix (down from 7/8), and the
+  pre-existing arm-at-rest calibration test still passes unchanged — the
+  fix generalizes across both visual states. Both representations tested
+  in this project have now had a real live-loop robustness gap found
+  *and* fixed (D-055 for DINOv2, D-089 for CLIP) — a genuinely symmetric,
+  non-cherry-picked picture of what it actually takes to make either one
+  reliable in a live decision loop, not just at calibration time.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
   feasibility estimates outperforms a static language-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
@@ -328,14 +339,27 @@ now exists and works — a real, paired, multi-seed, bootstrap-CI comparison
 of `static`, `oracle_feasibility` (the headroom reference this section
 itself names), and the real `full_agent` pipeline (real language parsing,
 real CLIP-perceived feasibility, a trained Q-table, real arm motion). The
-benchmark machinery is real and reusable, but the comparative claim itself
-is not yet demonstrated: the current result is dominated by a newly-found
-CLIP perception gap (see H1's update above and D-088 in
-`ai-notes/decisions.md`), not a clean measurement of the policy's value.
-Re-running this same benchmark once that gap is addressed — or against a
-scene/object where CLIP's live-loop reliability is already established —
-is the direct next step toward actually closing this criterion, not
-starting it over.
+first run's result was dominated by a newly-found CLIP perception gap (see
+H1's update above), not a clean measurement of the policy's value.
+**Fixed, and the real result obtained, 2026-08-10 (D-089):** with the
+crop recalibrated, `full_agent` now matches `oracle_feasibility` exactly
+on both `goals_achieved` and `wasted_steps`, every seed, and both beat
+`static` on `wasted_steps` while matching it on `goals_achieved` — this
+criterion's actual comparative claim, demonstrated with the real
+perceptual pipeline for the first time. Scope still narrow and disclosed:
+one env variant (ReplicaCAD-Humanoid), one scene (`kitchen_cabinet`), one
+intervention (`chef_can_destroyed`), 15 seeds — not yet the general,
+predeclared-threshold claim the roadmap's later phases ask for, but the
+first real, positive instance of it rather than untested machinery.
+**Broadened to a second intervention, 2026-08-10 (D-090):** checked
+`temporary_obstacle` (reversible, feasibility-neutral distractor) with a
+Q-table never trained on it — `static`/`oracle_feasibility`/`full_agent`
+all achieve `goals_achieved=2.0`, `wasted_steps=0.0`, zero variance across
+10 seeds, docs/10's "unnecessary adaptation" control passed cleanly with
+real perception. Two disclosed gaps investigated and found non-actionable
+rather than left untested by default: `kitchen_sink`'s reach/tray were
+never calibrated for real arm motion (D-027), and `potted_meat_can` is
+never checked post-attempt in the current fixed instruction's goal order.
 
 ## Threats to validity
 
