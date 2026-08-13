@@ -221,7 +221,23 @@ unrequested object, or violate the glass constraint for reward.
   geometry, not real robot-link collision checking, and blocked-route
   behavior (stop vs. replan) isn't yet wired into `_navigate_to()`'s actual
   execution contract — a real, disclosed remaining gap, not a finished
-  claim.
+  claim. **That remaining gap closed, 2026-08-12/13 (D-091–D-100):**
+  `_navigate_to()` screens the real planned route and stops safely (zero
+  motion) when it's rejected (D-091), then D-092 adds a constraint-aware
+  detour search — inflate the predicted hazard into the cached occupancy
+  grid, replan, re-screen — before falling back to that stop. Validated
+  with fully live Fetch execution, no mocks: a real positive-detour episode
+  (D-096, 250 real steps, goal achieved, protected object displaced
+  exactly `0.0 m`); a direct stop-only-vs-replan safety-matched-recall
+  comparison answering R-010's original "safe by doing nothing" concern
+  (D-097 — stop-only preserves the object but skips an achievable goal;
+  replanning keeps the same zero displacement *and* completes it); the
+  same positive result across three hazard locations and both goal routes
+  (D-098/D-099, six controlled cases); and confirmation the behavior
+  follows `GoalGraph` constraint semantics rather than a hardcoded object
+  name, via a second protected-object type (D-100). Every live case so far
+  is one scene/layout/seed, not a distribution of naturally occurring
+  hazards — the honest remaining scope, not assumed broader.
 - **H4 — compositional generalization:** factorized goal and change
   representations transfer better to unseen goal-change combinations than a
   monolithic policy. **First real comparative test (2026-08-09, D-079):**

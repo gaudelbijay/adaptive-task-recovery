@@ -80,6 +80,65 @@ def _get_or_build_grid(env):
     return env.unwrapped._nav_grid
 
 
+def _object_planar_radii(env, state) -> dict[str, float]:
+    """Conservative XY radii from the real actors' collision meshes.
+
+    ReplicaCAD's ManiSkill Actor wrapper does not expose collision shapes
+    directly, so use its underlying single-env SAPIEN entity. Each convex
+    shape's vertices are scaled and transformed by its local pose, then the
+    furthest XY vertex from the actor origin defines a rotation-invariant
+    circumscribed radius. Missing/non-rigid actors retain point behavior.
+    """
+    radii: dict[str, float] = {}
+    for object_id, obj_state in state.items():
+        if not obj_state.exists:
+            continue
+        try:
+            actor = env.unwrapped._get_actor(object_id)
+        except (KeyError, AttributeError):
+            continue
+        entity = actor._objs[0]
+        rigid = next(
+            (component for component in entity.components if hasattr(component, "collision_shapes")),
+            None,
+        )
+        if rigid is None:
+            continue
+        max_radius = _collision_planar_radius(rigid)
+        if max_radius > 0.0:
+            radii[object_id] = max_radius
+    return radii
+
+
+def _collision_planar_radius(collision_component) -> float:
+    """Circumscribed XY radius over a SAPIEN component's convex shapes."""
+    max_radius = 0.0
+    for shape in collision_component.collision_shapes:
+        if not hasattr(shape, "vertices"):
+            continue
+        vertices = np.asarray(shape.vertices, dtype=float) * np.asarray(shape.scale, dtype=float)
+        transform = shape.local_pose.to_transformation_matrix()
+        vertices = vertices @ transform[:3, :3].T + transform[:3, 3]
+        max_radius = max(max_radius, float(np.linalg.norm(vertices[:, :2], axis=1).max()))
+    return max_radius
+
+
+def _robot_planar_radius(env) -> float:
+    """Real Fetch base radius from its articulation-link collision mesh.
+
+    Minimal policy test doubles without simulator geometry retain the legacy
+    0.2 m value; the real environment always exposes the measured mesh.
+    """
+    try:
+        base_component = env.unwrapped.agent.base_link._objs[0]
+    except AttributeError:
+        return 0.2
+    radius = _collision_planar_radius(base_component)
+    if radius <= 0.0:
+        raise ValueError("Fetch base has no measurable convex collision geometry")
+    return radius
+
+
 def _drive_toward(env, target_xy: np.ndarray, steps: int, distance_tol: float):
     """One proportional go-to-pose step toward a single (possibly
     intermediate) waypoint. Fetch's base sub-controller is
@@ -112,6 +171,7 @@ def _navigate_to(
     target_object: str,
     distance_tol: float = 0.5,
     allow_replan: bool = True,
+    robot_clearance_radius: float = 0.2,
 ) -> NavigationOutcome:
     """Plans a path around real obstacles (see navigation.py), then drives
     through each waypoint in sequence. Before executing, screens that exact
@@ -128,13 +188,15 @@ def _navigate_to(
         waypoints = [tuple(start_xy), tuple(target_xy[:2])]
 
     state = env.unwrapped._world_state()
+    object_radii = _object_planar_radii(env, state)
     allowed, reason, effects = screen_navigation_path(
         waypoints,
         target_object,
         env.unwrapped.goal_graph,
         state,
         travel_height=0.5,
-        clearance_radius=0.2,
+        clearance_radius=robot_clearance_radius,
+        object_radii=object_radii,
     )
     if not allowed:
         initial_effects = effects
@@ -152,7 +214,8 @@ def _navigate_to(
             target_xy[:2],
             state,
             effects,
-            clearance_radius=0.2,
+            clearance_radius=robot_clearance_radius,
+            object_radii=object_radii,
         )
         if alternate is None:
             return NavigationOutcome(
@@ -166,7 +229,8 @@ def _navigate_to(
             env.unwrapped.goal_graph,
             state,
             travel_height=0.5,
-            clearance_radius=0.2,
+            clearance_radius=robot_clearance_radius,
+            object_radii=object_radii,
         )
         if not alternate_allowed:
             return NavigationOutcome(
@@ -205,6 +269,7 @@ def attempt_goal(
     tray_slot_xyz: np.ndarray,
     nav_steps: int = 250,
     allow_replan: bool = True,
+    robot_clearance_radius: float = 0.2,
 ) -> dict:
     exists = env.unwrapped._exists[goal.target_object]
     target_xy = (
@@ -220,6 +285,7 @@ def attempt_goal(
         steps=nav_steps,
         target_object=goal.target_object,
         allow_replan=allow_replan,
+        robot_clearance_radius=robot_clearance_radius,
     )
     steps_used = env.unwrapped._elapsed_control_steps - before
 

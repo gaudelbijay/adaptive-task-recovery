@@ -2,6 +2,122 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-103: Measured Fetch footprint is a useful conservative ablation, but too restrictive as the production default
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Derive Fetch's articulation base-link circumscribed XY radius
+  from its real convex collision mesh (≈ `0.288 m`) and expose it as an
+  explicit `robot_clearance_radius` ablation. Keep the empirically validated
+  `0.2 m` value as the production default for both screening and replanning.
+- **Reason:** D-102 closed point-sized object modeling, but production still
+  represented Fetch itself with a hardcoded `0.2 m` circle chosen for grid
+  connectivity rather than measured physical extent.
+- **Consequences:** The measured-radius ablation catches a live overlap beyond
+  the old combined limit and can safely detour there. But running all new live
+  cases together found a real recall regression: the circumscribed circle turns
+  6 previously successful detours into fail-closed stops in narrow geometry.
+  It is therefore not the production default. The real next geometry step is
+  an oriented footprint, not a larger rotation-invariant circle. One focused
+  ablation test passes; the combined focused suite is re-run before commit.
+
+## D-102: Use real collision-mesh extents in production navigation screening
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Derive a conservative planar radius for every live ReplicaCAD
+  object from its actual SAPIEN convex collision vertices, per-shape scale,
+  and local pose. Pass those radii into both the initial path screen and the
+  constrained replan. Missing/non-rigid actors retain point behavior; no
+  guessed per-object constants were introduced.
+- **Reason:** D-086 added optional object extents to the generic predictor,
+  but production `_navigate_to()` never supplied them. Objects therefore
+  remained points in the real navigation system despite the available
+  collision geometry.
+- **Consequences:** A live protected can whose center was deliberately outside
+  the old `0.2 m` threshold—but whose measured collision mesh overlapped the
+  corridor—was detected, safely bypassed, preserved at exactly `0.0 m`, and
+  the goal completed. The remaining shape approximation is Fetch's constant
+  circular clearance footprint rather than full link geometry; object extents
+  now come from real meshes. One newly added focused live test passes; the full
+  suite was not run by request.
+
+## D-101: Make mobile navigation screening planar, fixing a vertical false negative
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Project object centers onto Fetch's representative path plane
+  inside `screen_navigation_path()` before invoking the reusable 3D swept-path
+  predictor. Preserve the original world state for semantic feasibility and
+  intent-guard checks. No change to the general effect predictor used by arm
+  or arbitrary 3D motions.
+- **Reason:** Fetch base navigation is an XY footprint problem. Previously, a
+  floor-level protected object could lie directly in the base corridor yet be
+  missed because its center was vertically more than the clearance radius from
+  the adapter's hardcoded `travel_height=0.5` path.
+- **Consequences:** Navigation effects are now invariant to object-center
+  height and retain XY negative controls. In a real ReplicaCAD episode, a
+  protected can at `z=0.05` on the original route was detected, safely
+  bypassed through real execution, preserved at exactly `0.0 m`, and the goal
+  completed. Remaining approximation is 2D circular clearance rather than
+  full robot-link/object-footprint geometry. Three pure focused tests and one
+  focused live test pass; the full suite was not run by request.
+
+## D-100: Live safety detouring follows the graph, not a hardcoded object
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** In the real ReplicaCAD Fetch environment, supplied a valid
+  alternate goal graph whose `never_move` constraint protects `cracker_box`
+  instead of `master_chef_can`, then placed that second YCB object on the
+  midpoint of the real can-goal route. Ran unchanged production planning,
+  screening, replanning, driving, and goal evaluation.
+- **Reason:** D-098/D-099 covered routes and hazard locations but always used
+  one protected object, leaving open whether the result depended on its name
+  or geometry rather than the semantic constraint interface.
+- **Consequences:** The executor predicted `cracker_box`, replanned, completed
+  the legitimate goal without a block, and displaced the protected box exactly
+  `0.0 m`. This is direct evidence that the behavior follows `GoalGraph`
+  constraints rather than a hardcoded object name. Remaining live scope is one
+  scene/layout and seed. One newly added focused simulator test passes; the
+  full suite was not run by request.
+
+## D-099: Live safety detours generalize to the second goal route
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Repeated D-098's 30%/50%/70% live hazard sweep for the
+  second legitimate Fetch goal, `bowl`, whose route traverses a different
+  part of the apartment. Each case ran in a fresh real ReplicaCAD environment
+  through production planning, screening, replanning, driving, and goal
+  evaluation with no mocks.
+- **Reason:** D-098 removed dependence on one hazard location but still used
+  only the `potted_meat_can` route.
+- **Consequences:** All three second-route placements triggered replanning,
+  completed the requested bowl goal without a block, and displaced the
+  protected `master_chef_can` exactly `0.0 m`. Together D-098/D-099 cover both
+  project goal routes and six controlled hazard locations; D-100 subsequently
+  added a second protected-object type. Three newly added focused live cases
+  pass; the full suite was not run by request.
+
+## D-098: Positive live detours hold across early, middle, and late hazards
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Repeated D-096's fully live Fetch replanning scenario with
+  the protected `master_chef_can` placed at 30%, 50%, and 70% of the original
+  route, each in a fresh real ReplicaCAD environment. Every case used the
+  production planner, safety screen, constrained replan, controller, and
+  `attempt_goal()` result path without mocks.
+- **Reason:** D-097's safety-matched recall result remained a single obstacle
+  geometry and could have depended on one unusually convenient midpoint.
+- **Consequences:** All three placements were detected, replanned, and driven;
+  all three achieved the legitimate goal with no block, and protected-object
+  displacement was exactly `0.0 m` in every case. Evidence now spans route
+  location; D-099 subsequently extended it to the second goal route. Three
+  newly added focused simulator cases pass; the full suite was not run by
+  request.
+
 ## D-097: Replanning recovers recall that a stop-only safety guard loses
 
 - **Date:** 2026-08-13

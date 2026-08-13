@@ -18,7 +18,9 @@ surface the guard reason rather than being executed. D-092 adds one constrained
 replan that inflates the threatened objects into temporary grid obstacles; its
 result is independently screened before execution. D-093 makes the execution
 outcome explicit and observable: step count, blocked reason, whether replanning
-occurred, and the predicted affected-object set.
+occurred, and the predicted affected-object set. D-101 makes mobile-base
+screening explicitly planar so floor-level objects sharing the XY corridor are
+not missed because their centers differ from a representative travel height.
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ from scipy.sparse.csgraph import dijkstra
 
 from atr.constraints.effect_predictor import predict_affected_objects_along_path
 from atr.constraints.intent_guard import validate_action
-from atr.feasibility.oracle import WorldState
+from atr.feasibility.oracle import ObjectState, WorldState
 from atr.language.goal_graph import GoalGraph
 
 _NEIGHBOR_OFFSETS = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
@@ -186,9 +188,26 @@ def screen_navigation_path(
     prediction or request a different route. The intended target is excluded
     from incidental effects because the guard checks it implicitly.
     """
+    # D-101: Fetch navigation is planar. Project object centers onto the
+    # base-sweep plane before using the general 3D effect predictor; otherwise
+    # a floor-level obstacle can share the exact XY corridor but be missed only
+    # because its center is vertically far from this representative path
+    # height. Preserve the original state for semantic feasibility/guard checks.
+    planar_state = {
+        object_id: ObjectState(
+            exists=obj.exists,
+            position=(
+                np.array([obj.position[0], obj.position[1], travel_height])
+                if obj.exists and obj.position is not None
+                else None
+            ),
+            up_vector=obj.up_vector,
+        )
+        for object_id, obj in state.items()
+    }
     path_xyz = tuple((x, y, travel_height) for x, y in waypoints)
     effects = predict_affected_objects_along_path(
-        state,
+        planar_state,
         path_xyz,
         clearance_radius,
         exclude_objects=frozenset({target_object}),
