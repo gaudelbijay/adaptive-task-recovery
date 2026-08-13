@@ -32,7 +32,13 @@ import numpy as np
 from atr.language.goal_graph import Goal, GoalGraph
 from atr.feasibility.oracle import goal_achieved
 from atr.policies import baselines
-from atr.envs.navigation import build_occupancy_grid, plan_path
+from atr.envs.navigation import (
+    NavigationOutcome,
+    build_occupancy_grid,
+    plan_path,
+    plan_path_avoiding_objects,
+    screen_navigation_path,
+)
 from atr.envs.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Covers spawn (-1, 0) plus every goal/constraint object position used in
@@ -99,16 +105,81 @@ def _drive_toward(env, target_xy: np.ndarray, steps: int, distance_tol: float):
     return used
 
 
-def _navigate_to(env, target_xy: np.ndarray, steps: int, distance_tol: float = 0.5) -> int:
+def _navigate_to(
+    env,
+    target_xy: np.ndarray,
+    steps: int,
+    target_object: str,
+    distance_tol: float = 0.5,
+    allow_replan: bool = True,
+) -> NavigationOutcome:
     """Plans a path around real obstacles (see navigation.py), then drives
-    through each waypoint in sequence. Falls back to a direct go-to-pose if
-    no path is found (fully walled off) rather than doing nothing. Returns
-    steps actually used."""
+    through each waypoint in sequence. Before executing, screens that exact
+    path through the intent guard; a route predicted to disturb a protected
+    object is stopped with zero motion and its reason returned to the caller.
+    Falls back to a screened direct path if no grid path exists. Returns
+    a structured outcome so evaluation can distinguish ordinary execution,
+    successful safety replanning, and a fail-closed stop. `allow_replan=False`
+    is D-097's explicit stop-only ablation; production behavior defaults True."""
     xs, ys, occupied = _get_or_build_grid(env)
     start_xy = env.unwrapped.agent.base_link.pose.sp.p[:2]
     waypoints = plan_path(xs, ys, occupied, start_xy, target_xy[:2])
     if waypoints is None:
-        return _drive_toward(env, target_xy, steps, distance_tol)
+        waypoints = [tuple(start_xy), tuple(target_xy[:2])]
+
+    state = env.unwrapped._world_state()
+    allowed, reason, effects = screen_navigation_path(
+        waypoints,
+        target_object,
+        env.unwrapped.goal_graph,
+        state,
+        travel_height=0.5,
+        clearance_radius=0.2,
+    )
+    if not allowed:
+        initial_effects = effects
+        if not allow_replan:
+            return NavigationOutcome(
+                steps_used=0,
+                blocked_reason=reason,
+                predicted_affected_objects=initial_effects,
+            )
+        alternate = plan_path_avoiding_objects(
+            xs,
+            ys,
+            occupied,
+            start_xy,
+            target_xy[:2],
+            state,
+            effects,
+            clearance_radius=0.2,
+        )
+        if alternate is None:
+            return NavigationOutcome(
+                steps_used=0,
+                blocked_reason=reason,
+                predicted_affected_objects=initial_effects,
+            )
+        alternate_allowed, alternate_reason, _ = screen_navigation_path(
+            alternate,
+            target_object,
+            env.unwrapped.goal_graph,
+            state,
+            travel_height=0.5,
+            clearance_radius=0.2,
+        )
+        if not alternate_allowed:
+            return NavigationOutcome(
+                steps_used=0,
+                blocked_reason=alternate_reason,
+                replanned=True,
+                predicted_affected_objects=initial_effects,
+            )
+        waypoints = alternate
+        replanned = True
+    else:
+        initial_effects = effects
+        replanned = False
 
     used = 0
     remaining = steps
@@ -121,10 +192,20 @@ def _navigate_to(env, target_xy: np.ndarray, steps: int, distance_tol: float = 0
         remaining -= used_here
         if remaining <= 0:
             break
-    return used
+    return NavigationOutcome(
+        steps_used=used,
+        replanned=replanned,
+        predicted_affected_objects=initial_effects,
+    )
 
 
-def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, nav_steps: int = 250) -> dict:
+def attempt_goal(
+    env,
+    goal: Goal,
+    tray_slot_xyz: np.ndarray,
+    nav_steps: int = 250,
+    allow_replan: bool = True,
+) -> dict:
     exists = env.unwrapped._exists[goal.target_object]
     target_xy = (
         env.unwrapped._get_actor(goal.target_object).pose.sp.p
@@ -133,11 +214,34 @@ def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, nav_steps: int = 25
     )
 
     before = env.unwrapped._elapsed_control_steps
-    _navigate_to(env, target_xy, steps=nav_steps)
+    navigation = _navigate_to(
+        env,
+        target_xy,
+        steps=nav_steps,
+        target_object=goal.target_object,
+        allow_replan=allow_replan,
+    )
     steps_used = env.unwrapped._elapsed_control_steps - before
 
+    navigation_metadata = {
+        "navigation_safety_screened": navigation.safety_screened,
+        "navigation_replanned": navigation.replanned,
+        "predicted_affected_objects": sorted(navigation.predicted_affected_objects),
+    }
+    if navigation.blocked_reason is not None:
+        return {
+            "achieved": False,
+            "steps_used": steps_used,
+            "skipped": True,
+            "blocked_reason": navigation.blocked_reason,
+            **navigation_metadata,
+        }
+
     if not exists:
-        return {"achieved": False, "steps_used": steps_used, "skipped": False}
+        return {
+            "achieved": False, "steps_used": steps_used, "skipped": False,
+            **navigation_metadata,
+        }
 
     import sapien
 
@@ -145,7 +249,10 @@ def attempt_goal(env, goal: Goal, tray_slot_xyz: np.ndarray, nav_steps: int = 25
     obj.set_pose(sapien.Pose(p=tray_slot_xyz))
     state = env.unwrapped._world_state()
     achieved = goal_achieved(goal, state, _TRAY_POSITION, _TRAY_HALF_SIZES)
-    return {"achieved": achieved, "steps_used": steps_used, "skipped": False}
+    return {
+        "achieved": achieved, "steps_used": steps_used, "skipped": False,
+        **navigation_metadata,
+    }
 
 
 # Re-exported for existing callers that import this privately -- see

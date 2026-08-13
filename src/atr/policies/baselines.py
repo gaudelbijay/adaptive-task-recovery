@@ -47,6 +47,18 @@ def _summarize(per_goal: dict) -> dict:
         "wasted_steps": sum(
             r["steps_used"] for r in per_goal.values() if not r["achieved"] and not r["skipped"]
         ),
+        # D-094: zero for embodiments without D-093 navigation metadata,
+        # directly measurable for ReplicaCAD Fetch without special-casing
+        # policy names in the evaluation harness.
+        "navigation_replans": sum(
+            bool(r.get("navigation_replanned", False)) for r in per_goal.values()
+        ),
+        "navigation_safety_blocks": sum(
+            bool(r.get("navigation_safety_screened", False))
+            and bool(r.get("blocked_reason"))
+            and bool(r.get("skipped", False))
+            for r in per_goal.values()
+        ),
     }
 
 

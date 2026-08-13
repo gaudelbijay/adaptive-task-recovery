@@ -2,6 +2,148 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-097: Replanning recovers recall that a stop-only safety guard loses
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Added an explicit `allow_replan=False` ablation to the
+  ReplicaCAD Fetch navigation skill (default remains True), then compared
+  stop-only versus D-092 replanning in D-096's identical controlled live
+  scenario. Both variants used the production safety screen and real
+  simulator environment.
+- **Reason:** D-096 showed that replanning works, but not that it improves
+  anything over the simpler safe behavior of refusing to move. R-010's core
+  concern is precisely a guard appearing safe by doing nothing.
+- **Consequences:** Stop-only used zero steps, preserved the protected object,
+  and skipped the still-achievable goal. Replanning also displaced the
+  protected object exactly `0.0 m`, but drove a real detour and achieved the
+  goal. This is a direct safety-matched recall improvement, still in one
+  controlled scenario rather than a broad distribution. Two focused live
+  tests pass; the full suite was not run by request.
+
+## D-096: Validate a positive safety detour with real Fetch execution
+
+- **Date:** 2026-08-13
+- **Status:** Accepted
+- **Decision:** Built a controlled but fully live ReplicaCAD scenario from
+  existing project objects and constraints. After caching the architectural
+  occupancy grid, placed the graph's protected `master_chef_can` on a real
+  midpoint waypoint of Fetch's initial route to `potted_meat_can`. Made the
+  protected actor kinematic so it is a stable constraint object rather than
+  an unsupported body falling under gravity. Ran the production
+  `attempt_goal()` path with no planner, screening, or drive mocks.
+- **Reason:** D-095 proved clean real integration but the canonical layout
+  naturally had no affected objects, leaving positive replanning validated
+  only by real grid logic plus mocked execution.
+- **Consequences:** The actual executor predicted
+  `master_chef_can`, found and re-screened a detour, drove 250 real simulator
+  steps, achieved the requested goal, returned no block reason, and displaced
+  the protected object exactly `0.0 m`. This is controlled scene
+  instrumentation, not evidence that canonical episodes naturally require
+  replanning. One newly added focused simulator test passes; the full suite
+  was not run by request.
+
+## D-095: Validate navigation safety integration in a real ReplicaCAD episode
+
+- **Date:** 2026-08-12
+- **Status:** Accepted
+- **Decision:** Ran the real `TidyUp-ReplicaCAD-v1` Fetch environment with
+  the feasibility-aware policy after D-091–D-094. Both real routes were
+  safety-screened and both goals completed: `goals_achieved=2`,
+  `wasted_steps=0`, `navigation_replans=0`,
+  `navigation_safety_blocks=0`; goal step counts were 57 and 250. Inspected
+  both planned paths directly against the real world state: each had an empty
+  predicted affected-object set at the configured 0.2 m clearance.
+- **Reason:** Focused tests verified planning and executor branches, but had
+  mocked robot driving. A real episode was needed to catch environment,
+  planner, controller, result-shape, and aggregation integration failures.
+- **Consequences:** The production integration works without false-positive
+  adaptation in the canonical real scene. The canonical geometry supplies no
+  protected object near either route; D-096 subsequently added a controlled
+  live positive-detour scenario without claiming it occurs naturally. Nine
+  focused tests pass; the full suite was not run by request.
+
+## D-094: Promote navigation adaptation to aggregate evaluation metrics
+
+- **Date:** 2026-08-12
+- **Status:** Accepted
+- **Decision:** Extend the shared policy summary with
+  `navigation_replans` and `navigation_safety_blocks`, derived from D-093's
+  per-goal metadata. Preserve both aggregates in structured episode logs.
+  Policies and embodiments without navigation metadata report zero, so the
+  common result shape remains directly comparable. The existing evaluation
+  harness can bootstrap either metric simply by including its name in the
+  `metrics` tuple; no navigation-specific harness branch was added.
+  A follow-up audit added explicit `navigation_safety_screened` provenance,
+  so an unrelated intent-guard result carrying `blocked_reason` is not
+  miscounted as a navigation safety block.
+- **Reason:** Per-goal evidence alone made aggregate experiments need custom
+  post-processing. Replanning frequency measures adaptation, while safety
+  blocks separate successful recovery from fail-closed loss of coverage.
+- **Consequences:** Tracked comparisons can now report adaptation alongside
+  goal completion, wasted steps, and violations, with the detailed affected
+  objects retained in each episode log. Four newly added pure-Python tests
+  pass, including the provenance regression; the full suite was not run by
+  request.
+
+## D-093: Make safety-triggered navigation adaptation observable
+
+- **Date:** 2026-08-12
+- **Status:** Accepted
+- **Decision:** Replace `_navigate_to()`'s ambiguous two-value return with
+  an immutable `NavigationOutcome`: steps used, blocked reason, whether a
+  constrained replan occurred, and the objects the initial route was
+  predicted to affect. Thread `navigation_replanned` and a sorted,
+  JSON-safe `predicted_affected_objects` list into every ReplicaCAD Fetch
+  `attempt_goal()` result.
+- **Reason:** D-092 could adapt successfully, but its output was
+  indistinguishable from ordinary navigation. Evaluation and episode logs
+  could not measure unnecessary adaptation, recovery frequency, or which
+  predicted hazards caused replanning.
+- **Consequences:** Existing policy summaries remain compatible because
+  their required `achieved`/`steps_used`/`skipped` fields are unchanged,
+  while downstream logs can now measure safety adaptation directly. Five
+  focused tests pass; the full suite was not run by request.
+
+## D-092: Replan around predicted side-effect objects before giving up
+
+- **Date:** 2026-08-12
+- **Status:** Accepted
+- **Decision:** When D-091's first route is rejected, copy the cached
+  occupancy grid, inflate every predicted affected object by the navigation
+  clearance radius, and search once more. The alternate path is passed
+  through the same effect predictor and intent guard before any drive step.
+  If no alternate exists or it is still unsafe, preserve D-091's zero-motion
+  safety skip.
+- **Reason:** Stopping is safe but loses achievable-goal recall when a clean
+  detour exists. Treating the exact predicted hazards as temporary obstacles
+  gives the existing Dijkstra planner a real constraint-aware search without
+  mutating the environment's cached architectural map.
+- **Consequences:** Fetch execution can now recover from an unsafe shortest
+  path while retaining a fail-closed result. This remains a single replan over
+  spherical 2D clearance geometry, not full robot-link motion planning. Four
+  focused tests pass; the full suite was not run by request.
+
+## D-091: Stop unsafe Fetch routes before execution
+
+- **Date:** 2026-08-12
+- **Status:** Accepted
+- **Decision:** Wired D-087's `screen_navigation_path()` result into the
+  real ReplicaCAD Fetch `_navigate_to()` execution path. The planned grid
+  route is screened before the first drive step; the direct-path fallback is
+  screened too. If the intent guard rejects the route, execution uses zero
+  motion steps and `attempt_goal()` returns a safety skip with the guard's
+  `blocked_reason`.
+- **Reason:** The planner already identified unsafe paths, but the executor
+  ignored that decision. Chose explicit stop-and-report because the current
+  planner produces one shortest path; calling a second identical search
+  "replanning" would not create a constraint-aware alternative.
+- **Consequences:** The safety decision now affects real execution rather
+  than existing only as an adapter result. D-092 subsequently added a safe
+  constrained detour while retaining this stop behavior as the fail-closed
+  fallback. Two newly added focused tests passed; the full suite was not run
+  by request.
+
 ## D-090: Broadened the success-criteria benchmark to the "unnecessary adaptation" control — and investigated two disclosed gaps that turned out to be non-actionable
 
 - **Date:** 2026-08-10

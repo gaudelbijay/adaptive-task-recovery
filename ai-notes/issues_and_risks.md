@@ -17,6 +17,26 @@ Last updated: 2026-08-09 (D-087)
 | R-013 | Risk | High | Confirmed, open, unfixed upstream ManiSkill3 rendering bug (D-022, `haosulab/ManiSkill#1150`): rendered frames from the real-scene envs desync from the actual scene after roughly the second render-producing reset in one process (macOS, YCB-object scenes specifically). Not fixable in this project — it's in a dependency. Currently mitigated with a runtime warning guard and by keeping clip_feasibility.py's/dinov2_probe.py's own tests inside the verified-safe budget (≤2 in-process renders, or subprocess-isolated capture for more). Real risk if this project ever needs bulk/batch rendering (e.g. generating a large visual dataset) on this platform. | Check whether `haosulab/ManiSkill#1150` has a fix in a future ManiSkill3 release before attempting any batch-rendering workflow on macOS; budget for a Linux/CUDA machine as a fallback if it doesn't. |
 | R-014 | Risk | Medium | Object-existence/position state for `tidy_up_env_replicacad_humanoid.py`'s scene builder may not be reliable for a *new* `build_config_idx`, even with D-021's existing torch-seed pinning. Confirmed 2026-08-06 (D-061, not fixed): a candidate third scene layout, extensively validated standalone (15+ runs, multiple independent script structures, all agreeing), deterministically disagreed with the real registered `scene_variant` code path once wired in (different object positions, target objects hidden) — 15/15 identical wrong results, not flaky. The two already-shipped layouts (`kitchen_cabinet`/`kitchen_sink`) are confirmed robust by extensive prior use; the actual mechanism making a *new* index unreliable was not isolated despite ruling out seed, `PYTHONHASHSEED`, import order, `env.step()` calls, and cross-instantiation ordering (D-022's known class of bug) as the cause. | Before trusting any *new* `build_config_idx` for this scene builder, validate object placement through the exact real `scene_variant` registration path (not a standalone/patched harness) with a large, repeated sample — standalone validation alone was not sufficient evidence here. Investigate the ManiSkill3 rearrange scene builder's actual object-visibility-assignment code directly before the next attempt, rather than more black-box trial and error. |
 
+**R-010 update (D-091, 2026-08-12):** the execution-contract remainder in
+the R-010 row is now closed. `_navigate_to()` screens the actual planned
+waypoints or direct fallback before driving; a rejected route stops with zero
+motion and returns the guard reason as a safety skip. Stop-and-report is
+deliberate until the planner supports constraint-aware alternate-route search.
+The remaining approximation is swept spheres/points rather than full robot-link
+collision geometry.
+
+**R-010 follow-up (D-092, 2026-08-12):** constraint-aware alternate-route
+search is now implemented. Predicted affected objects are inflated into a copy
+of the occupancy grid, the detour is replanned and independently re-screened,
+and D-091's zero-motion stop remains the fallback. The remaining approximation
+is still 2D spherical clearance rather than full robot-link geometry.
+
+**R-010 result (D-097, 2026-08-13):** a live safety-matched counterfactual
+now directly addresses the original “safe by doing nothing” concern. Stop-only
+preserved the protected object but skipped an achievable goal; replanning kept
+the same exact zero displacement and completed it. Remaining scope limitation:
+one controlled geometry, not a distribution of naturally occurring hazards.
+
 ## Resolved or superseded
 
 | ID | Resolution date | Resolution |

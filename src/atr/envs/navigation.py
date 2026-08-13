@@ -12,11 +12,18 @@ Dijkstra shortest-path on it. Deliberately simple and inspectable over
 pulling in an external planner.
 
 D-087 connects planned 2D waypoints to D-086's geometric effect predictor and
-D-083's intent guard through `screen_navigation_path()`. Execution remains a
-separate step so a blocked route can be logged or replanned rather than driven.
+D-083's intent guard through `screen_navigation_path()`. D-091 wires that
+decision into the Fetch executor: unsafe routes stop before any drive step and
+surface the guard reason rather than being executed. D-092 adds one constrained
+replan that inflates the threatened objects into temporary grid obstacles; its
+result is independently screened before execution. D-093 makes the execution
+outcome explicit and observable: step count, blocked reason, whether replanning
+occurred, and the predicted affected-object set.
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.sparse import lil_matrix
@@ -28,6 +35,17 @@ from atr.feasibility.oracle import WorldState
 from atr.language.goal_graph import GoalGraph
 
 _NEIGHBOR_OFFSETS = [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+
+@dataclass(frozen=True)
+class NavigationOutcome:
+    """Execution-facing result, including safety adaptation metadata."""
+
+    steps_used: int
+    blocked_reason: str | None = None
+    safety_screened: bool = True
+    replanned: bool = False
+    predicted_affected_objects: frozenset[str] = frozenset()
 
 
 def build_occupancy_grid(
@@ -116,6 +134,41 @@ def plan_path(
         path_idx.append(cur)
     path_idx.reverse()
     return [(float(xs[p // ny]), float(ys[p % ny])) for p in path_idx]
+
+
+def plan_path_avoiding_objects(
+    xs: np.ndarray,
+    ys: np.ndarray,
+    occupied: np.ndarray,
+    start_xy,
+    goal_xy,
+    state: WorldState,
+    avoid_objects: frozenset[str],
+    clearance_radius: float,
+    object_radii: dict[str, float] | None = None,
+) -> list[tuple[float, float]] | None:
+    """Replan with predicted side-effect objects inflated into obstacles.
+
+    This is the constrained alternate-route search D-091 deliberately left
+    open. The original occupancy grid is copied, so episode-level cached map
+    state is never mutated. Destroyed/missing objects need no avoidance.
+    """
+    if clearance_radius < 0:
+        raise ValueError("clearance_radius must be non-negative")
+    radii = object_radii or {}
+    constrained = occupied.copy()
+    grid_x, grid_y = np.meshgrid(xs, ys, indexing="ij")
+    for object_id in avoid_objects:
+        obj = state.get(object_id)
+        if obj is None or not obj.exists or obj.position is None:
+            continue
+        object_radius = radii.get(object_id, 0.0)
+        if object_radius < 0:
+            raise ValueError("object radii must be non-negative")
+        radius = clearance_radius + object_radius
+        distance_sq = (grid_x - obj.position[0]) ** 2 + (grid_y - obj.position[1]) ** 2
+        constrained |= distance_sq <= radius ** 2
+    return plan_path(xs, ys, constrained, start_xy, goal_xy)
 
 
 def screen_navigation_path(

@@ -20,7 +20,8 @@ attached to a policy's own result). No new fields invented beyond that --
 one) and "decisions" (`skipped`/`substitution_attempted`) already exist in
 `per_goal`; this only adds "oracle labels" and normalizes "violations"
 (any `*_violated` key, wherever a policy happens to add one, rather than
-requiring every caller to know their exact names)."""
+requiring every caller to know their exact names). D-094 also preserves
+aggregate navigation replans and safety stops when a policy supplies them."""
 
 from __future__ import annotations
 
@@ -70,7 +71,7 @@ def build_episode_log(
             **outcome,
         }
     violations = {key: value for key, value in result.items() if key.endswith("_violated")}
-    return _jsonable({
+    record = {
         "seed": seed,
         "policy_name": policy_name,
         "instruction_text": graph.instruction_text,
@@ -79,7 +80,14 @@ def build_episode_log(
         "total_steps": result["total_steps"],
         "wasted_steps": result["wasted_steps"],
         "violations": violations,
-    })
+    }
+    # D-094: preserve aggregate navigation-adaptation metrics when the
+    # policy result supplies them, while keeping older/custom result shapes
+    # valid and byte-for-byte free of invented navigation values.
+    for metric in ("navigation_replans", "navigation_safety_blocks"):
+        if metric in result:
+            record[metric] = result[metric]
+    return _jsonable(record)
 
 
 def append_episode_log(path: str | Path, record: dict) -> None:
