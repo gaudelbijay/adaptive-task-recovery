@@ -2,6 +2,73 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-116: Isolate R-014/D-061's real mechanism — hardcoded YCB instance-suffix aliases aren't portable across build_config_idx
+
+- **Date:** 2026-08-14
+- **Status:** Investigated, root cause found; no code changed
+- **Decision:** Per D-061's own recommendation ("investigate the ManiSkill3
+  scene builder's actual object-visibility-assignment code path... rather
+  than more black-box trial and error"), read
+  `ReplicaCADRearrangeSceneBuilder.build()`/`initialize()` directly instead
+  of re-running more standalone-vs-production comparisons. Found that
+  `ycb_objs_per_env[env_num][obj_id]` -- the list of built actor
+  instances for one object type -- has a *build_config-specific* length
+  (`num_ycb_objs_to_build`, the max instance count needed across all
+  rearrange episode configs that use that particular RCAD scene), and
+  which numbered instance ends up at a real (non-hidden) position for
+  `init_config_idx=0` is a property of that specific episode JSON's
+  `rigid_objs` list order -- not stable across scenes.
+  `tidy_up_env_replicacad_humanoid.py`'s `_OBJECT_ALIASES` hardcodes fixed
+  instance suffixes (`env-0_002_master_chef_can-2`,
+  `env-0_010_potted_meat_can-1`) that were found empirically for
+  `build_config_idx=59` and happen to also work for `=55` (D-027).
+
+  Verified directly (not inferred) with an instrumented script covering
+  `build_config_idx` 59, 55, and D-061's own candidate 13: for 59/55, both
+  aliased instances resolve to real positions matching
+  `_LAST_KNOWN_POSITIONS` exactly. For 13, `env-0_002_master_chef_can-2` is
+  hidden (`pose.p = [-10000, -10000, -10600]`); scanning all instances
+  found the one real placement is `-0`, at `[0.616, -6.240, 0.940]`. This
+  reproduces D-061's exact observed symptom ("master_chef_can... came back
+  hidden") deterministically and without any dependence on seed, process
+  state, or import order -- consistent with D-061 ruling out every one of
+  those as the cause, since none of them was ever the actual mechanism.
+
+  Separately, and independently of the alias bug: `build_config_idx=13`'s
+  actually-placed objects (`master_chef_can` at `[0.616, -6.240]`,
+  `potted_meat_can` at `[0.658, -6.592]`/`[2.830, -5.696]`/`[3.499, -0.470]`)
+  are nowhere near each other or near any plausible single standing spot --
+  spread over several meters in a different part of the apartment than
+  D-061's raycast-verified clearance check looked at. So `13` specifically
+  is not a usable candidate even with the alias bug fixed; D-061's original
+  "close together, open floor clearance" search must have checked something
+  that didn't actually correspond to *this* rearrange episode's real
+  placement (`init_config_idx=0` specifically -- there may be other init
+  config indices for the same `build_config_idx` with a better placement,
+  unexplored here).
+- **Reason:** Direct continuation of R-014/D-061, per the user's explicit
+  choice to investigate that gap next. D-061 already spent significant,
+  methodical effort ruling out process/runtime-level causes; the
+  productive next step was reading the actual scene-builder source instead
+  of another round of black-box trial and error, exactly as D-061's own
+  note recommended.
+- **Consequences:** R-014 is no longer a mystery -- the mechanism is
+  identified and generally applicable to *any* future third-layout attempt,
+  not just `build_config_idx=13`. The concrete fix this points to: resolve
+  `_OBJECT_ALIASES` dynamically per scene (find the non-hidden instance of
+  each object type after reset, rather than hardcoding a suffix found for
+  one config) instead of adding more hardcoded per-scene numbers. Not
+  implemented here -- no code changed, this decision is the diagnosis, not
+  the fix. `build_config_idx=13` itself is now confirmed unusable for this
+  purpose regardless of the alias fix (objects too spread out). A real
+  third layout still needs: (1) the dynamic-alias fix, (2) a fresh
+  candidate search that checks the *actual placed* positions at
+  `init_config_idx=0` directly (the way this investigation did) rather
+  than a separate raycast/visual check that turned out not to correspond
+  to the same thing, and (3) reach/base-pose/camera recalibration for
+  whatever candidate is found -- a full scope similar to D-061's own
+  attempt, not a small follow-up.
+
 ## D-115: Confirm the full suite against D-107-D-114 together
 
 - **Date:** 2026-08-14
