@@ -2,6 +2,30 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-115: Confirm the full suite against D-107-D-114 together
+
+- **Date:** 2026-08-14
+- **Status:** Accepted
+- **Decision:** Run the complete repository test suite once against the
+  accumulated, uncommitted state of D-107 (no-route fail-stop),
+  D-108 (multi-seed reachable-target benchmark), and D-109-D-114 (live,
+  multi-seed, multi-object, multi-region validation of the no-route branch,
+  plus the `navigation_failures` metric and a full execution-contract audit)
+  -- each of which individually deferred this ("full suite not run by
+  request").
+- **Reason:** D-105/D-106 already established, concretely, that individually
+  green focused runs don't guarantee a coherent whole: D-091's unconditional
+  navigation screening silently broke an unrelated foundational test that no
+  single focused run for D-091-D-104 happened to touch. The same risk applies
+  here -- seven more decisions touching the same navigation/policy/logging
+  files, none checked together.
+- **Consequences:** 301 passed, 0 failed (4436.18s / 73:56). No regression
+  found this time -- unlike D-105/106, nothing needed fixing. All of
+  D-107/D-109-D-114's deferred full-suite obligations are now satisfied by
+  this one run; their individual decision text still says "not run by
+  request" and is left as-is (an accurate record of what was known at each
+  decision's own time), with this entry as the actual reconciliation.
+
 ## D-114: Broaden no-route evidence to a second disconnected region
 
 - **Date:** 2026-08-13
