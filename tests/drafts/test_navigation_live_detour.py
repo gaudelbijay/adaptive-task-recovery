@@ -62,6 +62,7 @@ def test_real_fetch_replans_around_protected_object_and_completes_goal():
 
         assert result["navigation_safety_screened"] is True
         assert result["navigation_replanned"] is True
+        assert result["navigation_reached_target"] is True
         assert result["predicted_affected_objects"] == ["master_chef_can"]
         assert "blocked_reason" not in result
         assert result["achieved"]
@@ -98,6 +99,7 @@ def test_replanning_recovers_goal_recall_that_stop_only_guard_loses():
     assert outcomes["replan"]["achieved"]
     assert outcomes["replan"]["skipped"] is False
     assert outcomes["replan"]["navigation_replanned"] is True
+    assert outcomes["replan"]["navigation_reached_target"] is True
     assert outcomes["replan"]["steps_used"] > 0
 
     assert outcomes["stop_only"]["protected_displacement"] == 0.0

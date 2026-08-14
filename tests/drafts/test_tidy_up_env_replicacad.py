@@ -103,14 +103,94 @@ class TestReplicaCADPolicyComparison:
         assert results["static"]["wasted_steps"] > 0
 
     def test_intent_guard_blocks_substitution_without_recall_cost(self):
+        """D-105: this must protect `cracker_box`, not the default graph's
+        `master_chef_can`. Confirmed directly (not assumed): `plan_path()`
+        cannot route to `master_chef_can`'s real resting position from Fetch's
+        spawn in this scene at all -- the grid genuinely disconnects that
+        region from the rest of the apartment (166 connected components;
+        start and goal land in different ones; confirmed not a discretization
+        artifact by sweeping resolution from 0.15 down to 0.05 with no
+        change). That's invisible everywhere else in this project because
+        `master_chef_can` is only ever a *protected* object other tests
+        navigate around (D-096--D-104), never a real navigation target --
+        this ablation is the one place that asks Fetch to travel all the way
+        to it. `cracker_box` is confirmed reachable (`plan_path()` finds a
+        route), so swapping the protected object via a custom `GoalGraph`
+        (D-100's own pattern) restores the test's original, full-strength
+        claim -- a real physical violation without the guard -- instead of
+        weakening it to something the physical scene can't actually
+        demonstrate for this specific object."""
+        from atr.language.goal_graph import Constraint, GoalGraph
+        from atr.envs.tidy_up_env_replicacad import replicacad_example
+
+        base_graph = replicacad_example()
+        graph = GoalGraph(
+            instruction_text=(
+                "Put the potted meat can and bowl on the table, and do not "
+                "move the cracker box."
+            ),
+            goals=base_graph.goals,
+            constraints=(
+                Constraint(
+                    id="dont_move_cracker_box", kind="never_move",
+                    target_object="cracker_box", tolerance=0.05,
+                ),
+            ),
+        )
         results = {}
         for guarded in (False, True):
             env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=(2, 3))
             try:
                 env.reset(seed=0)
-                results[guarded] = naive_substitution_policy(env, use_intent_guard=guarded)
+                results[guarded] = naive_substitution_policy(env, graph=graph, use_intent_guard=guarded)
             finally:
                 env.close()
-        assert results[False]["dont_move_master_chef_can_violated"] is True
-        assert results[True]["dont_move_master_chef_can_violated"] is False
+        assert results[False]["dont_move_cracker_box_violated"] is True
+        assert results[True]["dont_move_cracker_box_violated"] is False
         assert results[False]["goals_achieved"] == results[True]["goals_achieved"]
+
+
+class TestReplicaCADMultiSeedBenchmark:
+    """D-108: `test_static_vs_feasibility_aware_same_recall_less_waste` above
+    is a single seed with a narrow onset window (2-3) -- it shows the
+    direction of the effect but not whether it holds under real seed
+    variance. A variance sweep (`onset_step_range=(20, 500)`) found the
+    narrow window degenerate (zero wasted steps, identical outcome, every
+    seed) while the wider one produces a real mix of outcomes across seeds.
+    This exercises D-091-107's navigation-safety machinery -- previously
+    validated only on hand-placed single scenarios -- under genuine seed
+    variance for the first time, using the project's own paired bootstrap
+    protocol (docs/10)."""
+
+    def test_oracle_feasibility_matches_static_recall_and_wastes_fewer_steps(self):
+        from atr.evaluation.harness import bootstrap_ci
+
+        seeds = list(range(30))
+        per_seed = {"static": [], "oracle_feasibility": []}
+        for seed in seeds:
+            for name, policy in [
+                ("static", static_policy), ("oracle_feasibility", feasibility_aware_policy),
+            ]:
+                env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=(20, 500))
+                try:
+                    env.reset(seed=seed)
+                    per_seed[name].append(policy(env))
+                finally:
+                    env.close()
+
+        goals_static = [r["goals_achieved"] for r in per_seed["static"]]
+        goals_oracle = [r["goals_achieved"] for r in per_seed["oracle_feasibility"]]
+        # Paired per seed: feasibility awareness changes *how* goals are
+        # pursued, not *which* ones are achievable, so recall must match
+        # exactly seed-for-seed, not just in aggregate.
+        assert goals_static == goals_oracle
+
+        wasted_static = [r["wasted_steps"] for r in per_seed["static"]]
+        wasted_oracle = [r["wasted_steps"] for r in per_seed["oracle_feasibility"]]
+        diff = [s - o for s, o in zip(wasted_static, wasted_oracle)]
+        _, lo, _ = bootstrap_ci(diff)
+        # Paired bootstrap on the per-seed difference, not a naive overlap
+        # check on the two policies' independent CIs -- those do overlap
+        # (measured: static 161.7 [123.2, 200.2] vs oracle 115.5 [77.0,
+        # 154.0]) even though the paired per-seed effect is real.
+        assert lo > 0

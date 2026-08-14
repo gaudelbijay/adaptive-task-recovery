@@ -73,7 +73,7 @@ def test_real_fetch_detours_around_second_protected_object_type():
         assert result["navigation_replanned"] is True
         assert result["predicted_affected_objects"] == ["cracker_box"]
         assert "blocked_reason" not in result
-        assert result["achieved"]
+        assert result["achieved"], result["navigation_final_distance"]
         assert result["steps_used"] > 0
         assert displacement == 0.0
     finally:

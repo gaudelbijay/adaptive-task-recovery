@@ -57,7 +57,7 @@ def test_real_fetch_detours_on_second_goal_route(route_fraction):
         assert result["navigation_replanned"] is True
         assert result["predicted_affected_objects"] == ["master_chef_can"]
         assert "blocked_reason" not in result
-        assert result["achieved"]
+        assert result["achieved"], result["navigation_final_distance"]
         assert result["steps_used"] > 0
         assert displacement == 0.0
     finally:

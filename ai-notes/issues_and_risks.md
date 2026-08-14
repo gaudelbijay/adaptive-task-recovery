@@ -1,6 +1,6 @@
 # Issues and Risks
 
-Last updated: 2026-08-09 (D-087)
+Last updated: 2026-08-13 (D-114)
 
 ## Active
 
@@ -11,7 +11,7 @@ Last updated: 2026-08-09 (D-087)
 | R-007 | Risk | High | Privileged simulator state or template artifacts may leak feasibility labels. | Isolate label channels and audit seeds, pixels, timing, and language tokens. |
 | R-008 | Risk | Medium | RL variance and large visual encoders may exceed available compute. Partially addressed for the *decision*-level RL policy (D-025 — tabular Q-learning, ~19s on CPU), which sidesteps this by operating on privileged state rather than pixels; a pixel-conditioned policy would still face this risk in full. | Validate with oracle state and frozen small encoders before scaling. |
 | R-009 | Risk | Medium | An intervention may be called irreversible only because the planner times out. | Separate `unknown` from `infeasible`; validate oracle cases and bounds. |
-| R-010 | Risk | Low | The intent guard may trivially avoid violations by doing nothing. First toy test (D-015, `src/atr/constraints/intent_guard.py`, promoted D-037) only exercised the *easy* case — blocking an action that never earned goal credit anyway. **Real tension tested 2026-08-04 (D-058):** built the two constructible scenarios this mitigation note asked for. (1) A goal in direct target conflict with a matching `never_move` constraint — confirmed the guard does NOT over-block it (the goal wins), the literal concern this risk describes. (2) A genuinely opposite finding along the way: *without* privileged state, the guard was too *permissive* — a conditional goal (`Goal.condition`, D-026) exempted its target object from a constraint even while its condition didn't hold, since "is this a goal target" only checked declaration, not current feasibility. Fixed by threading `state` through `validate_action()`/`goal_feasible()`; `naive_substitution_policy` now passes it. Downgraded from Medium since both constructible scenarios are now tested and the found gap is fixed. **The physical-obstruction gap closed 2026-08-09 (D-082–D-087):** quantified the guard's aggregate recall/violation-rate trade-off, extended `validate_action()` to check predicted side effects (not just the named target), built a real swept-corridor effect predictor, and wired it into the real Fetch navigation stack — reaching for a legitimate mug while incidentally passing near a protected glass is representable and tested end-to-end. **The execution-contract remainder closed 2026-08-12/13 (D-091–D-100, see update notes below):** `_navigate_to()` now screens the real planned route before driving, stops safely (zero motion) if it's rejected, and — since D-092 — searches a constraint-aware detour around the predicted hazard before falling back to stopping. D-096–D-100 validated this with fully live Fetch execution (no mocks) across a stop-vs-replan safety-matched-recall comparison (D-097), three hazard locations on the original route (D-098), the second goal's route (D-099), and a second protected-object type to confirm the behavior follows the `GoalGraph` constraint rather than a hardcoded name (D-100) — every case completed the legitimate goal with exactly `0.0 m` protected-object displacement. Still approximates objects as spheres/points, not full robot-link collision geometry, and every live validation so far is one scene/layout/seed, not a distribution. | Report feasible-goal completion and selective coverage alongside violations (done via D-082's aggregate metrics, D-094's `navigation_replans`/`navigation_safety_blocks`). Remaining: broaden live validation beyond one scene/layout/seed; extend swept-corridor geometry beyond spheres/points if a scenario needs it. |
+| R-010 | Risk | Low | The intent guard may trivially avoid violations by doing nothing. First toy test (D-015, `src/atr/constraints/intent_guard.py`, promoted D-037) only exercised the *easy* case — blocking an action that never earned goal credit anyway. **Real tension tested 2026-08-04 (D-058):** built the two constructible scenarios this mitigation note asked for. (1) A goal in direct target conflict with a matching `never_move` constraint — confirmed the guard does NOT over-block it (the goal wins), the literal concern this risk describes. (2) A genuinely opposite finding along the way: *without* privileged state, the guard was too *permissive* — a conditional goal (`Goal.condition`, D-026) exempted its target object from a constraint even while its condition didn't hold, since "is this a goal target" only checked declaration, not current feasibility. Fixed by threading `state` through `validate_action()`/`goal_feasible()`; `naive_substitution_policy` now passes it. Downgraded from Medium since both constructible scenarios are now tested and the found gap is fixed. **The physical-obstruction gap closed 2026-08-09 (D-082–D-087):** quantified the guard's aggregate recall/violation-rate trade-off, extended `validate_action()` to check predicted side effects (not just the named target), built a real swept-corridor effect predictor, and wired it into the real Fetch navigation stack — reaching for a legitimate mug while incidentally passing near a protected glass is representable and tested end-to-end. **The execution-contract remainder closed 2026-08-12/13 (D-091–D-100, see update notes below):** `_navigate_to()` now screens the real planned route before driving, stops safely (zero motion) if it's rejected, and — since D-092 — searches a constraint-aware detour around the predicted hazard before falling back to stopping. D-096–D-100 validated this with fully live Fetch execution (no mocks) across a stop-vs-replan safety-matched-recall comparison (D-097), three hazard locations on the original route (D-098), the second goal's route (D-099), and a second protected-object type to confirm the behavior follows the `GoalGraph` constraint rather than a hardcoded name (D-100) — every case completed the legitimate goal with exactly `0.0 m` protected-object displacement. Still approximates objects as spheres/points, not full robot-link collision geometry, and every live validation so far is one scene/layout/seed, not a distribution. **Broadened beyond single-scenario validation 2026-08-13 (D-108–D-114, see update notes below):** D-108 ran the first real multi-seed benchmark of the whole reachable-target stack (30 paired seeds, `static` vs `oracle_feasibility`) and found a real, paired-bootstrap-significant reduction in wasted steps with identical recall. D-109–D-114 did the same for the unreachable/no-route branch (D-107): live real-apartment execution across 3 seeds, 2 object identities, and 2 disconnected occupancy regions, all producing the same honest zero-motion fail-stop. Distinct scene *layouts* remain untested — `TidyUp-ReplicaCAD-v1` pins one `build_config_idx` and R-014 blocks trusting a new one without dedicated validation work. | Report feasible-goal completion and selective coverage alongside violations (done via D-082's aggregate metrics, D-094's `navigation_replans`/`navigation_safety_blocks`, D-110's `navigation_failures`). Remaining: a second, R-014-cleared scene layout; extend swept-corridor geometry beyond spheres/points if a scenario needs it. |
 | R-011 | Risk | High | Humanoid controller failures may be confused with high-level goal infeasibility. Concretely observed in the ManiSkill3 spike (2026-07-28): a naive constant-hold action falls within ~0.5s even with zero injected disturbance — a controller-quality problem that would look identical to "infeasible" without careful separation. Concretely observed *again*, differently, in D-024/D-028: G1's arm genuinely cannot reach within contact range of two specific objects from any reasonable standing position — confirmed as a real kinematic limit (not a controller bug) only after building a proper analytic-Jacobian IK solver and searching broadly. Reinforces this risk's core concern: distinguishing "can't do it" from "control/tooling failed to do it" took real, non-trivial verification work both times. | Use a skill interface, repeated/oracle reachability labels, and separate error decomposition. |
 | R-012 | Risk | Medium | Humanoid simulation and visual RL may exceed the compute budget. Partially confirmed: no CUDA on the primary dev machine, so GPU-vectorized parallel sim isn't available there — CPU sim is workable for single-env dev only. | Prototype logic cheaply, reuse low-level skills, freeze encoders initially, retain humanoid as the final gate, and budget for a CUDA machine/cloud GPU before any parallel RL training phase. |
 | R-013 | Risk | High | Confirmed, open, unfixed upstream ManiSkill3 rendering bug (D-022, `haosulab/ManiSkill#1150`): rendered frames from the real-scene envs desync from the actual scene after roughly the second render-producing reset in one process (macOS, YCB-object scenes specifically). Not fixable in this project — it's in a dependency. Currently mitigated with a runtime warning guard and by keeping clip_feasibility.py's/dinov2_probe.py's own tests inside the verified-safe budget (≤2 in-process renders, or subprocess-isolated capture for more). Real risk if this project ever needs bulk/batch rendering (e.g. generating a large visual dataset) on this platform. | Check whether `haosulab/ManiSkill#1150` has a fix in a future ManiSkill3 release before attempting any batch-rendering workflow on macOS; budget for a Linux/CUDA machine as a fallback if it doesn't. |
@@ -54,6 +54,29 @@ the constraint, safely bypassed, goal completed, exact zero displacement. This
 removes the single-object/hardcoding caveat. Remaining live scope: one
 scene/layout and seed.
 
+**R-010 ablation-gating regression, found and fixed (D-105/D-106,
+2026-08-13):** running the full suite against D-091–D-104 together for the
+first time (each of those decisions individually skipped it) found that
+D-091's unconditional navigation-level safety screening had silently broken
+D-058's original unguarded ablation — the specific test that proves the
+guard does real work, not vacuously. `use_intent_guard=False` disabled the
+high-level `validate_action()` check but not the independent navigation-level
+one, so an "unguarded" run could no longer produce a real violation at all.
+Fixed by threading the same flag through to a new, opt-in
+`enable_safety_screening` parameter (D-105) — restoring a genuine
+zero-protection baseline. A real, generalizable lesson for this risk
+specifically: any *new* safety mechanism added later must also be included in
+what this ablation disables, or the same silent gap reproduces. Fixing the
+gating alone still didn't make the test pass, surfacing a second, unrelated
+issue: the test's original protected object, `master_chef_can`, turns out to
+be structurally unreachable by Fetch from spawn in this scene (confirmed via
+grid connected-components analysis, not a discretization artifact — persists
+across resolutions from `0.15` down to `0.05`). Invisible everywhere else in
+the project because every other live navigation test only ever routes
+*around* `master_chef_can`, never *to* it. Swapped to the already-reachable
+`cracker_box` (D-100's own alternate-object pattern) rather than weaken the
+test's claim (D-106).
+
 **R-010 geometry fix (D-101, 2026-08-13):** mobile screening now projects
 object centers onto the XY path plane, fixing the prior false negative for a
 floor-level object directly in the base corridor. Verified in pure height-
@@ -74,6 +97,40 @@ circle by default caused 6 previously successful live detours to become
 fail-closed stops. It remains an explicit ablation; production retains the
 empirically validated 0.2 m clearance. Remaining need: oriented base/full-link
 geometry that improves safety fidelity without this avoidable recall loss.
+
+**R-010 execution-validity correction (D-104, 2026-08-13):** live goal credit
+now requires measured base arrival. This exposed and fixed a missing final
+approach segment after the grid planner's nearest-free target cell. Failed
+navigation can no longer earn completion through unconditional teleportation;
+the corrected real detours reach a measured `0.65 m` manipulation standoff
+before manipulation. Intermediate waypoint acceptance is also capped at
+`0.2 m`, preventing the controller from cutting across several `0.15 m` grid
+cells. Sixteen affected focused tests pass.
+
+**R-010 multi-seed benchmark (D-108, 2026-08-13):** the reachable-target side
+of the navigation-safety stack was checked under real seed variance for the
+first time (previously only hand-placed single scenarios). Swept candidate
+`onset_step_range` windows and found the existing single-seed regression
+test's window degenerate (zero wasted steps every seed); a wider window
+produces real cross-seed variance. Across 30 paired seeds (`static` vs
+`oracle_feasibility`, `bowl_destroyed`): identical `goals_achieved`
+seed-for-seed, and a paired-bootstrap-significant reduction in wasted steps
+for `oracle_feasibility` (independent CIs overlap; the paired per-seed
+difference does not). New regression test passes standalone (259.83s).
+
+**R-010 unreachable-route correction (D-107, 2026-08-13):** a failed
+collision-aware grid plan no longer falls back to a straight-line production
+drive. It returns an explicit geometric failure with zero motion; only the
+named unguarded research ablation retains direct driving.
+The real ReplicaCAD target identified in D-106 exercises this branch
+end-to-end with zero control steps and exactly zero base-position change
+(D-109), rather than relying only on a mocked planner result. D-112 repeated
+the full attempt/aggregation contract on seeds 0, 1, and 2 with identical
+zero-motion results. D-113 swapped a second object identity into the same
+region and reproduced the result, ruling out an object-name special case;
+D-114 reproduced it in a second disconnected occupancy component. Scene-layout
+diversity remains open because the Fetch env exposes only one pinned build
+configuration and R-014 still blocks trusting a newly added one.
 
 ## Resolved or superseded
 

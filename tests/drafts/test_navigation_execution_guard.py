@@ -69,6 +69,43 @@ def test_executor_stops_before_driving_a_route_that_threatens_a_constraint(monke
     assert drove == []
 
 
+def test_executor_does_not_drive_directly_when_grid_target_is_unreachable(monkeypatch):
+    env = _env()
+    monkeypatch.setattr(policies, "_get_or_build_grid", lambda _env: (None, None, None))
+    monkeypatch.setattr(policies, "plan_path", lambda *_args: None)
+    drove = []
+    monkeypatch.setattr(policies, "_drive_toward", lambda *_args: drove.append(True))
+
+    outcome = policies._navigate_to(
+        env, np.array([1.0, 1.0]), steps=100, target_object="red_mug",
+    )
+
+    assert outcome.steps_used == 0
+    assert outcome.failure_reason == "unreachable: no collision-free grid path"
+    assert outcome.blocked_reason is None
+    assert outcome.reached_target is False
+    assert drove == []
+
+
+def test_explicit_unguarded_ablation_preserves_direct_drive(monkeypatch):
+    env = _env()
+    monkeypatch.setattr(policies, "_get_or_build_grid", lambda _env: (None, None, None))
+    monkeypatch.setattr(policies, "plan_path", lambda *_args: None)
+    monkeypatch.setattr(policies, "_drive_toward", lambda *_args: 3)
+
+    outcome = policies._navigate_to(
+        env,
+        np.array([1.0, 1.0]),
+        steps=100,
+        target_object="red_mug",
+        enable_safety_screening=False,
+    )
+
+    assert outcome.steps_used == 3
+    assert outcome.failure_reason is None
+    assert outcome.safety_screened is False
+
+
 def test_executor_replans_and_drives_a_safe_detour(monkeypatch):
     env = _env()
     monkeypatch.setattr(policies, "_get_or_build_grid", lambda _env: (None, None, None))

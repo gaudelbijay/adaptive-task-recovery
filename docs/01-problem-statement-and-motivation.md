@@ -376,6 +376,17 @@ real perception. Two disclosed gaps investigated and found non-actionable
 rather than left untested by default: `kitchen_sink`'s reach/tray were
 never calibrated for real arm motion (D-027), and `potted_meat_can` is
 never checked post-attempt in the current fixed instruction's goal order.
+**Extended to the second embodiment, privileged-state only, 2026-08-13
+(D-108):** `TidyUp-ReplicaCAD-v1` (real ReplicaCAD apartment + Fetch mobile
+robot) had never been checked this way — every prior confirmation of its
+D-091–D-107 navigation-safety stack was one hand-placed scenario, not a
+seed-varying benchmark. `static` vs `oracle_feasibility`, 30 paired seeds,
+`bowl_destroyed`: identical `goals_achieved` seed-for-seed, and a real
+(paired-bootstrap-significant) reduction in `wasted_steps` for
+`oracle_feasibility`. Deliberately scoped below `full_agent`: this env's
+camera is mobile, not fixed, so it has no CLIP calibration at all — running
+`full_agent` here is a distinct, larger piece of work, not a natural
+extension of this check.
 
 ## Threats to validity
 

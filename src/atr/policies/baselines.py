@@ -59,6 +59,12 @@ def _summarize(per_goal: dict) -> dict:
             and bool(r.get("skipped", False))
             for r in per_goal.values()
         ),
+        # D-110: execution/planning failures are distinct from semantic
+        # safety blocks. Keep the aggregate generic so later controller
+        # failure reasons use the same observable contract.
+        "navigation_failures": sum(
+            bool(r.get("navigation_failure_reason")) for r in per_goal.values()
+        ),
     }
 
 

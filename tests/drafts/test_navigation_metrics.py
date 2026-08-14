@@ -23,6 +23,12 @@ def _result():
             "blocked_reason": "blocked: no safe route",
             "predicted_affected_objects": ["glass"],
         },
+        "place_medicine": {
+            "achieved": False,
+            "steps_used": 0,
+            "skipped": False,
+            "navigation_failure_reason": "unreachable: no collision-free grid path",
+        },
     })
 
 
@@ -31,6 +37,7 @@ def test_policy_summary_counts_replans_and_fail_closed_stops():
 
     assert result["navigation_replans"] == 2
     assert result["navigation_safety_blocks"] == 1
+    assert result["navigation_failures"] == 1
 
 
 def test_episode_log_preserves_navigation_aggregates_and_per_goal_evidence():
@@ -44,7 +51,11 @@ def test_episode_log_preserves_navigation_aggregates_and_per_goal_evidence():
 
     assert log["navigation_replans"] == 2
     assert log["navigation_safety_blocks"] == 1
+    assert log["navigation_failures"] == 1
     assert log["per_goal"]["place_mug"]["predicted_affected_objects"] == ["glass"]
+    assert log["per_goal"]["place_medicine"]["navigation_failure_reason"].startswith(
+        "unreachable:"
+    )
 
 
 def test_embodiments_without_navigation_metadata_report_zero_adaptation():
@@ -54,6 +65,7 @@ def test_embodiments_without_navigation_metadata_report_zero_adaptation():
 
     assert result["navigation_replans"] == 0
     assert result["navigation_safety_blocks"] == 0
+    assert result["navigation_failures"] == 0
 
 
 def test_non_navigation_intent_guard_block_is_not_counted_as_navigation_block():

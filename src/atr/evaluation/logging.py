@@ -81,10 +81,14 @@ def build_episode_log(
         "wasted_steps": result["wasted_steps"],
         "violations": violations,
     }
-    # D-094: preserve aggregate navigation-adaptation metrics when the
-    # policy result supplies them, while keeping older/custom result shapes
-    # valid and byte-for-byte free of invented navigation values.
-    for metric in ("navigation_replans", "navigation_safety_blocks"):
+    # D-094/D-110: preserve aggregate navigation adaptation/failure metrics
+    # when the policy result supplies them, while keeping older/custom result
+    # shapes valid and byte-for-byte free of invented navigation values.
+    for metric in (
+        "navigation_replans",
+        "navigation_safety_blocks",
+        "navigation_failures",
+    ):
         if metric in result:
             record[metric] = result[metric]
     return _jsonable(record)

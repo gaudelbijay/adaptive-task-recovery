@@ -27,6 +27,8 @@ cross-apartment trip, not just an arm swing.
 
 from __future__ import annotations
 
+import functools
+
 import numpy as np
 
 from atr.language.goal_graph import Goal, GoalGraph
@@ -169,23 +171,72 @@ def _navigate_to(
     target_xy: np.ndarray,
     steps: int,
     target_object: str,
-    distance_tol: float = 0.5,
+    # Fetch must stop outside the target object's collision geometry; 0.65 m
+    # is the measured reachable standoff for the ReplicaCAD tabletop objects.
+    distance_tol: float = 0.65,
     allow_replan: bool = True,
     robot_clearance_radius: float = 0.2,
+    enable_safety_screening: bool = True,
 ) -> NavigationOutcome:
     """Plans a path around real obstacles (see navigation.py), then drives
     through each waypoint in sequence. Before executing, screens that exact
     path through the intent guard; a route predicted to disturb a protected
     object is stopped with zero motion and its reason returned to the caller.
-    Falls back to a screened direct path if no grid path exists. Returns
-    a structured outcome so evaluation can distinguish ordinary execution,
+    Fails without motion if no grid path exists. Returns a structured outcome
+    so evaluation can distinguish ordinary execution,
     successful safety replanning, and a fail-closed stop. `allow_replan=False`
-    is D-097's explicit stop-only ablation; production behavior defaults True."""
+    is D-097's explicit stop-only ablation; production behavior defaults True.
+    `enable_safety_screening=False` (D-105) bypasses this function's own
+    screening entirely -- needed so `naive_substitution_policy`'s
+    `use_intent_guard=False` ablation (D-058) can still demonstrate a real
+    physical violation: D-091's unconditional navigation-level screening
+    otherwise blocks the same protected-object movement the high-level
+    `validate_action()` bypass alone used to let through, silently making
+    every "unguarded" run behave identically to a guarded one. Default True
+    everywhere else -- zero behavior change for every real, non-ablation
+    caller."""
     xs, ys, occupied = _get_or_build_grid(env)
     start_xy = env.unwrapped.agent.base_link.pose.sp.p[:2]
     waypoints = plan_path(xs, ys, occupied, start_xy, target_xy[:2])
     if waypoints is None:
+        if enable_safety_screening:
+            return NavigationOutcome(
+                steps_used=0,
+                failure_reason="unreachable: no collision-free grid path",
+                final_distance=float(
+                    np.linalg.norm(np.asarray(target_xy[:2]) - start_xy)
+                ),
+            )
+        # Preserve D-105's deliberately unprotected ablation. Production
+        # callers never replace a failed collision-aware plan with this line.
         waypoints = [tuple(start_xy), tuple(target_xy[:2])]
+    elif np.linalg.norm(np.asarray(waypoints[-1]) - np.asarray(target_xy[:2])) > 1e-8:
+        # D-104: plan_path() intentionally targets the nearest *free* grid
+        # cell when the object occupies its own cell. Execution must still
+        # include the final approach to the real target; previously it stopped
+        # at the free cell and attempt_goal() teleported the object anyway.
+        waypoints = [*waypoints, tuple(target_xy[:2])]
+
+    if not enable_safety_screening:
+        used = 0
+        remaining = steps
+        for i, waypoint in enumerate(waypoints[1:]):
+            is_last = i == len(waypoints) - 2
+            tol = distance_tol if is_last else min(distance_tol, 0.2)
+            step_budget = max(1, remaining // max(1, len(waypoints) - 1 - i))
+            used_here = _drive_toward(env, np.array(waypoint), step_budget, tol)
+            used += used_here
+            remaining -= used_here
+            if remaining <= 0:
+                break
+        final_xy = env.unwrapped.agent.base_link.pose.sp.p[:2]
+        reached_target = float(np.linalg.norm(np.asarray(target_xy[:2]) - final_xy)) < distance_tol
+        return NavigationOutcome(
+            steps_used=used,
+            reached_target=reached_target,
+            final_distance=float(np.linalg.norm(np.asarray(target_xy[:2]) - final_xy)),
+            safety_screened=False,
+        )
 
     state = env.unwrapped._world_state()
     object_radii = _object_planar_radii(env, state)
@@ -223,6 +274,8 @@ def _navigate_to(
                 blocked_reason=reason,
                 predicted_affected_objects=initial_effects,
             )
+        if np.linalg.norm(np.asarray(alternate[-1]) - np.asarray(target_xy[:2])) > 1e-8:
+            alternate = [*alternate, tuple(target_xy[:2])]
         alternate_allowed, alternate_reason, _ = screen_navigation_path(
             alternate,
             target_object,
@@ -249,16 +302,23 @@ def _navigate_to(
     remaining = steps
     for i, waypoint in enumerate(waypoints[1:]):  # [0] is the start cell itself
         is_last = i == len(waypoints) - 2
-        tol = distance_tol if is_last else max(distance_tol, 0.35)
+        # Keep intermediate acceptance close to the 0.15 m grid spacing.  The
+        # old 0.5 m tolerance cut across detours; 0.2 m still absorbs controller
+        # settling error without treating several grid cells as equivalent.
+        tol = distance_tol if is_last else min(distance_tol, 0.2)
         step_budget = max(1, remaining // max(1, len(waypoints) - 1 - i))
         used_here = _drive_toward(env, np.array(waypoint), step_budget, tol)
         used += used_here
         remaining -= used_here
         if remaining <= 0:
             break
+    final_xy = env.unwrapped.agent.base_link.pose.sp.p[:2]
+    reached_target = float(np.linalg.norm(np.asarray(target_xy[:2]) - final_xy)) < distance_tol
     return NavigationOutcome(
         steps_used=used,
         replanned=replanned,
+        reached_target=reached_target,
+        final_distance=float(np.linalg.norm(np.asarray(target_xy[:2]) - final_xy)),
         predicted_affected_objects=initial_effects,
     )
 
@@ -270,6 +330,7 @@ def attempt_goal(
     nav_steps: int = 250,
     allow_replan: bool = True,
     robot_clearance_radius: float = 0.2,
+    enable_safety_screening: bool = True,
 ) -> dict:
     exists = env.unwrapped._exists[goal.target_object]
     target_xy = (
@@ -286,12 +347,16 @@ def attempt_goal(
         target_object=goal.target_object,
         allow_replan=allow_replan,
         robot_clearance_radius=robot_clearance_radius,
+        enable_safety_screening=enable_safety_screening,
     )
     steps_used = env.unwrapped._elapsed_control_steps - before
 
     navigation_metadata = {
         "navigation_safety_screened": navigation.safety_screened,
         "navigation_replanned": navigation.replanned,
+        "navigation_reached_target": navigation.reached_target,
+        "navigation_final_distance": navigation.final_distance,
+        "navigation_failure_reason": navigation.failure_reason,
         "predicted_affected_objects": sorted(navigation.predicted_affected_objects),
     }
     if navigation.blocked_reason is not None:
@@ -306,6 +371,15 @@ def attempt_goal(
     if not exists:
         return {
             "achieved": False, "steps_used": steps_used, "skipped": False,
+            **navigation_metadata,
+        }
+
+    if navigation.failure_reason is not None or not navigation.reached_target:
+        return {
+            "achieved": False,
+            "steps_used": steps_used,
+            "skipped": False,
+            "navigation_failed": True,
             **navigation_metadata,
         }
 
@@ -347,6 +421,15 @@ def feasibility_aware_policy(env, graph: GoalGraph = None) -> dict:
 def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bool = False) -> dict:
     from atr.envs.tidy_up_env_replicacad import replicacad_example
 
+    # D-105: `use_intent_guard` must gate *both* safety layers consistently,
+    # not just the high-level validate_action() check baselines.py makes --
+    # D-091's navigation-level screening is otherwise unconditional and
+    # independently blocks moving a protected object, so the classic
+    # "unguarded agent commits a real violation" ablation (D-058) could no
+    # longer produce one. `functools.partial` keeps attempt_goal's call
+    # signature exactly what baselines.naive_substitution_policy() expects
+    # (env, goal, tray_slot_xyz).
+    attempt_goal_fn = functools.partial(attempt_goal, enable_safety_screening=use_intent_guard)
     return baselines.naive_substitution_policy(
-        env, graph or replicacad_example(), attempt_goal, _TRAY_SLOTS, use_intent_guard=use_intent_guard,
+        env, graph or replicacad_example(), attempt_goal_fn, _TRAY_SLOTS, use_intent_guard=use_intent_guard,
     )

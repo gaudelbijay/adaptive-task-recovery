@@ -45,8 +45,11 @@ class NavigationOutcome:
 
     steps_used: int
     blocked_reason: str | None = None
+    failure_reason: str | None = None
     safety_screened: bool = True
     replanned: bool = False
+    reached_target: bool = False
+    final_distance: float | None = None
     predicted_affected_objects: frozenset[str] = frozenset()
 
 
