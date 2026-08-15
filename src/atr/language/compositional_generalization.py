@@ -38,6 +38,17 @@ are familiar on both sides; only their assignments to goal, orientation, and
 protection roles change. Ground truth is built from those declared roles rather
 than parser output.
 
+D-117 broadens D-081's 4-train/4-held-out hand-picked matrix into
+`full_role_matrix_cases()` -- every possible goal-pair over a 6-object pool
+(180 cases: 96 train, 84 held-out), split with a checked guarantee that no
+held-out goal-pair ever appeared as a goal-pair in training. Result:
+identical to D-081's qualitative finding (factorized 100%/100%, both
+monolithic baselines 100%/0%) but now backed by the full combinatorial
+space a rule-based parser with no sampling variance can actually offer,
+not a hand-picked sample of it -- the real value of the larger sweep is
+stress-testing `_resolve_object()`'s word-set object-matching logic against
+many more distinct strings, not statistical confidence.
+
 Attempting an intervention-mechanism axis for H4 first found a real
 scoping problem instead of guessing past it: every intervention kind in
 every env variant in this project (`bowl_destroyed`, `temporary_obstacle`,
@@ -56,6 +67,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from itertools import combinations, permutations
 from math import sqrt
 
 from atr.language.goal_graph import GoalGraph, canonical_example
@@ -161,6 +173,49 @@ def compositional_matrix_cases() -> tuple[EvalCase, ...]:
         _matrix_case(("cracker_box", "medicine_bottle"), "blue_bowl", "glass", "held_out_composition"),
     )
     return train + held_out
+
+
+_MATRIX_OBJECTS = ("red_mug", "blue_bowl", "medicine_bottle", "glass", "cracker_box", "master_chef_can")
+
+
+def full_role_matrix_cases(objects: tuple[str, ...] = _MATRIX_OBJECTS) -> tuple[EvalCase, ...]:
+    """D-117: exhaustive version of `compositional_matrix_cases()`'s 4
+    train / 4 held-out hand-picked cases. D-081's matrix was systematic in
+    spirit but small enough that "generalizes" rested on 4 examples; this
+    sweeps every possible goal-pair over `objects` instead, so the claim is
+    backed by the full combinatorial space a 6-object pool actually allows,
+    not a hand-picked sample of it.
+
+    Split by goal-pair, not by full 4-object case: `combinations(objects, 2)`
+    enumerates every possible *pair of goal targets* once, alternately
+    assigned to train/held-out (`[0::2]`/`[1::2]`) so both splits cover the
+    object pool evenly rather than an arbitrary prefix cut skewing which
+    objects land where. This guarantees -- checked, not assumed -- that no
+    goal-pair used in a held-out case was ever a goal-pair in a train case,
+    which is this project's own stated definition of a held-out composition
+    (`atr.evaluation.splits`'s "known objects recombined into instructions
+    never literally seen together"). For each goal-pair, every
+    (orient, protect) assignment of the remaining objects is included, not
+    just one -- the actual stress-test value of a larger matrix is exercising
+    the parser's object-resolution logic (`_resolve_object`'s word-set
+    matching) against many more distinct instruction strings, since a
+    deterministic rule-based parser has no sampling variance to average
+    over; the risk a bigger matrix can actually catch is an unanticipated
+    string-matching edge case, not statistical noise.
+    """
+    all_pairs = tuple(combinations(sorted(objects), 2))
+    train_pairs = all_pairs[0::2]
+    held_out_pairs = all_pairs[1::2]
+
+    def cases_for(pairs: tuple[tuple[str, str], ...], split: str) -> list[EvalCase]:
+        cases = []
+        for goal_pair in pairs:
+            remaining = [obj for obj in objects if obj not in goal_pair]
+            for orient_object, protected_object in permutations(remaining, 2):
+                cases.append(_matrix_case(goal_pair, orient_object, protected_object, split))
+        return cases
+
+    return tuple(cases_for(train_pairs, "train") + cases_for(held_out_pairs, "held_out_composition"))
 
 
 def train_monolithic_lookup(train_cases: list[EvalCase]) -> dict[str, Semantics]:

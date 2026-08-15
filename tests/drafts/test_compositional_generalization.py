@@ -16,6 +16,7 @@ from atr.language.compositional_generalization import (
     canonical_eval_cases,
     compositional_matrix_cases,
     compare_factorized_vs_monolithic,
+    full_role_matrix_cases,
     monolithic_retrieval_predict,
     monolithic_predict,
     semantics,
@@ -111,4 +112,35 @@ class TestLargerCompositionalMatrix:
     def test_whole_graph_retriever_cannot_construct_held_out_graphs(self):
         result = compare_factorized_vs_monolithic(compositional_matrix_cases())
         assert result.retrieval_correct_by_split["train"] == 4
+        assert result.retrieval_correct_by_split["held_out_composition"] == 0
+
+
+class TestFullRoleMatrix:
+    """D-117: the exhaustive version of TestLargerCompositionalMatrix above --
+    every possible goal-pair over the object pool (180 cases), not 4 hand-picked
+    ones, with a checked guarantee that held-out goal-pairs never appeared as a
+    goal-pair during training."""
+
+    def test_no_goal_pair_shared_between_train_and_held_out(self):
+        cases = full_role_matrix_cases()
+        train = [case for case in cases if case.split == "train"]
+        held_out = [case for case in cases if case.split == "held_out_composition"]
+        assert len(train) == 96
+        assert len(held_out) == 84
+
+        def goal_pair(case):
+            return frozenset(obj for _, obj in case.ground_truth[0])
+
+        train_pairs = {goal_pair(case) for case in train}
+        held_out_pairs = {goal_pair(case) for case in held_out}
+        assert train_pairs.isdisjoint(held_out_pairs)
+
+    def test_factorized_parser_handles_the_full_matrix(self):
+        result = compare_factorized_vs_monolithic(full_role_matrix_cases())
+        assert result.factorized_correct_by_split["train"] == 96
+        assert result.factorized_correct_by_split["held_out_composition"] == 84
+
+    def test_monolithic_baselines_still_fail_every_held_out_case(self):
+        result = compare_factorized_vs_monolithic(full_role_matrix_cases())
+        assert result.monolithic_correct_by_split["held_out_composition"] == 0
         assert result.retrieval_correct_by_split["held_out_composition"] == 0

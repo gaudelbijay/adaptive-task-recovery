@@ -2,6 +2,41 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-117: Broaden H4's compositional matrix from 4 hand-picked cases to the full 180-case combinatorial sweep
+
+- **Date:** 2026-08-14
+- **Status:** Accepted
+- **Decision:** Added `full_role_matrix_cases()` to
+  `src/atr/language/compositional_generalization.py`: every possible
+  goal-pair over the existing 6-object pool (`combinations(objects, 2)`,
+  15 pairs), alternately split into train/held-out (`[0::2]`/`[1::2]`) so
+  both splits cover the object pool evenly, then every `(orient, protect)`
+  assignment of the remaining objects included for each pair -- 96 train
+  cases, 84 held-out cases, 180 total. Checked (not assumed) that no
+  held-out goal-pair ever appears as a goal-pair in a train case, matching
+  this project's own definition of a held-out composition.
+- **Reason:** User's explicit choice to broaden H4's evidence next. D-081's
+  matrix (4 train, 4 held-out) was systematic in construction but small
+  enough that "generalizes" rested on a hand-picked sample. Unlike D-108's
+  Fetch benchmark (real physics/seed variance genuinely needed measuring),
+  `instruction_parser.py` is deterministic rule-based code with no sampling
+  variance to average over -- so the actual value of a bigger matrix here
+  is stress-testing `_resolve_object()`'s word-set object-matching logic
+  against many more distinct instruction strings (a candidate source of a
+  real bug, e.g. an unanticipated ambiguous match), not building statistical
+  confidence the way a stochastic system would need.
+- **Consequences:** Ran the full 180-case matrix: factorized parser 100%
+  correct on both splits (96/96, 84/84) -- identical to D-081's qualitative
+  finding, now backed by the full combinatorial space rather than 4 examples.
+  Both monolithic baselines: 100% train, 0% held-out, also unchanged. No
+  parser edge case found -- a genuine, disclosed null result, not a forced
+  confirmation (the object pool's word sets are pairwise disjoint by
+  construction, so no ambiguous-match scenario was actually possible here;
+  a pool with overlapping object-name words, e.g. `"chef_can"` alongside
+  `"master_chef_can"`, would be a real stress test this one doesn't cover).
+  3 new tests added (`TestFullRoleMatrix`), 15/15 pass in 0.32s, zero
+  mani_skill dependency.
+
 ## D-116: Isolate R-014/D-061's real mechanism — hardcoded YCB instance-suffix aliases aren't portable across build_config_idx
 
 - **Date:** 2026-08-14

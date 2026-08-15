@@ -270,7 +270,20 @@ unrequested object, or violate the glass constraint for reward.
   one-versus-one comparison. The factorized parser gets 4/4 held-out graphs;
   the trained whole-graph retriever fits 4/4 training graphs but gets 0/4
   held-out compositions. Familiar objects appear on both sides; only their
-  goal/orientation/protection roles are recombined.
+  goal/orientation/protection roles are recombined. **Broadened to the full
+  combinatorial sweep (2026-08-14, D-117):** D-081's matrix was systematic
+  in construction but a hand-picked sample (4 v 4); `full_role_matrix_cases()`
+  instead enumerates every possible goal-pair over the object pool (96
+  train, 84 held-out), with a checked guarantee that no held-out goal-pair
+  ever appeared during training. Since the parser is deterministic
+  rule-based code, the point of the larger sweep isn't statistical
+  confidence — it's exercising the object-resolution logic against many
+  more distinct strings than 4 examples could, looking for an
+  unanticipated matching edge case. Result unchanged from D-081: factorized
+  100%/100% (96/96, 84/84), both monolithic baselines 100%/0%. A genuine
+  null result — no new edge case found — now backed by the full
+  combinatorial space a 6-object pool allows rather than a small sample of
+  it.
 - **H5 — calibration:** calibrated uncertainty and abstention outperform forced
   binary feasibility decisions when evidence is ambiguous. **Sharpened
   2026-08-09 (D-078) — this needs a condition the original phrasing didn't
