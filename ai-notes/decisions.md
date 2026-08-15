@@ -2,6 +2,29 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-118: Patch GitPython to close 6 open Dependabot alerts
+
+- **Date:** 2026-08-15
+- **Status:** Accepted
+- **Decision:** Bumped `GitPython` from `3.1.57` to `3.1.58` in
+  `requirements-maniskill.lock.txt` and the installed environment.
+- **Reason:** GitHub flagged 6 open Dependabot alerts (5 high, 1 moderate)
+  after the D-117 push, all against `GitPython==3.1.57` (command
+  injection/RCE via various git-option-forwarding and config-injection
+  paths, plus one arbitrary-file-read), all fixed in `3.1.58`. Checked
+  provenance before touching it, not just the version string: nothing in
+  this project's own code imports `git` directly
+  (`pip show gitpython` -> `Required-by: mani_skill-nightly`) -- it's
+  ManiSkill3's own transitive dependency, presumably for git-metadata
+  logging. Real exploitability here is low (no untrusted repo URLs or
+  attacker-controlled git invocations anywhere in this project's own
+  code), but the fix is a one-patch-version bump with no API change, so
+  there's no reason not to take it.
+- **Consequences:** `git.__version__` confirmed `3.1.58` post-install;
+  `import mani_skill` / `import task_schema_draft` still clean. Full suite
+  re-run against the bump: 304 passed, 0 failed (72:56). All 6 alerts
+  should clear on GitHub's next scan.
+
 ## D-117: Broaden H4's compositional matrix from 4 hand-picked cases to the full 180-case combinatorial sweep
 
 - **Date:** 2026-08-14
