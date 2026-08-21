@@ -32,29 +32,47 @@ object — is too far for this fixed-base robot to ever interact with, so
 destroying it wouldn't demonstrate anything (it was already permanently
 unreachable, not newly infeasible).
 
-Scene layout is pinned, not sampled -- a real bug found by D-020's vision
-work, not assumed. `ReplicaCADRearrangeSceneBuilder` samples the apartment
-layout (`build_config_idxs`), an init variant (`init_config_idxs`), AND
-(independently of both, via further `torch.randint` calls inside
-`initialize()`) which subset of YCB objects are actually placed versus
-hidden at z=-10000 -- all driven by torch's *global* RNG state, not this
-env's own `_episode_rng`. Every existing test of this env (D-018) only ever
-called `reset(seed=0)`, so this was invisible: `env.reset(seed=2)` loads a
-different apartment entirely (confirmed by rendering it -- G1 ends up next
-to a couch and a bicycle), and even pinning `build_config_idxs` alone still
-leaves the "which objects are hidden" draw seed-dependent (confirmed: some
-seeds hide `master_chef_can` or `potted_meat_can` outright, at z=-10000,
-with build_config_idxs held fixed). G1's base pose, camera, and clip_feasibility.py's
-crop regions are all calibrated for one specific resulting layout -- the one
-`reset(seed=0)` happened to produce before this fix existed. Fixed by
-pinning `build_config_idxs`/`init_config_idxs` AND explicitly reseeding
-torch's global RNG (`torch.manual_seed(_SCENE_TORCH_SEED)`) immediately
-before both scene constructions call into the scene builder, so the
-resulting layout is that same one regardless of the `seed` argument to
-`reset()`. This env's own stochastic element (intervention onset step) is
-unaffected -- it's drawn from `self._episode_rng` (numpy, seeded from the
-`reset(seed=...)` argument through ManiSkill's own machinery), a separate
-stream from torch's global RNG.
+Scene layout is reproducible across seeds, not literally pinned by index --
+a real bug found by D-020's vision work, then a real correction to how it
+was understood to be fixed found by D-119. `ReplicaCADRearrangeSceneBuilder`
+samples the apartment layout (`build_config_idxs`) and, separately, an init
+variant (`init_config_idxs`) that determines which subset of YCB objects
+are actually placed versus hidden at z=-10000 -- both driven by torch's
+*global* RNG state, not this env's own `_episode_rng`. Every existing test
+of this env (D-018) only ever called `reset(seed=0)`, so this was
+invisible: `env.reset(seed=2)` loads a different apartment entirely
+(confirmed by rendering it -- G1 ends up next to a couch and a bicycle),
+and even pinning `build_config_idxs` alone still leaves the "which objects
+are hidden" draw seed-dependent (confirmed: some seeds hide
+`master_chef_can` or `potted_meat_can` outright, at z=-10000, with
+build_config_idxs held fixed). G1's base pose, camera, and
+clip_feasibility.py's crop regions are all calibrated for one specific
+resulting layout -- the one `reset(seed=0)` happened to produce before this
+fix existed.
+
+D-021's original fix constructor-pins `build_config_idxs` and
+*attempts* to pin `init_config_idxs` (`_SCENE_INIT_CONFIG_IDX`, passed as a
+constructor kwarg) alongside explicitly reseeding torch's global RNG
+(`torch.manual_seed(_SCENE_TORCH_SEED)`) immediately before both scene
+constructions call into the scene builder. **D-119 found the
+`init_config_idxs` half of that never actually worked**: instrumented
+`ReplicaCADRearrangeSceneBuilder.sample_init_config_idxs()` directly and
+confirmed it *is* called (returning `[10]` for `kitchen_cabinet`, not the
+constructor's `[0]`) -- `SceneManipulationEnv.reset()`, ManiSkill3's own
+base class, unconditionally discards the constructor's `init_config_idxs`
+on the first (reconfiguring) reset every env instance makes. Reproducibility
+across `reset(seed=...)` calls comes entirely from the `torch.manual_seed`
+reseed making that *sampled* draw deterministic, not from the constructor
+value being honored -- both shipped layouts (`kitchen_cabinet`/
+`kitchen_sink`) were tuned by searching `_SCENE_TORCH_SEED` values for one
+that samples a good init config, not by choosing an init config index
+directly. Do not trust `_SCENE_INIT_CONFIG_IDX`'s literal value for
+anything; it is kept only so removing it isn't a separate, riskier change
+(see its own definition below). This env's other stochastic element
+(intervention onset step) is unaffected by any of this -- it's drawn from
+`self._episode_rng` (numpy, seeded from the `reset(seed=...)` argument
+through ManiSkill's own machinery), a separate stream from torch's global
+RNG.
 """
 
 from __future__ import annotations
@@ -80,6 +98,64 @@ _OBJECT_ALIASES = {
     "bowl": "env-0_024_bowl-4",
     "cracker_box": "env-0_003_cracker_box-1",
 }
+
+# D-119: R-014/D-061's real mechanism -- confirmed by instrumenting
+# ReplicaCADRearrangeSceneBuilder directly, not inferred -- is that
+# `_SCENE_INIT_CONFIG_IDX` below is never actually used: ManiSkill3's own
+# `SceneManipulationEnv.reset()` discards the constructor's `init_config_idxs`
+# on every reconfiguring reset (`self.init_config_idxs = options.get(...,
+# None)`, unconditionally None on that branch) and falls back to
+# `sample_init_config_idxs()` -- confirmed by patching that method to record
+# calls: it *is* invoked, returning `[10]` for kitchen_cabinet, not `[0]`.
+# Reproducibility comes entirely from `torch.manual_seed(_SCENE_TORCH_SEED)`
+# right before that sample, not from the constructor value -- matching the
+# older module-docstring comment about "searching torch seed values 0-14",
+# which was the real mechanism D-020/D-021 used, not index pinning.
+#
+# This means `_OBJECT_ALIASES`' hardcoded instance suffixes were tuned
+# against whatever object layout a *given (build_config_idx, torch seed)*
+# pair happens to sample -- not a literal, inspectable init config index.
+# Verified directly (not assumed) that for `master_chef_can`/`potted_meat_can`
+# /`bowl`, the instance closest to the scene's own `base_pose` is exactly the
+# one `_OBJECT_ALIASES` already hardcodes, in both existing layouts -- so
+# `_resolve_dynamic_actor_name()` below reproduces the current, working
+# aliases exactly (zero behavior change) while removing the fragility a
+# hardcoded suffix has if this env is ever pointed at a different
+# build_config/seed pair. `cracker_box` is the one exception found: its
+# nearest instance is NOT the one `_OBJECT_ALIASES` hardcodes, in both
+# layouts, and no rule that reproduces the hardcoded choice was found -- left
+# hardcoded rather than shipping an unverified guess for it specifically.
+_DYNAMIC_ALIAS_OBJECT_IDS = {
+    "potted_meat_can": "010_potted_meat_can",
+    "master_chef_can": "002_master_chef_can",
+    "bowl": "024_bowl",
+}
+
+
+def _resolve_dynamic_actor_name(scene, obj_id: str, base_xy, env_num: int = 0) -> str:
+    """Among every built (possibly-hidden) instance of `obj_id`, return the
+    non-hidden one closest to `base_xy` -- the property that, verified
+    directly, reproduces every currently-shipped hardcoded alias this
+    replaces. Raises if none are placed at all, rather than silently
+    returning something wrong -- this project's established convention
+    (see instruction_parser.py's module docstring) for an unresolvable
+    reference."""
+    best_name: str | None = None
+    best_distance: float | None = None
+    i = 0
+    while True:
+        name = f"env-{env_num}_{obj_id}-{i}"
+        if name not in scene.actors:
+            break
+        position = scene.actors[name].pose.sp.p
+        if position[2] > -100:  # not hidden at the scene builder's default z=-10000-ish
+            distance = float(np.hypot(position[0] - base_xy[0], position[1] - base_xy[1]))
+            if best_distance is None or distance < best_distance:
+                best_name, best_distance = name, distance
+        i += 1
+    if best_name is None:
+        raise ValueError(f"no placed (non-hidden) instance of {obj_id!r} found for env {env_num}")
+    return best_name
 
 # Last-known world positions (ReplicaCADSetTableTrain seed=0), for objects
 # that may no longer exist when a policy tries to reach them.
@@ -226,6 +302,7 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         self.goal_graph = replicacad_humanoid_example()
         self._scene_variant = scene_variant
         self._exists: dict[str, bool] = {}
+        self._resolved_aliases: dict[str, str] = {}
         self._onset_step: int | None = None
         self._elapsed_control_steps = 0
         self._triggered = False
@@ -238,6 +315,12 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         # layout is pinned"). Which of the two calibrated layouts is up to
         # scene_variant, not the caller's own build_config_idxs.
         kwargs["build_config_idxs"] = [_SCENE_CONFIGS[scene_variant]["build_config_idx"]]
+        # D-119: this init_config_idxs value is not actually honored -- see
+        # that decision's note above `_DYNAMIC_ALIAS_OBJECT_IDS` -- kept only
+        # because removing it would be a separate, riskier behavior change
+        # (it would make ManiSkill3 actually respect index 0, which would
+        # very likely select a different real layout than the one G1's base
+        # pose/camera/clip crops are calibrated against).
         kwargs["init_config_idxs"] = [_SCENE_INIT_CONFIG_IDX]
         super().__init__(
             *args, robot_uids="unitree_g1_simplified_upper_body_with_head_camera",
@@ -245,7 +328,8 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         )
 
     def _get_actor(self, alias: str):
-        return self.scene.actors[_OBJECT_ALIASES[alias]]
+        name = self._resolved_aliases.get(alias, _OBJECT_ALIASES.get(alias))
+        return self.scene.actors[name]
 
     def _load_scene(self, options: dict):
         # Pins which apartment layout gets sampled -- see module docstring.
@@ -308,6 +392,12 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         with torch.device(self.device):
             self.agent.robot.set_qpos(self.agent.keyframes["standing"].qpos)
             self.agent.robot.set_pose(sapien.Pose(p=_SCENE_CONFIGS[self._scene_variant]["base_pose"]))
+
+        base_xy = _SCENE_CONFIGS[self._scene_variant]["base_pose"][:2]
+        self._resolved_aliases = {
+            alias: _resolve_dynamic_actor_name(self.scene, obj_id, base_xy)
+            for alias, obj_id in _DYNAMIC_ALIAS_OBJECT_IDS.items()
+        }
 
         seed = int(self._episode_rng.randint(0, 2**31 - 1))
         rng = np.random.default_rng(seed)

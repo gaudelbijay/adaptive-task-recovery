@@ -17,6 +17,11 @@ from atr.envs.tidy_up_replicacad_humanoid_policies import (  # noqa: E402
     naive_substitution_policy,
     static_policy,
 )
+from atr.envs.tidy_up_env_replicacad_humanoid import (  # noqa: E402
+    _DYNAMIC_ALIAS_OBJECT_IDS,
+    _OBJECT_ALIASES,
+    _resolve_dynamic_actor_name,
+)
 
 
 def _make_env(**kwargs):
@@ -114,3 +119,53 @@ class TestReplicaCADHumanoidPolicyComparison:
         assert results[False]["dont_move_bowl_violated"] is True
         assert results[True]["dont_move_bowl_violated"] is False
         assert results[False]["goals_achieved"] == results[True]["goals_achieved"]
+
+
+class TestDynamicAliasResolution:
+    """D-119: `_OBJECT_ALIASES` used to hardcode fixed YCB instance suffixes
+    that don't portable across `build_config_idx` (R-014/D-061/D-116).
+    `_resolve_dynamic_actor_name()` replaces 3 of the 4 with a runtime
+    nearest-to-base_pose lookup. This must reproduce every currently-shipped
+    alias exactly -- these tests would fail loudly if it silently changed
+    which real object either scene layout resolves to."""
+
+    def test_resolves_to_the_currently_hardcoded_alias_for_both_layouts(self):
+        for variant in ("kitchen_cabinet", "kitchen_sink"):
+            env = _make_env(intervention_kind="none", scene_variant=variant)
+            try:
+                env.reset(seed=0)
+                resolved = env.unwrapped._resolved_aliases
+                for alias in _DYNAMIC_ALIAS_OBJECT_IDS:
+                    assert resolved[alias] == _OBJECT_ALIASES[alias], (
+                        f"{variant}/{alias}: resolved {resolved[alias]!r}, "
+                        f"expected {_OBJECT_ALIASES[alias]!r}"
+                    )
+            finally:
+                env.close()
+
+    def test_cracker_box_still_uses_the_static_alias(self):
+        """The one object D-119 found no reliable dynamic rule for (its
+        nearest instance is not the hardcoded one, in either layout) --
+        must stay on the static path, not silently get a wrong dynamic one."""
+        env = _make_env(intervention_kind="none")
+        try:
+            env.reset(seed=0)
+            assert "cracker_box" not in env.unwrapped._resolved_aliases
+            actor = env.unwrapped._get_actor("cracker_box")
+            assert actor.name == _OBJECT_ALIASES["cracker_box"]
+        finally:
+            env.close()
+
+    def test_raises_when_no_instance_is_placed(self):
+        class _FakeActor:
+            def __init__(self, z):
+                self.pose = type("P", (), {"sp": type("SP", (), {"p": [0.0, 0.0, z]})()})()
+
+        class _FakeScene:
+            actors = {
+                "env-0_999_fake_obj-0": _FakeActor(-10000.0),
+                "env-0_999_fake_obj-1": _FakeActor(-10010.0),
+            }
+
+        with pytest.raises(ValueError, match="no placed"):
+            _resolve_dynamic_actor_name(_FakeScene(), "999_fake_obj", (0.0, 0.0))

@@ -1,6 +1,6 @@
 # Issues and Risks
 
-Last updated: 2026-08-14 (D-116)
+Last updated: 2026-08-20 (D-119)
 
 ## Active
 
@@ -15,7 +15,7 @@ Last updated: 2026-08-14 (D-116)
 | R-011 | Risk | High | Humanoid controller failures may be confused with high-level goal infeasibility. Concretely observed in the ManiSkill3 spike (2026-07-28): a naive constant-hold action falls within ~0.5s even with zero injected disturbance — a controller-quality problem that would look identical to "infeasible" without careful separation. Concretely observed *again*, differently, in D-024/D-028: G1's arm genuinely cannot reach within contact range of two specific objects from any reasonable standing position — confirmed as a real kinematic limit (not a controller bug) only after building a proper analytic-Jacobian IK solver and searching broadly. Reinforces this risk's core concern: distinguishing "can't do it" from "control/tooling failed to do it" took real, non-trivial verification work both times. | Use a skill interface, repeated/oracle reachability labels, and separate error decomposition. |
 | R-012 | Risk | Medium | Humanoid simulation and visual RL may exceed the compute budget. Partially confirmed: no CUDA on the primary dev machine, so GPU-vectorized parallel sim isn't available there — CPU sim is workable for single-env dev only. | Prototype logic cheaply, reuse low-level skills, freeze encoders initially, retain humanoid as the final gate, and budget for a CUDA machine/cloud GPU before any parallel RL training phase. |
 | R-013 | Risk | High | Confirmed, open, unfixed upstream ManiSkill3 rendering bug (D-022, `haosulab/ManiSkill#1150`): rendered frames from the real-scene envs desync from the actual scene after roughly the second render-producing reset in one process (macOS, YCB-object scenes specifically). Not fixable in this project — it's in a dependency. Currently mitigated with a runtime warning guard and by keeping clip_feasibility.py's/dinov2_probe.py's own tests inside the verified-safe budget (≤2 in-process renders, or subprocess-isolated capture for more). Real risk if this project ever needs bulk/batch rendering (e.g. generating a large visual dataset) on this platform. | Check whether `haosulab/ManiSkill#1150` has a fix in a future ManiSkill3 release before attempting any batch-rendering workflow on macOS; budget for a Linux/CUDA machine as a fallback if it doesn't. |
-| R-014 | Risk | Low | Object-existence/position state for `tidy_up_env_replicacad_humanoid.py`'s scene builder may not be reliable for a *new* `build_config_idx`, even with D-021's existing torch-seed pinning. Confirmed 2026-08-06 (D-061, not fixed): a candidate third scene layout, extensively validated standalone (15+ runs, multiple independent script structures, all agreeing), deterministically disagreed with the real registered `scene_variant` code path once wired in (different object positions, target objects hidden) — 15/15 identical wrong results, not flaky. The two already-shipped layouts (`kitchen_cabinet`/`kitchen_sink`) are confirmed robust by extensive prior use. **Mechanism isolated 2026-08-14 (D-116, still not fixed):** read `ReplicaCADRearrangeSceneBuilder`'s source directly instead of more black-box comparison. `_OBJECT_ALIASES` hardcodes fixed YCB actor-instance suffixes found empirically for `build_config_idx=59`/`55`; which numbered instance actually holds a real (non-hidden) position is a property of that specific scene's episode data, not portable across configs. Verified directly: for D-061's candidate (`13`), the hardcoded suffix resolves to a hidden instance, while the real placed instance is a different number, at a position nowhere near the scene's other real objects. A data/content-level bug, not the runtime/statefulness issue D-061's investigation ruled out — explaining why none of those checks ever found it. Downgraded Medium → Low: the mystery itself is resolved (even though a fix isn't shipped), and the two existing layouts are unaffected. | Before trusting any *new* `build_config_idx`, resolve `_OBJECT_ALIASES` dynamically per scene (find the actually-non-hidden instance after reset) instead of hardcoding a suffix — D-116's identified fix, not yet implemented. Then validate object placement through the real `scene_variant` path with a large sample, and separately confirm candidate objects are actually near each other/a viable standing spot (D-061's raycast check didn't correspond to the same thing `13`'s real placement did). |
+| R-014 | Risk | Low | Object-existence/position state for `tidy_up_env_replicacad_humanoid.py`'s scene builder may not be reliable for a *new* `build_config_idx`, even with D-021's existing torch-seed pinning. Confirmed 2026-08-06 (D-061, not fixed): a candidate third scene layout, extensively validated standalone (15+ runs, multiple independent script structures, all agreeing), deterministically disagreed with the real registered `scene_variant` code path once wired in (different object positions, target objects hidden) — 15/15 identical wrong results, not flaky. The two already-shipped layouts (`kitchen_cabinet`/`kitchen_sink`) are confirmed robust by extensive prior use. **Mechanism isolated 2026-08-14 (D-116, still not fixed):** read `ReplicaCADRearrangeSceneBuilder`'s source directly instead of more black-box comparison. `_OBJECT_ALIASES` hardcodes fixed YCB actor-instance suffixes found empirically for `build_config_idx=59`/`55`; which numbered instance actually holds a real (non-hidden) position is a property of that specific scene's episode data, not portable across configs. Verified directly: for D-061's candidate (`13`), the hardcoded suffix resolves to a hidden instance, while the real placed instance is a different number, at a position nowhere near the scene's other real objects. A data/content-level bug, not the runtime/statefulness issue D-061's investigation ruled out — explaining why none of those checks ever found it. Downgraded Medium → Low: the mystery itself is resolved (even though a fix isn't shipped), and the two existing layouts are unaffected. **Deepened and fixed 2026-08-20 (D-119):** re-verifying D-116 before writing the resolution rule found `_SCENE_INIT_CONFIG_IDX` is dead — ManiSkill3's own `reset()` discards the constructor's `init_config_idxs` on every reconfiguring reset, so the two shipped layouts work via the module's own torch-seed search (an older docstring comment, not index pinning). Shipped `_resolve_dynamic_actor_name()` (nearest non-hidden instance to `base_pose`) for `master_chef_can`/`potted_meat_can`/`bowl` — verified to reproduce both layouts' hardcoded aliases exactly before landing it. `cracker_box` has no rule that reproduces its hardcoded alias in either layout; left static and disclosed rather than guessed. | Fix shipped for 3/4 aliases (D-119). Remaining: a real third scene layout still needs a fresh candidate search checking real placed positions directly (D-116), plus reach/base-pose/camera recalibration and a manual decision for `cracker_box`'s alias specifically. |
 
 **R-010 update (D-091, 2026-08-12):** the execution-contract remainder in
 the R-010 row is now closed. `_navigate_to()` screens the actual planned
@@ -150,6 +150,27 @@ remains unusable regardless, since its real object positions are too spread
 out for a shared standing spot. A real third layout is still a full-scope
 task: dynamic-alias fix, a fresh candidate search checking actual placed
 positions directly, and reach/base-pose/camera recalibration.
+
+**R-014 fix implemented (D-119, 2026-08-20):** re-verifying D-116 before
+writing the resolution rule surfaced a deeper mechanism: `_SCENE_INIT_CONFIG_IDX`
+is never actually honored. `SceneManipulationEnv.reset()` (ManiSkill3's own
+base class) discards the constructor's `init_config_idxs` on every
+reconfiguring reset, so `_initialize_episode()` falls back to
+`sample_init_config_idxs()` — confirmed by patching it to log calls: it
+returns `[10]` for `kitchen_cabinet`, not `[0]`. The two shipped layouts
+work because `torch.manual_seed(_SCENE_TORCH_SEED)` right before that
+sample makes the draw reproducible, not because an index was pinned —
+matching an older, easy-to-miss module-docstring comment about "searching
+torch seed values 0-14," the actual mechanism D-020/D-021 used. Shipped
+`_resolve_dynamic_actor_name()`: nearest non-hidden instance to the scene's
+`base_pose`, verified (not assumed) to reproduce both layouts' hardcoded
+aliases exactly for `master_chef_can`/`potted_meat_can`/`bowl` before
+landing it. `cracker_box`'s nearest instance is not its hardcoded one in
+either layout; no rule reproducing it was found, so it stays on the static
+alias with the mismatch disclosed. 3 new tests
+(`TestDynamicAliasResolution`); all 10 tests in
+`test_tidy_up_env_replicacad_humanoid.py` pass, the 7 pre-existing ones
+unchanged.
 
 ## Resolved or superseded
 

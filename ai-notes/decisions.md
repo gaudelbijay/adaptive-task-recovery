@@ -2,6 +2,73 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-119: Deepen R-014's mechanism and ship dynamic alias resolution for 3 of 4 objects
+
+- **Date:** 2026-08-20
+- **Status:** Accepted
+- **Decision:** Two parts.
+
+  **(1) Corrected the mechanism D-116 diagnosed.** Instrumented
+  `ReplicaCADRearrangeSceneBuilder.sample_init_config_idxs()` directly
+  (patched it to record calls) rather than continuing to reason from
+  source-reading alone. Confirmed: `tidy_up_env_replicacad_humanoid.py`'s
+  `_SCENE_INIT_CONFIG_IDX = 0`, passed as the constructor's
+  `init_config_idxs=[0]`, is **never actually used**.
+  `SceneManipulationEnv.reset()` (ManiSkill3's own base class) discards it
+  unconditionally on every reconfiguring reset
+  (`self.init_config_idxs = options.get("init_config_idxs", None)` --
+  `None`, not the constructor value, on that branch), so
+  `_initialize_episode()` falls back to `sample_init_config_idxs()` --
+  confirmed by patching it to log calls: it *is* invoked, returning `[10]`
+  for `kitchen_cabinet`, not `[0]`. Reproducibility across `reset(seed=...)`
+  calls comes entirely from `torch.manual_seed(_SCENE_TORCH_SEED)` right
+  before that sample -- not from the constructor value being honored. This
+  matches the module docstring's older, easy-to-miss comment about
+  "searching torch seed values (0-14)... for one that keeps both target
+  objects actually placed" -- that was always the real mechanism D-020/D-021
+  used; `_SCENE_INIT_CONFIG_IDX` was dead documentation, not a lie, but a
+  leftover from an earlier design that stopped being true.
+
+  **(2) Shipped dynamic alias resolution for 3 of 4 hardcoded object
+  aliases.** `_resolve_dynamic_actor_name()` scans every built instance of
+  an object type (`env-{env_num}_{obj_id}-{i}`, `i=0..`), filters to
+  non-hidden ones (`z > -100`), and returns the one nearest to the scene's
+  own `base_pose`. Verified directly against both shipped layouts before
+  wiring it in: this rule reproduces the existing hardcoded alias exactly
+  for `master_chef_can` and `potted_meat_can` (both scenes) and `bowl`
+  (both scenes) -- zero behavior change, confirmed by a standalone script
+  before touching any test. `cracker_box` is the one exception: its
+  nearest instance is a *different* one than the hardcoded alias, in both
+  layouts, and no rule that reproduces the hardcoded choice was found
+  (asked the user how to proceed given this; chose to ship the 3 verified
+  ones and leave `cracker_box` on its static alias with the mismatch
+  disclosed in comments, rather than guess).
+- **Reason:** Direct continuation of R-014/D-116 per the user's explicit
+  choice to implement the fix next. The deeper mechanism (init_config_idxs
+  silently discarded) surfaced while re-verifying D-116's understanding
+  before writing the resolution rule -- worth correcting since it changes
+  what "pinned" means throughout this module's comments, even though fixing
+  *that* (making ManiSkill3 actually honor index 0) is explicitly out of
+  scope here: it would very likely select a different real layout than the
+  one G1's base pose/camera/CLIP crops are calibrated against, a much
+  larger, riskier change than this decision's actual scope.
+- **Consequences:** `_get_actor()` now resolves `master_chef_can`/
+  `potted_meat_can`/`bowl` via `self._resolved_aliases` (computed once per
+  reset in `_initialize_episode()`, after real object placement) and falls
+  back to the static `_OBJECT_ALIASES` dict for `cracker_box`. 3 new tests
+  (`TestDynamicAliasResolution`): reproduces both layouts' hardcoded
+  aliases exactly, confirms `cracker_box` stays static, and confirms
+  `_resolve_dynamic_actor_name()` raises (not silently returns something
+  wrong) when nothing is placed. All 10 tests in
+  `test_tidy_up_env_replicacad_humanoid.py` pass, including the 7
+  pre-existing ones unchanged (zero regression). This removes the
+  fragility a hardcoded suffix has if this env is ever pointed at a
+  different `build_config_idx`/seed pair, but does not by itself unlock a
+  third scene layout -- that still needs a fresh candidate search (this
+  time checking real placed positions directly, per D-116) plus
+  reach/base-pose/camera recalibration, and `cracker_box`'s alias would
+  still need a manual decision for whatever candidate is found.
+
 ## D-118: Patch GitPython to close 6 open Dependabot alerts
 
 - **Date:** 2026-08-15
