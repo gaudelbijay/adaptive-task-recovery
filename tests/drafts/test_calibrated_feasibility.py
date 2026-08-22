@@ -475,3 +475,74 @@ class TestAbstentionDoesNotAlwaysWin:
         # ATTEMPT), not the cheap one (a wrong SKIP).
         assert mean_forced > mean_selective
         assert mean_forced > 0.0
+
+
+class TestAsymmetricCostConfirmedWithBootstrapCI:
+    """D-120: D-077/D-078 each drew their conclusion from 10 calibration
+    seeds' raw mean, on one stratum each -- real evidence, but the same
+    "small hand-picked sample" scope limit D-108/D-117 broadened for H3/H4.
+    Reruns both of H5's already-identified boundary strata with 30
+    calibration seeds each and a paired bootstrap CI (`atr.evaluation.
+    harness.bootstrap_ci`, D-042's protocol, same one D-108 used) on the
+    per-seed (forced - selective) reward difference, instead of a bare mean
+    of 10 points. Same strata, same held-out seed ranges as D-076/D-077/
+    D-078 -- broadening precision, not moving the goalposts."""
+
+    _NEGATIVE_ONSET_RANGE = (10, 100)  # D-076/D-077's stratum
+    _POSITIVE_ONSET_RANGE = (10, 120)  # D-078's stratum
+    _KEY = ("place_bowl", "bowl_destroyed")
+    _N_CALIBRATION_SEEDS = 30
+
+    def _held_out_true_probability(self, onset_range, seed_start):
+        n_feasible, n_achieved = 0, 0
+        for seed in range(seed_start, seed_start + 200):
+            env = _make_env(intervention_kind="bowl_destroyed", onset_step_range=onset_range)
+            try:
+                env.reset(seed=seed)
+                attempt_goal(env, _GRAPH.goals[0], _TRAY_SLOTS[0], _REACH_STEPS)
+                goal1 = _GRAPH.goals[1]
+                if bool(goal_feasible(goal1, env.unwrapped._world_state())):
+                    n_feasible += 1
+                    result = attempt_goal(env, goal1, _TRAY_SLOTS[1], _REACH_STEPS)
+                    if result["achieved"]:
+                        n_achieved += 1
+            finally:
+                env.close()
+        return n_achieved / n_feasible
+
+    def _forced_minus_selective_diffs(self, onset_range, true_p):
+        held_out = {self._KEY: true_p}
+        diffs = []
+        for cal_seed in range(self._N_CALIBRATION_SEEDS):
+            estimates = calibrate_survival_estimates(
+                _make_env, _GRAPH, _TRAY_SLOTS, attempt_goal,
+                intervention_kinds=("bowl_destroyed",), onset_step_bounds=onset_range,
+                n_episodes=20, seed=cal_seed,
+            )
+            if self._KEY not in estimates:
+                continue
+            result = compare_forced_vs_selective_reward(estimates, held_out)
+            diffs.append(result.forced_rewards[0] - result.selective_rewards[0])
+        return diffs
+
+    def test_selective_beats_forced_on_the_negative_ev_stratum(self):
+        # Held-out seeds 10000-10199, same range D-076/D-077 used.
+        true_p = self._held_out_true_probability(self._NEGATIVE_ONSET_RANGE, 10_000)
+        diffs = self._forced_minus_selective_diffs(self._NEGATIVE_ONSET_RANGE, true_p)
+        assert len(diffs) >= 20
+        # Real measured: mean~-0.13, CI~[-0.20, -0.06]. forced-selective < 0
+        # across the whole interval -- selective's advantage here is not a
+        # 10-sample fluke.
+        _, lo, hi = bootstrap_ci(diffs, n_resamples=2000, seed=0)
+        assert hi < 0.0
+
+    def test_forced_beats_selective_on_the_positive_ev_stratum(self):
+        # Held-out seeds 20000-20199, same range D-078 used.
+        true_p = self._held_out_true_probability(self._POSITIVE_ONSET_RANGE, 20_000)
+        diffs = self._forced_minus_selective_diffs(self._POSITIVE_ONSET_RANGE, true_p)
+        assert len(diffs) >= 20
+        # Real measured: mean~+0.12, CI~[0.10, 0.14]. forced-selective > 0
+        # across the whole interval -- the opposite direction, confirming
+        # the sign flip is real and not sample noise from either stratum.
+        _, lo, hi = bootstrap_ci(diffs, n_resamples=2000, seed=0)
+        assert lo > 0.0

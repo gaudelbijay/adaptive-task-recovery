@@ -2,6 +2,42 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-120: Confirm H5's asymmetric-cost claim with bootstrap CIs, not 10-sample means
+
+- **Date:** 2026-08-21
+- **Status:** Accepted
+- **Decision:** D-077/D-078 each established one direction of H5's
+  asymmetric-cost claim from 10 calibration seeds' raw mean, on one
+  boundary stratum each -- real evidence, but the same "small hand-picked
+  sample" scope limit D-108/D-117 already broadened for H3/H4. Reran both
+  of H5's already-identified boundary strata (D-076/D-077's negative-EV
+  stratum, `onset_step_bounds=(10, 100)`; D-078's positive-EV stratum,
+  `onset_step_bounds=(10, 120)`) with 30 calibration seeds each, and a
+  paired bootstrap CI (`atr.evaluation.harness.bootstrap_ci`, the same
+  D-042 protocol D-108 used) on the per-seed `(forced - selective)` reward
+  difference, instead of a bare mean of 10 points. Same strata, same
+  held-out seed ranges as the original decisions -- broadening precision,
+  not moving the goalposts or re-picking a more favorable stratum.
+- **Reason:** Direct continuation of the H5 thread per the user's earlier
+  choice to revisit it; the natural next step given D-108/D-117 already
+  established this "broaden thin evidence with bootstrap CIs" pattern for
+  the project's other hypotheses.
+- **Consequences:** Verified with a standalone script before writing the
+  formal test (this project's established practice). Real, measured
+  result, both directions confirmed with CIs that exclude zero: negative-EV
+  stratum (true survival 0.5975, matching D-076's ~0.60) -- mean forced
+  -0.2317, mean selective -0.1003, `(forced - selective)` bootstrap CI
+  [-0.1995, -0.0632], entirely negative (selective wins, real not noise).
+  Positive-EV stratum (true survival 0.7349, matching D-078's measurement
+  exactly) -- mean forced +0.0458, mean selective -0.0761,
+  `(forced - selective)` bootstrap CI [0.0989, 0.1434], entirely positive
+  (forced wins). Both signs match D-077/D-078's original 10-seed findings,
+  now with a real confidence interval instead of a bare mean, confirming
+  the sign flip between strata is a robust property of the reward
+  asymmetry, not sample noise from either individual run. 2 new tests
+  (`TestAsymmetricCostConfirmedWithBootstrapCI`), ~7.5 minutes total on the
+  lightweight `TidyUp-v1` env (not the heavy ReplicaCAD ones).
+
 ## D-119: Deepen R-014's mechanism and ship dynamic alias resolution for 3 of 4 objects
 
 - **Date:** 2026-08-20

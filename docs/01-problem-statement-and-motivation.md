@@ -354,6 +354,16 @@ unrequested object, or violate the glass constraint for reward.
   completes H5's first honest, three-part picture (D-076 positive, D-077
   quantified, D-078 negative) and is why the hypothesis statement above now
   carries its condition explicitly instead of claiming an unconditional win.
+  **Confirmed with bootstrap CIs, not 10-sample means (2026-08-21, D-120):**
+  D-077/D-078 each drew their conclusion from 10 calibration seeds' raw
+  mean on one stratum apiece. Reran both boundary strata with 30
+  calibration seeds each and a paired bootstrap CI on the per-seed
+  `(forced - selective)` reward difference (same protocol D-108 used for
+  H3). Both signs held with real margin: negative-EV stratum, `(forced -
+  selective)` CI `[-0.1995, -0.0632]` (selective wins); positive-EV
+  stratum, CI `[0.0989, 0.1434]` (forced wins). The sign flip between
+  strata is a robust property of the reward asymmetry, not noise from
+  either individual 10-seed run.
 
 ## Success criteria
 
