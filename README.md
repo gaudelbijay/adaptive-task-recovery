@@ -6,6 +6,17 @@ vision-language reinforcement learning agent can use self-supervised visual
 representations to determine which language-specified goals remain feasible and
 revise its strategy to achieve as much of the original intent as possible.
 
+<p align="center">
+  <img src="media/demos/fetch-safety-detour.gif" width="380" alt="A Fetch robot in a real ReplicaCAD apartment screens its planned route, finds a protected object sitting on it, and replans a detour instead of pushing through.">
+</p>
+
+<p align="center"><sub>
+Real ManiSkill3 simulation, real collision-aware path planning, no scripted camera moves.
+The pick-and-place moment itself is a <code>teleport-on-success</code> abstraction, not a
+solved grasping problem — see <a href="#what-this-project-does-not-claim">what this
+project does not claim</a>.
+</sub></p>
+
 ## Research question
 
 A robot gets an instruction with more than one goal. Partway through, the
@@ -31,6 +42,57 @@ original plan invalid and may make some goals impossible. The challenge is to
 distinguish infeasibility from temporary difficulty, reason over multiple goals
 and constraints, and choose an acceptable partial or alternative completion.
 
+## Results
+
+Five hypotheses, each with real evidence — paired seeds, bootstrap confidence
+intervals, and real ManiSkill3 simulator episodes, not toy numbers. Full
+detail and every underlying number is in
+[`ai-notes/decisions.md`](ai-notes/decisions.md) (D-001–D-123); this is the
+short version.
+
+| | Hypothesis | Result |
+|---|---|---|
+| **H1** | A perceptual feasibility signal (not just privileged simulator state) is usable | **Confirmed.** Real zero-shot CLIP perception matches oracle behavior exactly on the project's own success-criteria benchmark — same recall, real reduction in wasted steps. A robustness gap was found by actually running the benchmark, then fixed and re-verified, not assumed away. |
+| **H2** | Feasibility-aware policies beat blindly continuing the plan | **Confirmed.** 30-seed paired benchmark on the real Fetch/apartment stack: identical goal recall, a statistically real drop in wasted steps (bootstrap CI excludes zero). A policy trained on two apartment layouts matched the oracle exactly on a third, never-seen layout, 10/10 seeds. |
+| **H3** | The safety guard does real work, not "safe by doing nothing" | **Confirmed.** Built the two adversarial cases meant to break this claim — a goal that directly conflicts with a protected object, and a case where the guard turned out to be *too permissive*. Both found real bugs, both fixed, both locked into regression tests. Extended to real collision-aware navigation with live detours and fail-closed stops, verified under seed variance, not one staged scenario. |
+| **H4** | A factorized language representation generalizes; memorization doesn't | **Confirmed.** The real parser hits 100% across train, held-out paraphrase, and held-out composition splits. A hand-built monolithic memorizer hits 100% on train and 0% on anything held out. Re-verified on the full 180-case combinatorial sweep of the object pool, not a hand-picked sample. |
+| **H5** | Calibrated abstention beats forced decisions | **Confirmed — conditionally.** Abstaining only wins when a wrong forced decision is the expensive mistake; tested both directions honestly, not just the flattering one, and confirmed with 30-seed bootstrap intervals that exclude zero in both directions (`[−0.20, −0.06]` where abstention wins, `[+0.10, +0.14]` where it loses). The unconditional version of this hypothesis was wrong; the conditional one is real. |
+
+**How this held together:** every comparison is paired-seed and bootstrapped
+(docs/10's predeclared protocol, used consistently); every required baseline
+(domain-randomized, symbolic replanner, imitation learning, frame-difference
+detector) is actually built and compared, not asserted as future work; the
+full test suite (300+ tests, real simulator episodes, no mocks on load-bearing
+paths) runs before anything is called done, and has caught real regressions
+targeted tests missed; and negative results are kept, not edited out — a CLIP
+calibration that didn't transfer, a hypothesis that only holds conditionally,
+a config value that never did what its own comment claimed, all reported as
+found, with the fix or the disclosed gap next to it.
+
+**What's still genuinely open:** collision geometry is still spheres and
+points, not full robot/object meshes; CLIP calibration is scene-specific and
+doesn't transfer automatically (confirmed by testing it on a new apartment
+layout and watching it fail); everything runs in simulation on CPU, no real
+robot and no large-scale learned visual policy; and one object's placement
+choice in the two original apartment layouts still has no explanation anyone's
+found. None of these are blocking — they're disclosed scope, not surprises.
+
+### What this project does not claim
+
+The demo above shows real navigation and real collision-aware replanning —
+neither is scripted. What it does *not* show is solved manipulation: reach
+targets don't need to be precise, because a successful attempt teleports the
+object onto the tray regardless of exact final gripper position, the same
+abstraction used throughout this project (see
+[`docs/07-adaptive-policy-design.md`](docs/07-adaptive-policy-design.md)).
+Grasping is a separate, unsolved problem this project deliberately scoped
+out to isolate the actual research question: *given* a working low-level
+skill, can the agent decide correctly *whether* to use it. A real analytic-
+Jacobian IK check on the humanoid embodiment (`src/atr/control/ik_solver.py`)
+also found, and kept as a disclosed regression test rather than hidden, that
+neither goal object is within true contact range from the calibrated standing
+position — a real embodiment limitation, reported rather than smoothed over.
+
 ## Planned system
 
 - A language parser that represents goals, priorities, and hard constraints
@@ -53,25 +115,28 @@ navigation, reaching, grasping, and safe whole-body skills. A simpler embodiment
 may be used for early research debugging, but humanoid evaluation is a required
 project milestone.
 
-The repository is in **Phase 0**. The core task schema — `Goal`/`Constraint`/
-`GoalGraph`, oracle feasibility, the intent guard — is accepted and promoted
-to [`src/atr/`](src/atr/) (D-037). **Read the review's status banner before
-treating that as settled**: it was self-resolved by the project owner, not
-independently reviewed by the teammate it was written for — see
+The core task schema — `Goal`/`Constraint`/`GoalGraph`, oracle feasibility,
+the intent guard — is accepted and promoted to [`src/atr/`](src/atr/) (D-037).
+**Read the review's status banner before treating that as settled**: it was
+self-resolved by the project owner, not independently reviewed by the
+teammate it was written for — see
 [`ai-notes/review-request-task-schema.md`](ai-notes/review-request-task-schema.md).
-The promotion sweep is now effectively complete: language parsing, zero-shot
-CLIP feasibility, the policy baselines (static/oracle-feasibility/naive-
-substitution), Q-learning, imitation learning, every embodiment/scene
-environment (Panda arm, a Unitree G1 humanoid, a real ReplicaCAD apartment
-with a mobile Fetch robot, and G1 placed in that same apartment), the
-end-to-end pipeline, the evaluation harness, a queryable dataset-split
-registry (instruction- and intervention-level), a log interface, and
+The promotion sweep is effectively complete: language parsing, zero-shot
+CLIP feasibility, every required baseline (static/oracle-feasibility/naive-
+substitution/domain-randomized/symbolic-replanner/imitation-learning),
+Q-learning, every embodiment/scene environment (a Panda arm, a Unitree G1
+humanoid, a real ReplicaCAD apartment with a mobile Fetch robot including a
+full collision-aware navigation-safety stack, and G1 placed in that same
+apartment across three independently verified scene layouts), the end-to-end
+pipeline, the evaluation harness, a queryable dataset-split registry
+(instruction-, intervention-, and scene-layout-level), a log interface, and
 experiment tracking all live in `src/atr/`, tested and `git`-committed
 architecture. Only `dinov2_probe.py` remains spike-stage in
 `spikes/task_schema_draft/` — DINOv2 wired into a real live decision loop,
 a genuine robustness gap found and closed (D-054/D-055), still not
-promotion-ready. 154 tests passing.
-See [STATUS.md](STATUS.md) for current work and [docs/](docs/) for the study design.
+promotion-ready. 300+ tests passing.
+See [STATUS.md](STATUS.md) for current work, [`ai-notes/decisions.md`](ai-notes/decisions.md)
+for the full decision-by-decision record, and [docs/](docs/) for the study design.
 
 ## Roadmap
 

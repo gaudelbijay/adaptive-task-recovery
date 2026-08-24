@@ -1,4 +1,14 @@
-# Media status
+# Media
+
+`demos/` holds real captured episode GIFs referenced from the root
+[`README.md`](../README.md) — real ManiSkill3 render output (subprocess-
+isolated per D-022's rendering-desync guard, one reset per capture process),
+not mockups or scripted camera moves. Regenerate with a fresh capture script
+rather than hand-editing a GIF if the underlying behavior changes.
+
+The rest of this directory predates that and is unrelated:
+
+## Architecture diagram status
 
 **Superseded — see
 [`docs/03-system-architecture.md`](../docs/03-system-architecture.md) for
