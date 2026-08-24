@@ -72,5 +72,5 @@ their link to those constraints.
 
 Record the task setting, observation modality, source of language, change model,
 feasibility definition, adaptation mechanism, constraint mechanism, and
-generalization split for every paper. This prevents grouping superficially
+generalization split for every study. This prevents grouping superficially
 similar systems that answer different questions.

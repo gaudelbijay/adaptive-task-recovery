@@ -2,6 +2,117 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-125: Freeze a cluster-ready, scaled benchmark contract
+
+- **Date:** 2026-08-24
+- **Status:** Accepted; full cluster run pending
+- **Decision:** Add `atr.evaluation.benchmark_suite`, two versioned manifests,
+  CLI runner/aggregator, and a SLURM array launcher. The full v1 manifest
+  expands deterministically to 3,200 content-addressed cases and 12,800 paired
+  policy episodes across four environment families, three ReplicaCAD layouts,
+  nominal/irreversible/reversible changes, early/wide timing, and 100 seeds.
+  Each shard keeps all policies for a case together; each case-policy outcome
+  is an atomic JSON artifact with the full git commit and runtime/package
+  metadata. Re-launches resume completed work and retry failed/corrupt records.
+  Aggregation refuses missing, duplicate, extra, or unpaired results before
+  producing overall and stratified bootstrap CIs, paired deltas, JSON, and CSV.
+- **Reason:** The prior harness was correct for small in-process comparisons
+  but could not safely run thousands of episodes on a cluster. Research evidence
+  cannot depend on hand-written loops, append-only files shared by workers, or
+  summaries that silently pool environments and omit failed/missing cases.
+- **Consequences:** Eight simulator-free focused tests pass. The real canonical
+  smoke manifest completed 8/8 policy episodes with zero failures and produced
+  validated aggregate JSON/CSV. A separate real cross-embodiment smoke ran
+  paired static/oracle cases through all four adapters, including Fetch and the
+  held-out third layout: 8/8 completed, equal recall in every case, oracle zero
+  wasted steps, static waste of 25 steps in three embodiments and 231 on Fetch.
+  A final real safety-adapter smoke confirmed the result schema preserves the
+  expected guarded/unguarded separation (0 versus 1 constraint violation).
+  The 32-cell/128-episode pilot and full 12,800-episode run remain intentionally
+  unexecuted until cluster resources are available. This infrastructure
+  guarantees deterministic accounting and fail-loud validity checks, not
+  favorable findings. Competitive external LLM/VLM baselines, broader task/
+  object diversity, and manipulation promotion remain scientific gaps.
+
+## D-124: Real pick-and-place for the Fetch demo, additive to attempt_goal()'s teleport contract
+
+- **Date:** 2026-08-24
+- **Status:** Accepted
+- **Decision:** Direct request: the README demo GIF's teleport-on-success
+  looked fake ("teleporting it looks so ugly"), and the user asked to
+  actually solve pick-and-place rather than dress up the abstraction.
+  Investigated feasibility honestly first rather than diving in: D-024/
+  D-028 already found real contact-range grasping *infeasible* for the
+  humanoid embodiment from its calibrated stance (a measured kinematic
+  limit, not a missing feature). Fetch is different -- mobile, can
+  position itself close before reaching -- so scoped the attempt there,
+  with the user's explicit sign-off given the real chance it might not
+  converge cleanly.
+
+  Built `attempt_goal_with_real_grasp()` in a new, separate module
+  (`tidy_up_replicacad_manipulation.py`) rather than modifying
+  `attempt_goal()` itself: that function's navigate-then-teleport
+  contract is what every H1-H5 result and every navigation-safety
+  decision (D-091-123) is built on, across 300+ tests -- changing it for
+  a demo's visual benefit would be a large, unjustified risk to the
+  project's whole evidence base.
+
+  Real engineering, verified at each stage rather than assumed:
+  - **Reach**: Fetch's `pd_ee_delta_pos` controller already does IK
+    internally (`PDEEPosController`, ManiSkill3's own code). A first
+    attempt sent one large sustained delta per direction and found
+    "x" produced *zero* net movement even over 30 steps -- traced to
+    `PDEEPosController.set_action()`'s own fallback
+    (`if self._target_qpos is None: self._target_qpos = self._start_qpos`):
+    the controller silently keeps the previous joint position whenever
+    a single-step IK solve fails, so a too-large one-shot delta is
+    indistinguishable from doing nothing. Fixed with proportional
+    closed-loop control (recompute the real error every step, same
+    pattern `_navigate_to()`'s `_drive_toward()` already uses for the
+    base) -- converges cleanly in under 30 steps for a real, reachable
+    target. A synthetic arbitrary offset used for initial testing
+    plateaued at a real local IK minimum even under closed-loop control;
+    a target derived from an actual object position after real
+    navigation converged fine -- the synthetic test case was simply a
+    poor, unrepresentative choice, not a sign the approach didn't work.
+  - **Grasp**: closes the gripper, then checks `agent.is_grasping()` --
+    ManiSkill3's own real contact-force/angle grasp detector -- rather
+    than assuming a closed gripper means the object is held.
+  - **Carry**: grasp is re-verified after lifting and again after a real
+    navigation leg across the apartment, confirming the object moves
+    with the gripper through real physics.
+  - **Place**: found, by checking rather than assuming, that
+    `_TRAY_POSITION`/`_TRAY_HALF_SIZES` (`tidy_up_env_replicacad.py`) is
+    a purely logical scoring region -- no tray actor is ever built in
+    the scene, which is exactly why `attempt_goal()`'s teleport never
+    needed one. A real released object had nothing to land on and kept
+    falling. Added `ensure_tray_surface()`: one real static box, additive
+    to the scene only when this module is used. First height attempt
+    (`_TRAY_POSITION[2] - 0.08`) placed the object outside
+    `goal_achieved()`'s actual acceptance window -- found via that
+    function's own stricter, one-sided z-check (`dz` in
+    `[-1e-4, +0.05]` of `_TRAY_POSITION`'s z specifically, not the full
+    `_TRAY_HALF_SIZES[2]` band the constant name suggests) -- tuned to
+    `-0.04` using the real measured resting position, not guessed.
+- **Reason:** Direct, explicit user request, arrived at through honest
+  scoping (declined the humanoid embodiment given D-028's prior finding,
+  chose Fetch given real kinematic plausibility, flagged the real risk
+  of non-convergence before starting).
+- **Consequences:** Real pipeline verified end-to-end: navigate to the
+  potted meat can, reach, grasp (contact-verified), lift, carry across
+  the apartment while navigating (grasp re-verified), reach to the tray,
+  release, settle -- final position confirmed via the project's own
+  `goal_achieved()`, not a custom check. 4 new tests
+  (`test_tidy_up_replicacad_manipulation.py`), covering the success path,
+  a direct `is_grasping()` contact check, tray-surface idempotency, and
+  the failure path for an unreachable/destroyed target. New demo GIF
+  (`media/demos/fetch-real-pick-and-place.gif`) replaces the teleport-
+  based one in the README. Deliberately narrow scope, disclosed rather
+  than implied: single object, single seed, not benchmarked, not wired
+  into any policy or the research evidence base -- a demonstrated
+  capability, not a promoted one. `attempt_goal()` and everything built
+  on it are unchanged.
+
 ## D-123: Third-layout privileged-state generalization works; CLIP perception does not
 
 - **Date:** 2026-08-23
@@ -3822,7 +3933,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   carry forward); and one direct calibration run (DINOv2's probe via
   `predict_proba`, LOO, 12 examples: 100% accuracy, Brier 0.0001 — CLIP
   has no probability output to measure calibration against at all with
-  its current interface, a real finding, not a gap papered over).
+  its current interface, a real finding, not a gap obscured).
 - **Reason:** I-004 (`ai-notes/issues_and_risks.md`) has been open since
   the project's reframing with no measured comparison behind it — real
   accuracy evidence existed per-model, but not against each other on the

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "adaptive_recovery_benchmark_smoke",
+  "policies": ["static", "oracle_feasibility"],
+  "metrics": ["goals_achieved", "wasted_steps", "constraint_violations"],
+  "seeds": {"start": 0, "stop": 2},
+  "environments": [
+    {
+      "env_id": "TidyUp-v1",
+      "scene_variants": [null],
+      "conditions": [
+        {"label": "nominal", "intervention_kind": "none", "onset_step_range": [2, 3]},
+        {"label": "destroyed", "intervention_kind": "bowl_destroyed", "onset_step_range": [2, 3]}
+      ]
+    }
+  ]
+}

@@ -62,6 +62,20 @@ CLIP perception, a trained Q-table, real arm motion) in its own fresh
 process and writes the result to JSON, so `atr.evaluation.
 full_agent_benchmark`'s multi-seed comparison can call it once per seed
 without accumulating render-producing resets in one process.
+
+`tidy_up_replicacad_manipulation.py` (D-124) is a real, separate pick-
+and-place capability for the Fetch variant, deliberately additive to
+`tidy_up_replicacad_policies.py`'s `attempt_goal()` rather than a
+replacement for it: `attempt_goal()`'s navigate-then-teleport contract
+is what every H1-H5 result and every navigation-safety decision (D-091-
+123) is built on, so it stays exactly as-is. This module instead
+provides `attempt_goal_with_real_grasp()` -- real IK-based reach (Fetch's
+own `pd_ee_delta_pos` controller, closed-loop proportional control, not a
+custom solver), a contact-force-verified grasp (`agent.is_grasping()`,
+checked, not assumed), a real carry through real navigation, and a real
+release onto a real (demo-only) tray surface, verified with the
+project's own `goal_achieved()`. Built for a real demo capture, not
+(yet) benchmarked across seeds or wired into any policy.
 """
 
 from __future__ import annotations

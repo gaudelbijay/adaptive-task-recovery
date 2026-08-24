@@ -1,7 +1,7 @@
 ---
 title: Evaluation and Benchmarks
 status: draft
-last_updated: 2026-08-02
+last_updated: 2026-08-24
 ---
 
 # Evaluation and Benchmarks
@@ -153,6 +153,14 @@ abstention wins. Execution is pending the full-suite CI's lavapipe runtime.
 Predeclare primary metrics and splits. Use paired episode seeds across methods,
 bootstrap confidence intervals, and effect sizes. Correct or clearly label
 multiple exploratory comparisons. Publish per-seed results and failure cases.
+
+**Scaled execution (D-125):** the frozen v1 matrix and cluster workflow
+are specified in [`docs/11-scaled-experiments.md`](11-scaled-experiments.md).
+Unlike the original in-process harness, it uses content-addressed cases,
+stable paired shards, atomic per-episode artifacts, resume/retry, exact code and
+runtime provenance, manifest-aware completeness checks, and stratified paired
+aggregation. The full matrix is configured but not yet run; smoke evidence is
+not reported as the primary result.
 
 **First real implementation, 2026-08-02 (D-042,
 `src/atr/evaluation/harness.py`):** `compare_policies()` runs paired

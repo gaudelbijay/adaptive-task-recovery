@@ -7,14 +7,15 @@ representations to determine which language-specified goals remain feasible and
 revise its strategy to achieve as much of the original intent as possible.
 
 <p align="center">
-  <img src="media/demos/fetch-safety-detour.gif" width="380" alt="A Fetch robot in a real ReplicaCAD apartment screens its planned route, finds a protected object sitting on it, and replans a detour instead of pushing through.">
+  <img src="media/demos/fetch-real-pick-and-place.gif" width="330" alt="A Fetch robot navigates to a can, reaches down, closes its gripper, lifts and carries the can across a real ReplicaCAD apartment, and places it on a tray.">
+  <img src="media/demos/fetch-safety-detour.gif" width="330" alt="The same Fetch robot screens its planned route, finds a protected object sitting on it, and replans a detour instead of pushing through.">
 </p>
 
 <p align="center"><sub>
-Real ManiSkill3 simulation, real collision-aware path planning, no scripted camera moves.
-The pick-and-place moment itself is a <code>teleport-on-success</code> abstraction, not a
-solved grasping problem — see <a href="#what-this-project-does-not-claim">what this
-project does not claim</a>.
+Real ManiSkill3 simulation, real collision-aware path planning, real inverse
+kinematics, a real contact-force-verified grasp — no scripted camera moves,
+no teleportation. See <a href="#what-this-project-does-not-claim">what this
+project does not claim</a> for the honest boundary of what "real" covers here.
 </sub></p>
 
 ## Research question
@@ -79,19 +80,29 @@ found. None of these are blocking — they're disclosed scope, not surprises.
 
 ### What this project does not claim
 
-The demo above shows real navigation and real collision-aware replanning —
-neither is scripted. What it does *not* show is solved manipulation: reach
-targets don't need to be precise, because a successful attempt teleports the
-object onto the tray regardless of exact final gripper position, the same
-abstraction used throughout this project (see
-[`docs/07-adaptive-policy-design.md`](docs/07-adaptive-policy-design.md)).
-Grasping is a separate, unsolved problem this project deliberately scoped
-out to isolate the actual research question: *given* a working low-level
-skill, can the agent decide correctly *whether* to use it. A real analytic-
-Jacobian IK check on the humanoid embodiment (`src/atr/control/ik_solver.py`)
-also found, and kept as a disclosed regression test rather than hidden, that
-neither goal object is within true contact range from the calibrated standing
-position — a real embodiment limitation, reported rather than smoothed over.
+Both demos above are real, not scripted: real navigation, real collision-aware
+replanning, real inverse kinematics, and a real contact-force-verified grasp
+(`agent.is_grasping()`, ManiSkill3's own detector — checked at every stage,
+not assumed). The pick-and-place demo is built in a separate, additive module
+(`src/atr/envs/tidy_up_replicacad_manipulation.py`, D-124), deliberately kept
+apart from the `attempt_goal()` navigate-then-teleport contract every H1-H5
+result and every navigation-safety decision (D-091–D-123) is built on across
+300+ tests — that contract stays exactly as it was; changing it project-wide
+for a demo's visual benefit would risk the whole evidence base for no
+research reason. So concretely:
+
+- **What's real:** Fetch, one object (the potted meat can), one scene —
+  navigate, reach, grasp, lift, carry across the apartment while still
+  gripping, place, release, and a real physics-settled final position,
+  verified with the project's own `goal_achieved()` check, not a custom one.
+- **What isn't (yet):** this hasn't been benchmarked across seeds or objects,
+  isn't wired into any policy the H1–H5 results depend on, and doesn't cover
+  the humanoid embodiment — a real analytic-Jacobian IK check there
+  (`src/atr/control/ik_solver.py`) found, and kept as a disclosed regression
+  test rather than hidden, that neither goal object is within true contact
+  range from G1's calibrated standing position. That's a measured kinematic
+  limit of that setup, not a missing feature, and it's why this capability
+  was built for Fetch specifically rather than assumed to transfer.
 
 ## Planned system
 
