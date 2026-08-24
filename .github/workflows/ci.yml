@@ -31,19 +31,20 @@ jobs:
       - name: Run simulator-independent tests
         run: pytest tests/ -v
 
-  # Full suite against the real ManiSkill3/SAPIEN stack -- NOT verified to
-  # pass on GitHub-hosted runners as of this writing (2026-08-02). Locally
-  # this needs a pinned pyenv virtualenv (ai-notes/decisions.md D-009) and
-  # takes ~7-8 minutes with real physics/rendering; whether SAPIEN's
-  # headless-Vulkan rendering path works unmodified on a GPU-less
-  # ubuntu-latest runner is genuinely untested from this environment, not
-  # assumed to work. continue-on-error so a real infrastructure gap here
-  # doesn't block merges on the reliable fast-checks job above -- remove
-  # that once a real run has actually been observed to pass or fail here.
+  # Full suite against the real ManiSkill3/SAPIEN stack. Four deterministic
+  # file shards run in parallel: the first observed hosted run spent roughly
+  # 37 minutes on setup, then its original 45-minute job budget expired after
+  # only 7m47s of tests. Sharding gives every test a bounded route to execute
+  # while preserving one sequential pytest process per runner for simulator
+  # stability. Keep this non-blocking until every hosted shard is observed.
   full-suite:
     runs-on: ubuntu-latest
     continue-on-error: true
-    timeout-minutes: 45
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard-index: [0, 1, 2, 3]
     env:
       MPLCONFIGDIR: /tmp/matplotlib
     steps:
@@ -100,5 +101,7 @@ jobs:
       - name: Verify ManiSkill imports
         run: |
           python -c "import mani_skill, sapien, torch; print('ManiSkill/SAPIEN/Torch imports OK')"
-      - name: Run full test suite
-        run: python -m pytest tests/ -v
+      - name: Run full test suite shard ${{ matrix.shard-index }}
+        run: >-
+          python scripts/run_test_shard.py
+          --shard-index "${{ matrix.shard-index }}" --shard-count 4 -v
