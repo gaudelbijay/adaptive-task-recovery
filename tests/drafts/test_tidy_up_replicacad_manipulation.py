@@ -11,7 +11,7 @@ import pytest
 pytest.importorskip("mani_skill")
 
 import task_schema_draft  # noqa: E402, F401
-from atr.envs.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION  # noqa: E402
+from atr.envs.tidy_up_replicacad_layout import _TRAY_HALF_SIZES, _TRAY_POSITION  # noqa: E402
 from atr.envs.tidy_up_replicacad_manipulation import (  # noqa: E402
     attempt_goal_with_real_grasp,
     ensure_tray_surface,

@@ -3,7 +3,7 @@ ReplicaCAD + Fetch version of TidyUp (tidy_up_env_replicacad.py).
 
 Promoted to src/atr/ 2026-08-04 (D-048), alongside tidy_up_env_replicacad.py
 and navigation.py -- see ai-notes/decisions.md. `_TRAY_POSITION`/
-`_TRAY_HALF_SIZES` were already imported from tidy_up_env_replicacad.py
+`_TRAY_HALF_SIZES` are imported from the lightweight shared layout module
 rather than duplicated (unlike D-046's canonical-env bug), so no fix
 needed there; `_LAST_KNOWN_POSITIONS` are standalone empirical fallback
 positions with no `_OBJECT_SPECS`-equivalent source of truth to derive
@@ -41,7 +41,7 @@ from atr.envs.navigation import (
     plan_path_avoiding_objects,
     screen_navigation_path,
 )
-from atr.envs.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
+from atr.envs.tidy_up_replicacad_layout import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Covers spawn (-1, 0) plus every goal/constraint object position used in
 # this scenario, with margin -- see tidy_up_env_replicacad.py's alias map.

@@ -59,7 +59,7 @@ import sapien
 import numpy as np
 from mani_skill.utils.building.actors import build_box
 
-from atr.envs.tidy_up_env_replicacad import _TRAY_HALF_SIZES, _TRAY_POSITION
+from atr.envs.tidy_up_replicacad_layout import _TRAY_HALF_SIZES, _TRAY_POSITION
 from atr.envs.tidy_up_replicacad_policies import _navigate_to
 from atr.feasibility.oracle import goal_achieved
 from atr.language.goal_graph import Goal

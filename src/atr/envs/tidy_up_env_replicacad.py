@@ -69,6 +69,7 @@ from mani_skill.utils.registration import register_env
 
 from atr.language.goal_graph import Constraint, Goal, GoalGraph
 from atr.feasibility.oracle import ObjectState, WorldState, evaluate_goal_graph
+from atr.envs.tidy_up_replicacad_layout import _TRAY_HALF_SIZES, _TRAY_POSITION
 
 # Real actor names in ReplicaCADSetTableTrain's seed=0 build/init config,
 # found by inspecting env.unwrapped.scene.actors directly (see README) --
@@ -109,9 +110,6 @@ def replicacad_example() -> GoalGraph:
         ),
     )
 
-
-_TRAY_POSITION = np.array([-1.0, 0.6, 0.7])
-_TRAY_HALF_SIZES = (0.3, 0.3, 0.15)
 
 # Same layout tidy_up_env_replicacad_humanoid.py pins, and for the same
 # reason -- see module docstring "Scene layout is pinned." Both envs use the

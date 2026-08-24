@@ -8,8 +8,8 @@ on:
     branches: [main]
 
 jobs:
-  # Runs on every push/PR. Lightweight on purpose: numpy + gymnasium + pytest
-  # only, no simulator/rendering/torch stack. Every test file in this repo
+  # Runs on every push/PR. Lightweight on purpose: numpy + gymnasium + scipy +
+  # pytest only, no simulator/rendering/torch stack. Every test file in this repo
   # guards its heavy imports with `pytest.importorskip("mani_skill")` before
   # anything else is imported (verified 2026-08-02: no test file imports
   # torch/sapien/open_clip before that guard), so without mani_skill
@@ -25,7 +25,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install lightweight dependencies
-        run: pip install numpy gymnasium pytest
+        run: pip install numpy gymnasium scipy pytest
       - name: Install atr package (editable)
         run: pip install -e .
       - name: Run simulator-independent tests
