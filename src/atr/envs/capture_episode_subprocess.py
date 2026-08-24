@@ -59,7 +59,7 @@ def main():
     parser.add_argument("--out", type=str, required=True)
     parser.add_argument(
         "--scene-variant", type=str, default="kitchen_cabinet",
-        help='"kitchen_cabinet" (original) or "kitchen_sink" (D-027)',
+        help='"kitchen_cabinet", "kitchen_sink" (D-027), or "third_layout" (D-121)',
     )
     parser.add_argument(
         "--intervention-kind", type=str, default="chef_can_destroyed",

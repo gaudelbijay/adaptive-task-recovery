@@ -13,11 +13,15 @@ from atr.evaluation.splits import (
     HELD_OUT_COMPOSITION,
     HELD_OUT_INTERVENTION,
     HELD_OUT_PARAPHRASE,
+    HELD_OUT_SCENE_LAYOUT,
     INTERVENTION_SPLITS,
     INTERVENTION_TRAIN,
+    SCENE_LAYOUT_SPLITS,
+    SCENE_LAYOUT_TRAIN,
     SPLITS,
     TRAIN,
     all_intervention_specs,
+    all_scene_layout_specs,
     all_specs,
 )
 from atr.language.goal_graph import canonical_example
@@ -92,3 +96,25 @@ class TestInterventionRegistryStructure:
         train_kinds = {s.intervention_kind for s in INTERVENTION_TRAIN}
         held_out_kinds = {s.intervention_kind for s in HELD_OUT_INTERVENTION}
         assert train_kinds.isdisjoint(held_out_kinds)
+
+
+class TestSceneLayoutRegistryStructure:
+    """D-121's scene-layout-axis counterpart to TestRegistryStructure/
+    TestInterventionRegistryStructure above -- same checks, different
+    registry."""
+
+    def test_all_scene_layout_specs_covers_every_split(self):
+        assert all_scene_layout_specs() == SCENE_LAYOUT_TRAIN + HELD_OUT_SCENE_LAYOUT
+
+    def test_scene_layout_splits_dict_matches_the_tuples(self):
+        assert SCENE_LAYOUT_SPLITS["train"] == SCENE_LAYOUT_TRAIN
+        assert SCENE_LAYOUT_SPLITS["held_out_scene_layout"] == HELD_OUT_SCENE_LAYOUT
+
+    def test_every_scene_layout_spec_tagged_with_its_own_split_name(self):
+        for split_name, specs in SCENE_LAYOUT_SPLITS.items():
+            assert all(spec.split == split_name for spec in specs)
+
+    def test_train_and_held_out_are_disjoint_variants(self):
+        train_variants = {s.scene_variant for s in SCENE_LAYOUT_TRAIN}
+        held_out_variants = {s.scene_variant for s in HELD_OUT_SCENE_LAYOUT}
+        assert train_variants.isdisjoint(held_out_variants)

@@ -150,3 +150,20 @@ oracle labels on hand-authored cases and test monotonicity where appropriate.
 - no-change, reversible-change, and ambiguous-evidence controls.
 
 Prevent seed, texture, event timing, and template tokens from leaking labels.
+
+Status, updated as each axis moves from spec to real evidence (not every
+axis closes the same way -- see `ai-notes/decisions.md` for the full story
+of each): held-out language paraphrases/compositions built and exercised
+(D-044, D-079/D-080/D-117); held-out intervention types built and
+exercised (D-059, D-069); held-out layouts built and exercised at the
+policy-decision level (D-121, D-122). The vision-level analogue was
+attempted, not skipped, and found to genuinely fail (D-123): real captured
+`third_layout` frames show the projected `master_chef_can` region
+substantially robot-occluded, with candidate crop margins staying positive
+whether the object is present or absent -- a real CLIP-calibration
+limitation for this layout's camera geometry, not a threshold that just
+needed tuning. `visual_object_exists()` raises rather than silently
+guessing for this scene_variant, kept that way deliberately. Held-out
+object appearances and goal-intervention compositions remain open (the
+latter investigated and found to need real simulator-level structure this
+project's env variants don't currently have, D-079's own note).

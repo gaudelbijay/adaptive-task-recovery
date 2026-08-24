@@ -123,7 +123,7 @@ class TestReplicaCADHumanoidPolicyComparison:
 
 class TestDynamicAliasResolution:
     """D-119: `_OBJECT_ALIASES` used to hardcode fixed YCB instance suffixes
-    that don't portable across `build_config_idx` (R-014/D-061/D-116).
+    that aren't portable across `build_config_idx` (R-014/D-061/D-116).
     `_resolve_dynamic_actor_name()` replaces 3 of the 4 with a runtime
     nearest-to-base_pose lookup. This must reproduce every currently-shipped
     alias exactly -- these tests would fail loudly if it silently changed
@@ -169,3 +169,90 @@ class TestDynamicAliasResolution:
 
         with pytest.raises(ValueError, match="no placed"):
             _resolve_dynamic_actor_name(_FakeScene(), "999_fake_obj", (0.0, 0.0))
+
+
+class TestThirdSceneLayout:
+    """D-121: a real third scene layout (`scene_variant="third_layout"`),
+    found by checking real placed positions directly across all other valid
+    `build_config_idx` values -- the methodology D-116 recommended after
+    D-061's raycast-based proxy check turned out not to correspond to what
+    was actually placed. All four objects land within about 1.1m of a
+    shared standing point with zero of 12 floor-clearance raycast hits
+    there (kitchen_cabinet's own base position only cleared 10/12).
+    Privileged-state only -- clip_feasibility.py's crops are not calibrated for
+    it, unlike kitchen_sink."""
+
+    def test_objects_are_placed_at_real_positions_not_floating(self):
+        env = _make_env(intervention_kind="none", scene_variant="third_layout")
+        try:
+            env.reset(seed=0)
+            for alias in ("potted_meat_can", "master_chef_can", "bowl", "cracker_box"):
+                z = env.unwrapped._get_actor(alias).pose.sp.p[2]
+                assert abs(z) < 5, f"{alias} is at z={z}, looks like it's still floating"
+        finally:
+            env.close()
+
+    def test_scene_layout_reproducible_across_seeds(self):
+        positions_by_seed = {}
+        for seed in (0, 2, 15, 42):
+            env = _make_env(intervention_kind="none", scene_variant="third_layout")
+            try:
+                env.reset(seed=seed)
+                positions_by_seed[seed] = {
+                    alias: tuple(env.unwrapped._get_actor(alias).pose.sp.p.tolist())
+                    for alias in ("potted_meat_can", "master_chef_can", "bowl", "cracker_box")
+                }
+            finally:
+                env.close()
+        reference = positions_by_seed[0]
+        for seed, positions in positions_by_seed.items():
+            assert positions == reference, f"seed={seed} layout differs from seed=0: {positions}"
+
+    def test_no_false_violations_from_settling(self):
+        env = _make_env(intervention_kind="none", scene_variant="third_layout")
+        try:
+            env.reset(seed=0)
+            for _ in range(15):
+                _, _, _, _, info = env.step(env.action_space.sample() * 0)
+            assert not any(info["constraint_violations"].values())
+        finally:
+            env.close()
+
+    def test_cracker_box_resolves_dynamically_not_to_the_other_layouts_static_alias(self):
+        """Unlike kitchen_cabinet/kitchen_sink, this scene has no hardcoded
+        alias to preserve for cracker_box -- it must resolve dynamically
+        (D-121's extension to D-119's fix), not silently reuse the other
+        layouts' instance suffix (which would very likely be wrong/hidden
+        for this build_config_idx, per D-119's own finding about why that
+        string isn't portable)."""
+        env = _make_env(intervention_kind="none", scene_variant="third_layout")
+        try:
+            env.reset(seed=0)
+            assert "cracker_box" in env.unwrapped._resolved_aliases
+            actor = env.unwrapped._get_actor("cracker_box")
+            assert actor.name != _OBJECT_ALIASES["cracker_box"]
+            assert abs(actor.pose.sp.p[2]) < 5
+        finally:
+            env.close()
+
+    def test_static_vs_feasibility_aware_same_recall_less_waste(self):
+        """The same policy comparison test_tidy_up_env_replicacad_humanoid.py's
+        TestReplicaCADHumanoidPolicyComparison already runs on
+        kitchen_cabinet -- confirms the real, scene-agnostic goal graph and
+        attempt_goal()'s teleport-on-success abstraction (never real IK
+        reach, see ik_solver.py's module docstring) work end-to-end on this
+        new layout too, not just that objects exist at sane positions."""
+        results = {}
+        for name, policy in [("static", static_policy), ("feasibility_aware", feasibility_aware_policy)]:
+            env = _make_env(
+                intervention_kind="chef_can_destroyed", onset_step_range=(2, 3),
+                scene_variant="third_layout",
+            )
+            try:
+                env.reset(seed=0)
+                results[name] = policy(env)
+            finally:
+                env.close()
+        assert results["static"]["goals_achieved"] == results["feasibility_aware"]["goals_achieved"]
+        assert results["feasibility_aware"]["wasted_steps"] == 0
+        assert results["static"]["wasted_steps"] > 0

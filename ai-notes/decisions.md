@@ -2,6 +2,145 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-123: Third-layout privileged-state generalization works; CLIP perception does not
+
+- **Date:** 2026-08-23
+- **Status:** Accepted negative result
+- **Decision:** Capture real present/absent `third_layout` frames in fresh
+  subprocesses, project both target positions through the actual 512x512 human
+  render camera, and measure zero-shot CLIP margins on candidate crops before
+  adding any `_OBJECT_VISUAL_CONFIG` entry. Do not add a calibration when the
+  measured decision fails; instead, explicitly test that the registered
+  held-out layout continues to raise `no calibrated visual config`.
+- **Reason:** D-122 proved held-out-layout generalization only with privileged
+  feasibility state. Reusing another layout's crop or accepting a crop merely
+  because its present margin is positive would turn that scoped result into a
+  false visual-generalization claim.
+- **Consequences:** What works: subprocess capture, real third-layout rendering,
+  dynamic aliases, oracle labels, and D-122's privileged-state policy result.
+  What does not: the current fixed-camera CLIP method on this layout. The
+  projected `master_chef_can` region is substantially robot-occluded and robot
+  pose changes after intervention; candidate margins stayed positive both when
+  present and absent (100px blue-can crop: `0.0241` vs `0.0146`; 160px crop:
+  `0.0187` vs `0.0140`; coffee-can prompt: `0.0423` vs `0.0365`), so the real
+  `margin > 0` classifier falsely predicts presence after destruction. A
+  potted-meat candidate was also unstable across crop size (`0.0430/0.0335`
+  at 100px, reversing to `0.0324/0.0486` at 160px). The system therefore fails
+  loudly rather than shipping a misleading calibration. One focused contract
+  test passes; full suite not run. A real visual held-out-layout result needs a
+  less occluded camera/view or object localization, not threshold tuning on
+  these two frames.
+
+## D-122: First real held-out-scene-layout generalization run — D-121's split registry actually exercised
+
+- **Date:** 2026-08-23
+- **Status:** Accepted
+- **Decision:** D-121 built `SCENE_LAYOUT_SPLITS`/`HELD_OUT_SCENE_LAYOUT`
+  (`atr.evaluation.splits`), the natural next step it deliberately left
+  open (same as D-059/D-069's pattern for interventions). Ran it for real:
+  trained `train_q_table()` against a `make_env` factory with its own RNG
+  that alternates between the two train-split scene variants
+  (`kitchen_cabinet`, `kitchen_sink`) each episode -- `train_q_table()`
+  itself has no `scene_variant` parameter (env-agnostic by design, D-030/
+  D-040), so varying the layout has to happen inside the factory, not the
+  function. Evaluated the resulting Q-table on `third_layout`
+  (`HELD_OUT_SCENE_LAYOUT`, D-121) -- never seen during training.
+
+  Real, measured result (standalone script first, then formal test): the
+  learned policy matches `feasibility_aware_policy` (oracle) exactly on
+  the held-out layout across all 10 paired seeds, zero variance --
+  `goals_achieved=1`, `wasted_steps=0` every time. `static_policy` gets the
+  same recall but wastes 25 steps every time, confirming the scenario
+  genuinely has waste available to avoid (the zero-waste result isn't just
+  because nothing was ever at stake). The trained Q-table itself converged
+  to a decisive rule before being trusted (SKIP favored when infeasible,
+  ATTEMPT favored when feasible) -- checked directly, not assumed from
+  matching oracle alone.
+
+  Named as a real possibility rather than glossed over: not a coincidence
+  to be surprised by, same as D-069's own honest framing for the
+  intervention axis. The learned policy's state is keyed on `(goal_id,
+  feasible)`, which never encodes *which apartment layout* is loaded, only
+  whether a goal is currently feasible right now -- generalizing correctly
+  across scene layout is close to guaranteed by that abstraction. This run
+  is the first actual confirmation that guarantee holds in practice for
+  *this* axis specifically, not an extrapolation from the intervention-axis
+  result already established.
+- **Reason:** Direct continuation of D-121 per the user's explicit choice
+  to build and exercise the held-out-scene-layout split next, rather than
+  leaving the registry built-but-unused the way D-059's intervention split
+  briefly was before D-069.
+- **Consequences:** Held-out-scene-layout generalization is now real,
+  checked evidence, not just a buildable registry entry. 5 new tests
+  (`test_held_out_scene_layout_generalization.py`), ~9.4 minutes (Q-table
+  training dominates: 120 episodes across two scene variants, ~470s).
+  Same scope limits as D-069's own result: this tests policy-decision
+  generalization at the privileged-state level, not perception -- neither
+  `kitchen_sink` nor `third_layout` has CLIP crops calibrated for a vision-
+  level analogue of this experiment, and `third_layout` specifically has
+  no vision calibration at all (D-121). A genuinely analogous
+  perception-generalization experiment would need that calibration work
+  first, not attempted here.
+
+## D-121: A real third scene layout, found and verified the way D-116 recommended
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Direct continuation of R-014 per the user's choice to search
+  for a real third layout next, now that D-119 fixed the mechanism (D-061's
+  original attempt) misdiagnosed. Checked real placed positions directly
+  for all 61 other valid `build_config_idx` values, not a separate
+  raycast/visual proxy -- D-061's actual mistake, per D-116's diagnosis.
+
+  Two independently-checked filters, not one: (1) `master_chef_can`/
+  `potted_meat_can` XY proximity at `torch_seed=0` -- most candidates
+  cleared this easily, several closer than either existing layout. (2) Real
+  floor-clearance raycasting (reusing `navigation.py`'s own 12-ray pattern)
+  at the resulting midpoint -- this caught a real trap: `build_config_idx=31`
+  had the closest object pair (0.14m) but a fully enclosed standing spot
+  (12/12 rays hit something within 0.5m), confirming clearance can't be
+  inferred from object proximity alone, exactly the kind of thing D-116's
+  own recommendation (verify the real thing, not a proxy) was meant to
+  catch. Also checked `bowl`/`cracker_box` proximity to the same midpoint
+  separately, since most otherwise-good candidates left one of those two
+  several meters away -- `build_config_idx=17` keeps all four objects
+  within about 1.1m of a shared point with zero raycast hits there
+  (kitchen_cabinet's own base only cleared 10/12).
+
+  `cracker_box` needed a second fix beyond D-119's: that decision left it
+  on a static alias for the two *existing* layouts specifically (no
+  reproducing rule existed, but there was a real hardcoded value to
+  preserve). A brand-new layout has no such value to preserve, and reusing
+  the other layouts' literal instance suffix would almost certainly be
+  wrong -- same D-119 lesson, just not yet applied to this one object.
+  Added `_LEGACY_CALIBRATED_SCENE_VARIANTS`: any `scene_variant` outside
+  `{kitchen_cabinet, kitchen_sink}` resolves `cracker_box` dynamically too,
+  via the same nearest-to-`base_pose` rule as the other three.
+
+  Confirmed non-degenerate with a real subprocess-isolated render capture
+  (D-022's established pattern, one render, well inside the ≤2-per-process
+  safe budget) before finalizing the camera config, not shipped unseen: a
+  legible kitchen counter/sink scene with all four objects visible.
+- **Reason:** D-119 fixed the mechanism D-061's attempt was actually
+  blocked by; the natural next step was retrying the search itself with
+  that fixed, now the user explicitly chose to.
+- **Consequences:** New `scene_variant="third_layout"` in
+  `_SCENE_CONFIGS`, `build_config_idx=17`. Verified: reproducible across 4
+  seeds (matching D-021's guarantee for the other two layouts), no false
+  constraint violations from physics settling, and the real
+  `static_policy`/`feasibility_aware_policy` comparison passes end-to-end
+  (same recall, feasibility-aware wastes zero steps) -- not just "objects
+  exist at sane positions" but the actual goal-graph/policy machinery works
+  on this layout. 5 new tests (`TestThirdSceneLayout`), all 15 tests in the
+  file pass. Explicitly scoped narrower than even D-027's kitchen_sink:
+  privileged-state only, `clip_feasibility.py`'s crops are not calibrated for
+  it. Held-out-scene-layout is not yet actually *exercised* -- no
+  `SceneLayoutSpec`/split registry entry built, no train-on-two-
+  held-out-one comparison run. That's the natural next step this decision
+  deliberately leaves open, the same way D-059 (build the held-out-
+  intervention split) and D-069 (actually exercise it) were kept as
+  separate decisions rather than one large one.
+
 ## D-120: Confirm H5's asymmetric-cost claim with bootstrap CIs, not 10-sample means
 
 - **Date:** 2026-08-21

@@ -162,3 +162,44 @@ def all_intervention_specs() -> tuple[InterventionSpec, ...]:
     """Every intervention spec across every split, in split order (train
     first) -- same shape as all_specs() above, for the intervention axis."""
     return INTERVENTION_TRAIN + HELD_OUT_INTERVENTION
+
+
+@dataclass(frozen=True)
+class SceneLayoutSpec:
+    """One (env, scene_variant) combination to evaluate, and which split it
+    belongs to -- the scene-layout-axis counterpart to InstructionSpec/
+    InterventionSpec above. Added D-121, once a 3rd `scene_variant`
+    (`"third_layout"`, `tidy_up_env_replicacad_humanoid.py`) existed to
+    hold out at all: with only 2 layouts total, "train on some, hold out
+    one, unseen" wasn't constructible before this -- the same situation
+    D-059 was in for interventions before its 3rd kind existed."""
+
+    env_id: str
+    scene_variant: str
+    split: str  # "train" | "held_out_scene_layout"
+
+
+SCENE_LAYOUT_TRAIN: tuple[SceneLayoutSpec, ...] = (
+    SceneLayoutSpec("TidyUp-ReplicaCAD-Humanoid-v1", "kitchen_cabinet", "train"),
+    SceneLayoutSpec("TidyUp-ReplicaCAD-Humanoid-v1", "kitchen_sink", "train"),
+)
+
+# D-121's layout, found and verified independently of the two calibrated
+# ones above -- held out, not trained on, so a policy tuned only against
+# the two "train" layouts can be checked against a real apartment
+# arrangement it's never seen.
+HELD_OUT_SCENE_LAYOUT: tuple[SceneLayoutSpec, ...] = (
+    SceneLayoutSpec("TidyUp-ReplicaCAD-Humanoid-v1", "third_layout", "held_out_scene_layout"),
+)
+
+SCENE_LAYOUT_SPLITS: dict[str, tuple[SceneLayoutSpec, ...]] = {
+    "train": SCENE_LAYOUT_TRAIN,
+    "held_out_scene_layout": HELD_OUT_SCENE_LAYOUT,
+}
+
+
+def all_scene_layout_specs() -> tuple[SceneLayoutSpec, ...]:
+    """Every scene-layout spec across every split, in split order (train
+    first) -- same shape as all_specs()/all_intervention_specs() above,
+    for the scene-layout axis."""
+    return SCENE_LAYOUT_TRAIN + HELD_OUT_SCENE_LAYOUT

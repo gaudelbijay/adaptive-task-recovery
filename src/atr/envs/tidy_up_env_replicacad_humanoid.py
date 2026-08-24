@@ -130,6 +130,17 @@ _DYNAMIC_ALIAS_OBJECT_IDS = {
     "master_chef_can": "002_master_chef_can",
     "bowl": "024_bowl",
 }
+_CRACKER_BOX_OBJECT_ID = "003_cracker_box"
+
+# D-121: the two scenes `_OBJECT_ALIASES`'s hardcoded `cracker_box` suffix
+# was tuned against. A brand-new `build_config_idx` has its own, unrelated
+# YCB-instance numbering (same D-119 lesson, applied to the one object
+# dynamic resolution didn't already cover) -- the hardcoded string is not
+# just unverified for a new scene, it's essentially guaranteed wrong (wrong
+# instance count, likely hidden or nonexistent). Any `scene_variant` outside
+# this set also resolves `cracker_box` dynamically (see `_initialize_episode`)
+# instead of falling back to a alias tuned for a different scene entirely.
+_LEGACY_CALIBRATED_SCENE_VARIANTS = frozenset({"kitchen_cabinet", "kitchen_sink"})
 
 
 def _resolve_dynamic_actor_name(scene, obj_id: str, base_xy, env_num: int = 0) -> str:
@@ -195,6 +206,38 @@ _SCENE_CONFIGS = {
         "base_pose": [-1.77, -1.03, 0.755],
         "camera_eye": [-1.3, -0.5, 2.4],
         "camera_target": [-2.0, -1.3, 0.85],
+    },
+    # D-121: third layout, found the way D-116 recommended -- checked real
+    # placed positions directly (not a separate raycast/visual proxy that
+    # turned out not to correspond to the same thing, D-061's actual
+    # mistake) across all 61 other valid build_config_idx values at
+    # torch_seed=0. Filtered on two independently checked properties, not
+    # just one: master_chef_can/potted_meat_can proximity, then floor
+    # clearance at the resulting midpoint -- several candidates that looked
+    # good on the first (e.g. build_config_idx=31, objects only 0.14m apart)
+    # turned out to have the standing spot fully enclosed (12/12 raycast
+    # hits) once actually checked, confirming clearance can't be assumed
+    # from object proximity alone. build_config_idx=17 has
+    # master_chef_can/potted_meat_can 0.169m apart, zero of 12 raycast hits
+    # at the midpoint (kitchen_cabinet's own base position only cleared
+    # 10/12), and -- checked separately again -- both `bowl` and
+    # `cracker_box` land within about 1.1m of that same midpoint too,
+    # unlike most other candidates where one of those two ends up several
+    # meters away. base_pose is that midpoint at the same standing height
+    # (0.755) both other layouts use; camera reuses kitchen_cabinet's
+    # relative eye/target offset as an untuned starting point -- confirmed
+    # non-degenerate by a real subprocess-isolated render capture (D-022's
+    # established pattern), not shipped unseen. Privileged-state only:
+    # reach configs/tray position (reach was never real contact-range
+    # reachability even for the calibrated layout, see ik_solver.py's
+    # module docstring) are shared and object-keyed, not scene-specific, so
+    # those need no per-scene entry -- but clip_feasibility.py's crops are
+    # NOT calibrated for this layout, unlike kitchen_sink's.
+    "third_layout": {
+        "build_config_idx": 17,
+        "base_pose": [0.781, -7.088, 0.755],
+        "camera_eye": [1.531, -7.618, 1.600],
+        "camera_target": [0.781, -7.088, 0.800],
     },
 }
 _SCENE_INIT_CONFIG_IDX = 0
@@ -293,7 +336,7 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
         intervention_kind: Literal["chef_can_destroyed", "temporary_obstacle", "none"] = "chef_can_destroyed",
         onset_step_range: tuple[int, int] = (4, 6),
         obstacle_duration_steps: int = 10,
-        scene_variant: Literal["kitchen_cabinet", "kitchen_sink"] = "kitchen_cabinet",
+        scene_variant: Literal["kitchen_cabinet", "kitchen_sink", "third_layout"] = "kitchen_cabinet",
         **kwargs,
     ):
         self.intervention_kind = intervention_kind
@@ -398,6 +441,14 @@ class TidyUpReplicaCADHumanoidEnv(SceneManipulationEnv):
             alias: _resolve_dynamic_actor_name(self.scene, obj_id, base_xy)
             for alias, obj_id in _DYNAMIC_ALIAS_OBJECT_IDS.items()
         }
+        if self._scene_variant not in _LEGACY_CALIBRATED_SCENE_VARIANTS:
+            # D-121: no hardcoded alias exists for cracker_box on a new scene
+            # to preserve -- resolve it the same way as the other 3 rather
+            # than fall back to a suffix tuned for a completely different
+            # build_config_idx.
+            self._resolved_aliases["cracker_box"] = _resolve_dynamic_actor_name(
+                self.scene, _CRACKER_BOX_OBJECT_ID, base_xy
+            )
 
         seed = int(self._episode_rng.randint(0, 2**31 - 1))
         rng = np.random.default_rng(seed)
