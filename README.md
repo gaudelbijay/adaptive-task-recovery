@@ -48,7 +48,7 @@ and constraints, and choose an acceptable partial or alternative completion.
 Five hypotheses, each with real evidence — paired seeds, bootstrap confidence
 intervals, and real ManiSkill3 simulator episodes, not toy numbers. Full
 detail and every underlying number is in
-[`ai-notes/decisions.md`](ai-notes/decisions.md) (D-001–D-123); this is the
+[`ai-notes/decisions.md`](ai-notes/decisions.md) (D-001–D-125); this is the
 short version.
 
 | | Hypothesis | Result |
@@ -63,19 +63,45 @@ short version.
 (docs/10's predeclared protocol, used consistently); every required baseline
 (domain-randomized, symbolic replanner, imitation learning, frame-difference
 detector) is actually built and compared, not asserted as future work; the
-full test suite (300+ tests, real simulator episodes, no mocks on load-bearing
-paths) runs before anything is called done, and has caught real regressions
-targeted tests missed; and negative results are kept, not edited out — a CLIP
+full test suite (real simulator episodes, no mocks on load-bearing paths)
+runs before anything is called done, and has caught real regressions targeted
+tests missed; and negative results are kept, not edited out — a CLIP
 calibration that didn't transfer, a hypothesis that only holds conditionally,
 a config value that never did what its own comment claimed, all reported as
 found, with the fix or the disclosed gap next to it.
 
+**Two capabilities beyond the five hypotheses, both real:**
+
+- **Real pick-and-place on Fetch** (D-124): navigate, reach with real closed-
+  loop inverse kinematics, grasp with a real contact-force check
+  (`agent.is_grasping()`), carry across the apartment while still gripping,
+  place, and release — verified with the project's own `goal_achieved()`
+  check, not a custom one. See the demo GIF at the top. Deliberately kept
+  separate from the tested policy pipeline (single object, not benchmarked
+  across seeds yet) rather than risking the contract 336 existing tests
+  depend on for a demo's visual benefit.
+- **A cluster-ready scaled benchmark contract** (D-125): versioned manifests,
+  content-addressed cases, resumable sharded execution, strict pairing/
+  completeness validation, and stratified bootstrap CIs — built because the
+  prior harness was correct for small in-process comparisons but couldn't
+  safely run at scale. Full v1 expands to 3,200 cases / 12,800 paired policy
+  episodes across all four environment families, all three ReplicaCAD
+  layouts, and 100 seeds. Smoke-tested end to end (8/8 canonical episodes,
+  8/8 cross-embodiment episodes including Fetch and the held-out third
+  layout, all with zero failures and the expected recall/waste/safety
+  pattern) — **the full run itself hasn't happened yet; it's gated on
+  cluster access this project doesn't have on hand.** Stated plainly rather
+  than implied: this is validated infrastructure for a larger result, not
+  the result itself.
+
 **What's still genuinely open:** collision geometry is still spheres and
 points, not full robot/object meshes; CLIP calibration is scene-specific and
 doesn't transfer automatically (confirmed by testing it on a new apartment
-layout and watching it fail); everything runs in simulation on CPU, no real
-robot and no large-scale learned visual policy; and one object's placement
-choice in the two original apartment layouts still has no explanation anyone's
+layout and watching it fail); real pick-and-place covers one object on one
+embodiment, not yet benchmarked at scale; the full 12,800-episode cluster
+run is built and smoke-tested but not yet executed; everything runs in
+simulation on CPU otherwise, no real robot; and one object's placement choice
+in the two original apartment layouts still has no explanation anyone's
 found. None of these are blocking — they're disclosed scope, not surprises.
 
 ### What this project does not claim
@@ -87,7 +113,7 @@ not assumed). The pick-and-place demo is built in a separate, additive module
 (`src/atr/envs/tidy_up_replicacad_manipulation.py`, D-124), deliberately kept
 apart from the `attempt_goal()` navigate-then-teleport contract every H1-H5
 result and every navigation-safety decision (D-091–D-123) is built on across
-300+ tests — that contract stays exactly as it was; changing it project-wide
+336 tests — that contract stays exactly as it was; changing it project-wide
 for a demo's visual benefit would risk the whole evidence base for no
 research reason. So concretely:
 
@@ -140,12 +166,14 @@ humanoid, a real ReplicaCAD apartment with a mobile Fetch robot including a
 full collision-aware navigation-safety stack, and G1 placed in that same
 apartment across three independently verified scene layouts), the end-to-end
 pipeline, the evaluation harness, a queryable dataset-split registry
-(instruction-, intervention-, and scene-layout-level), a log interface, and
-experiment tracking all live in `src/atr/`, tested and `git`-committed
-architecture. Only `dinov2_probe.py` remains spike-stage in
+(instruction-, intervention-, and scene-layout-level), a log interface,
+experiment tracking, real pick-and-place on Fetch (D-124, see the demo GIF
+above), and a cluster-ready scaled benchmark contract (D-125, smoke-tested,
+full run pending cluster access) all live in `src/atr/`, tested and
+`git`-committed architecture. Only `dinov2_probe.py` remains spike-stage in
 `spikes/task_schema_draft/` — DINOv2 wired into a real live decision loop,
 a genuine robustness gap found and closed (D-054/D-055), still not
-promotion-ready. 300+ tests passing.
+promotion-ready. 336 tests passing.
 See [STATUS.md](STATUS.md) for current work, [`ai-notes/decisions.md`](ai-notes/decisions.md)
 for the full decision-by-decision record, and [docs/](docs/) for the study design.
 
