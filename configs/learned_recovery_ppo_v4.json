@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "name": "learned_recovery_ppo_v3",
+  "name": "learned_recovery_ppo_v4",
   "seeds": [9351, 4796, 1788],
   "experiments": [
     {
@@ -49,6 +49,7 @@
   "anneal_lr": true,
   "entropy_coefficient": 0.0,
   "value_coefficient": 0.5,
+  "selection_failure_penalty": 1.0,
   "gamma": 0.95,
   "gae_lambda": 0.95
 }

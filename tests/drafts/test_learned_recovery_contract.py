@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 ENVIRONMENT = ROOT / "src/atr/envs/learned_recovery.py"
 CONFIG = ROOT / "configs/learned_recovery_ppo_v2.json"
-SAFE_CONFIG = ROOT / "configs/learned_recovery_ppo_v3.json"
+SAFE_CONFIG = ROOT / "configs/learned_recovery_ppo_v4.json"
 
 
 def test_pose_assignment_is_reset_only():
@@ -54,6 +54,7 @@ def test_all_primary_methods_learn_the_same_continuous_control_space():
 def test_safe_followup_is_matched_and_annealed():
     config = json.loads(SAFE_CONFIG.read_text(encoding="utf-8"))
     assert config["anneal_lr"] is True
+    assert config["selection_failure_penalty"] == 1.0
     assert len(config["experiments"]) == 3
     for experiment in config["experiments"]:
         assert experiment["env_kwargs"]["terminate_on_violation"] is True

@@ -143,6 +143,13 @@ def _metric_success(metrics):
     return float("nan")
 
 
+def _metric_failure(metrics):
+    for key in ("fail_once", "fail_at_end", "fail"):
+        if key in metrics:
+            return float(metrics[key])
+    return 0.0
+
+
 def _environment_kwargs(task, evaluation=False):
     kwargs = {
         "obs_mode": task.get("obs_mode", "state"), "render_mode": None,
@@ -269,10 +276,16 @@ def main():
                 for key, value in eval_metrics.items() if value and torch.cat(value).numel()
             }
             eval_success = _metric_success(means)
+            eval_failure = _metric_failure(means)
             eval_return = float(means.get("return", float("-inf")))
-            # Success is the primary selection metric; mean dense return only
-            # breaks ties (including the common early-training 0%-success tie).
-            eval_score = eval_success + 1e-6 * eval_return
+            # By default success is primary and return only breaks ties. Safe
+            # experiments can predeclare a failure penalty, making checkpoint
+            # selection optimize task completion and hard-constraint safety.
+            eval_score = (
+                eval_success
+                - float(config.get("selection_failure_penalty", 0.0)) * eval_failure
+                + 1e-6 * eval_return
+            )
             with history_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps({
                     "iteration": iteration, "global_step": global_step,
