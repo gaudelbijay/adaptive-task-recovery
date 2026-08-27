@@ -81,7 +81,9 @@ def main() -> None:
     env = gym.make(task["env_id"], num_envs=1, reconfiguration_freq=1, **env_kwargs)
     if isinstance(env.action_space, gym.spaces.Dict):
         env = FlattenActionSpaceWrapper(env)
-    env = ManiSkillVectorEnv(env, 1, record_metrics=True)
+    # Keep the terminal success state renderable. The wrapper otherwise
+    # autoresets immediately and the final video frame belongs to a new task.
+    env = ManiSkillVectorEnv(env, 1, ignore_terminations=True, record_metrics=True)
     observation_dim = int(np.prod(env.single_observation_space.shape))
     action_dim = int(np.prod(env.single_action_space.shape))
     agent = Agent(observation_dim, action_dim).cuda()
@@ -99,7 +101,7 @@ def main() -> None:
             violation_once = False
             steps = 0
             for steps in range(1, int(task["num_eval_steps"]) + 1):
-                observation, _, terminated, truncated, info = env.step(
+                observation, _, _, truncated, info = env.step(
                     agent.get_action(observation, deterministic=True)
                 )
                 if steps == 1 and args.branch != "nominal":
@@ -108,7 +110,7 @@ def main() -> None:
                 success_once |= _scalar(info, "success")
                 violation_once |= _scalar(info, "constraint_violated")
                 frames.append(_frame(env))
-                if _scalar({"done": terminated | truncated}, "done"):
+                if success_once or violation_once or _scalar({"done": truncated}, "done"):
                     break
             if branch_matches and success_once and not violation_once:
                 selected = (episode_seed, steps, frames)
