@@ -148,15 +148,27 @@ def main() -> None:
         result["method"]: result for result in environments
         if result.get("method")
     }
-    if "adaptive_ppo" in by_method:
+    adaptive_method = next(
+        (
+            method for method in by_method
+            if "adaptive_ppo" in method and "no_intervention" not in method
+        ),
+        None,
+    )
+    if adaptive_method is not None:
         adaptive_records = {
             (record["training_seed"], index): episode
-            for record in records if record.get("method") == "adaptive_ppo"
+            for record in records if record.get("method") == adaptive_method
             for index, episode in enumerate(record.get("episode_records", []))
         }
         comparisons = []
         rng = np.random.default_rng(20260827)
-        for baseline in ("no_intervention_training_ppo", "privileged_oracle_ppo"):
+        baselines = [
+            method for method in by_method
+            if "no_intervention_training_ppo" in method
+            or "privileged_oracle_ppo" in method
+        ]
+        for baseline in baselines:
             baseline_records = {
                 (record["training_seed"], index): episode
                 for record in records if record.get("method") == baseline
@@ -186,6 +198,7 @@ def main() -> None:
                 safe_differences, size=(20000, len(safe_differences)), replace=True
             ).mean(axis=1)
             comparisons.append({
+                "adaptive_method": adaptive_method,
                 "adaptive_minus": baseline,
                 "paired_episodes": len(keys),
                 "success_rate_difference": float(differences.mean()),
