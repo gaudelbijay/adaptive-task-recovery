@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "name": "learned_recovery_ppo_v1",
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "method": "adaptive_ppo",
+      "env_id": "LearnedRecovery-v1",
+      "registration_module": "atr.envs.learned_recovery",
+      "total_timesteps": 100000000,
+      "num_envs": 2048,
+      "num_steps": 32,
+      "num_eval_steps": 200,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {"intervention_probability": 0.8},
+      "eval_env_kwargs": {"intervention_probability": 1.0}
+    },
+    {
+      "method": "privileged_oracle_ppo",
+      "env_id": "LearnedRecovery-v1",
+      "registration_module": "atr.envs.learned_recovery",
+      "total_timesteps": 100000000,
+      "num_envs": 2048,
+      "num_steps": 32,
+      "num_eval_steps": 200,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {"intervention_probability": 0.8, "oracle_observation": true},
+      "eval_env_kwargs": {"intervention_probability": 1.0, "oracle_observation": true}
+    },
+    {
+      "method": "no_intervention_training_ppo",
+      "env_id": "LearnedRecovery-v1",
+      "registration_module": "atr.envs.learned_recovery",
+      "total_timesteps": 100000000,
+      "num_envs": 2048,
+      "num_steps": 32,
+      "num_eval_steps": 200,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {"intervention_probability": 0.0},
+      "eval_env_kwargs": {"intervention_probability": 1.0}
+    }
+  ],
+  "num_eval_envs": 64,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "checkpoint_freq": 25,
+  "learning_rate": 0.0003,
+  "gamma": 0.95,
+  "gae_lambda": 0.95
+}

@@ -10,6 +10,7 @@ replaying the checkpoint-selection episodes.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import math
 import os
@@ -52,20 +53,31 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=256)
     parser.add_argument("--num-envs", type=int, default=32)
     parser.add_argument("--seed-base", type=int, default=81000000)
+    parser.add_argument(
+        "--condition", choices=("configured", "intervention", "nominal"),
+        default="configured",
+    )
     args = parser.parse_args()
 
     if not torch.cuda.is_available():
         raise RuntimeError("manipulation policy evaluation requires a CUDA GPU")
     config = json.loads(Path(args.config).read_text(encoding="utf-8"))
     task, _ = _select_task(config, args.task_index)
+    if task.get("registration_module"):
+        importlib.import_module(task["registration_module"])
     seed = int(task["seed"])
-    run_dir = Path(args.output) / config["name"] / task["env_id"] / f"seed_{seed}"
+    experiment_name = task.get("method", task["env_id"])
+    run_dir = Path(args.output) / config["name"] / experiment_name / f"seed_{seed}"
     checkpoint_path = run_dir / "best.pt"
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"best checkpoint is not available: {checkpoint_path}")
 
     device = torch.device("cuda")
-    env_kwargs = _environment_kwargs(task)
+    env_kwargs = _environment_kwargs(task, evaluation=True)
+    if args.condition == "intervention":
+        env_kwargs["intervention_probability"] = 1.0
+    elif args.condition == "nominal":
+        env_kwargs["intervention_probability"] = 0.0
     envs = gym.make(
         task["env_id"], num_envs=args.num_envs, reconfiguration_freq=1, **env_kwargs,
     )
@@ -86,11 +98,25 @@ def main() -> None:
     max_steps = int(task["num_eval_steps"])
     with torch.no_grad():
         while completed < args.episodes:
-            batch_seed = args.seed_base + args.task_index * 100000 + completed
+            # Methods sharing a training seed receive identical held-out reset
+            # seeds (common random numbers), enabling paired comparisons.
+            batch_seed = args.seed_base + seed * 100000 + completed
             observation, _ = envs.reset(seed=batch_seed)
             metrics = defaultdict(list)
+            custom_maxima = {
+                key: torch.zeros(args.num_envs, device=device)
+                for key in (
+                    "goals_completed", "goals_unavailable",
+                    "constraint_violated", "intervention_occurred",
+                )
+            }
             for _ in range(max_steps):
                 observation, _, _, _, info = envs.step(agent.get_action(observation, deterministic=True))
+                for key in custom_maxima:
+                    if key in info:
+                        custom_maxima[key] = torch.maximum(
+                            custom_maxima[key], info[key].detach().float().reshape(-1)
+                        )
                 if "final_info" in info:
                     mask = info["_final_info"]
                     for key, value in info["final_info"]["episode"].items():
@@ -100,7 +126,10 @@ def main() -> None:
             if take == 0:
                 raise RuntimeError(f"no completed episodes after {max_steps} evaluation steps")
             for index in range(take):
-                episode_records.append({key: float(values[index]) for key, values in metrics.items()})
+                record = {key: float(values[index]) for key, values in metrics.items()}
+                for key, values in custom_maxima.items():
+                    record[key] = float(values[index].item())
+                episode_records.append(record)
             completed += take
 
     success_values = []
@@ -122,6 +151,8 @@ def main() -> None:
         "schema_version": 1,
         "protocol": "held-out deterministic state-policy evaluation",
         "env_id": task["env_id"],
+        "method": experiment_name,
+        "condition": args.condition,
         "training_seed": seed,
         "checkpoint": "best.pt",
         "checkpoint_iteration": int(checkpoint["iteration"]),
@@ -133,8 +164,10 @@ def main() -> None:
         "success_rate": successes / len(success_values),
         "success_wilson_95": _wilson(successes, len(success_values)),
         "metric_means": metric_means,
+        "episode_records": episode_records,
     }
-    _atomic_json(payload, run_dir / "heldout_eval.json")
+    filename = "heldout_eval.json" if args.condition == "configured" else f"heldout_eval_{args.condition}.json"
+    _atomic_json(payload, run_dir / filename)
     print(json.dumps(payload, indent=2, sort_keys=True))
     envs.close()
 

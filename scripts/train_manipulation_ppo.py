@@ -16,6 +16,7 @@ or called.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 import random
@@ -142,11 +143,15 @@ def _metric_success(metrics):
     return float("nan")
 
 
-def _environment_kwargs(task):
+def _environment_kwargs(task, evaluation=False):
     kwargs = {
-        "obs_mode": "state", "render_mode": None, "sim_backend": "physx_cuda",
-        "control_mode": task["control_mode"], "reward_mode": "normalized_dense",
+        "obs_mode": task.get("obs_mode", "state"), "render_mode": None,
+        "sim_backend": "physx_cuda", "control_mode": task["control_mode"],
+        "reward_mode": task.get("reward_mode", "normalized_dense"),
     }
+    kwargs.update(task.get("env_kwargs", {}))
+    if evaluation:
+        kwargs.update(task.get("eval_env_kwargs", {}))
     if "collision_stack_size" in task:
         kwargs["sim_config"] = {
             "gpu_memory_config": {
@@ -170,6 +175,8 @@ def main():
         return
     if not torch.cuda.is_available():
         raise RuntimeError("manipulation PPO requires a CUDA GPU")
+    if task.get("registration_module"):
+        importlib.import_module(task["registration_module"])
 
     seed = int(task["seed"])
     random.seed(seed)
@@ -177,15 +184,17 @@ def main():
     torch.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     device = torch.device("cuda")
-    run_dir = Path(args.output) / config["name"] / task["env_id"] / f"seed_{seed}"
+    experiment_name = task.get("method", task["env_id"])
+    run_dir = Path(args.output) / config["name"] / experiment_name / f"seed_{seed}"
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "task.json").write_text(json.dumps(task, indent=2) + "\n", encoding="utf-8")
 
     env_kwargs = _environment_kwargs(task)
+    eval_env_kwargs = _environment_kwargs(task, evaluation=True)
     envs = gym.make(task["env_id"], num_envs=task["num_envs"], **env_kwargs)
     eval_envs = gym.make(
         task["env_id"], num_envs=config["num_eval_envs"], reconfiguration_freq=1,
-        **env_kwargs,
+        **eval_env_kwargs,
     )
     if isinstance(envs.action_space, gym.spaces.Dict):
         envs = FlattenActionSpaceWrapper(envs)

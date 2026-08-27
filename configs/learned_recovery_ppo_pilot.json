@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "learned_recovery_ppo_pilot",
+  "seeds": [9351],
+  "experiments": [
+    {
+      "method": "adaptive_ppo",
+      "env_id": "LearnedRecovery-v1",
+      "registration_module": "atr.envs.learned_recovery",
+      "total_timesteps": 1048576,
+      "num_envs": 256,
+      "num_steps": 16,
+      "num_eval_steps": 200,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {"intervention_probability": 0.8},
+      "eval_env_kwargs": {"intervention_probability": 1.0}
+    }
+  ],
+  "num_eval_envs": 16,
+  "update_epochs": 4,
+  "num_minibatches": 8,
+  "eval_freq": 10,
+  "checkpoint_freq": 10,
+  "learning_rate": 0.0003,
+  "gamma": 0.95,
+  "gae_lambda": 0.95
+}
