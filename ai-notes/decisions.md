@@ -32,6 +32,10 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   solved task. The runtime contract permits pose assignment only during reset;
   the intervention is force/contact driven. Three frozen-policy recordings
   cover first-goal removal, second-goal removal, and nominal completion.
+  Jarvis jobs `1139059` (training), `1139075` (held-out evaluation), and
+  `1139074` (capture) all completed with exit code zero. Validation job
+  `1139068` completed 353 tests with zero failures; a focused 5-test runtime
+  contract also passes on the final synced tree.
 
 ## D-134: Combine adaptation and physical execution without teleporting
 

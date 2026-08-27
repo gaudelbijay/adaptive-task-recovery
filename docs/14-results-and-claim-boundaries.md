@@ -156,6 +156,12 @@ only 51.69%, and seed dispersion is substantial. The 8.59% adaptive violation
 rate also means reward shaping plus termination does not replace the explicit
 runtime guard validated elsewhere under H3.
 
+Jarvis provenance: training array `1139059`, held-out evaluation array
+`1139075`, and frozen-policy capture array `1139074` all completed with exit
+code zero. Final repository validation array `1139068` completed 353 tests
+across four deterministic disjoint shards with zero failures. The focused
+runtime no-pose-assignment contract also passes 5/5 on the final synced tree.
+
 ## Continuous non-teleport manipulation
 
 Three-seed, 50M-transition PPO runs use ManiSkill's official task-specific
@@ -178,8 +184,8 @@ checkpoint-continuation checks exited successfully, and all nine held-out
 evaluations reported every requested success trial. The G1 runs use an
 explicit 256 MiB PhysX collision stack; their complete native logs contain
 zero overflow diagnostics. Partial 4 MiB, 16 MiB, and 64 MiB G1 runs are
-quarantined and excluded. The latest full repository validation is 348 passed and
-zero failed across four deterministic, disjoint test-file shards.
+quarantined and excluded. The latest full repository validation is 353 passed
+and zero failed across four deterministic, disjoint test-file shards.
 
 These standard-task results establish learned continuous manipulation without
 ATR's teleport executor. The separate integrated Fetch result above establishes
