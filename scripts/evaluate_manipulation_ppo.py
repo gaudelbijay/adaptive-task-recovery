@@ -108,11 +108,15 @@ def main() -> None:
                 for key in (
                     "goals_completed", "goals_unavailable",
                     "constraint_violated", "intervention_occurred",
-                    "first_goal_removed", "instruction_red_first",
                 )
             }
-            for _ in range(max_steps):
+            branch_values = {}
+            for step in range(max_steps):
                 observation, _, _, _, info = envs.step(agent.get_action(observation, deterministic=True))
+                if step == 0:
+                    for key in ("first_goal_removed", "instruction_red_first"):
+                        if key in info:
+                            branch_values[key] = info[key].detach().float().reshape(-1).clone()
                 for key in custom_maxima:
                     if key in info:
                         custom_maxima[key] = torch.maximum(
@@ -129,6 +133,8 @@ def main() -> None:
             for index in range(take):
                 record = {key: float(values[index]) for key, values in metrics.items()}
                 for key, values in custom_maxima.items():
+                    record[key] = float(values[index].item())
+                for key, values in branch_values.items():
                     record[key] = float(values[index].item())
                 episode_records.append(record)
             completed += take
