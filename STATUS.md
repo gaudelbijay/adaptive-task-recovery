@@ -5,16 +5,18 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
-**Latest integrated result (D-134, 2026-08-27):** the project now runs parsed
-language, RGB change perception, a reward-trained adaptive Q policy, the
-intent/navigation guard, an irreversible intervention, and contact-verified
-Fetch pick/carry/place in one non-teleport episode. A 30-seed paired evaluation
-per policy (90 physical episodes) records 100% visual feasibility accuracy,
-0/90 violations, zero teleport calls, and 349.9 fewer wasted steps for visual
-learned + guard versus static continuation (95% paired-bootstrap CI 226.8--
-470.8 fewer). Completion improvement is not claimed because its CI crosses
-zero. The low-level Fetch controller is scripted and the destroyed second goal
-is skipped; learned continuous motor adaptation remains open.
+**Latest integrated result (D-135, 2026-08-27):** recovery and continuous motor
+control are now trained together in `LearnedRecovery-v1`, with pose assignment
+restricted to reset and a force/contact-driven irreversible intervention. Nine
+PPO runs (three matched methods by three seeds) each complete exactly
+99,942,400 transitions, followed by 4,608 disjoint held-out episodes. Adaptive
+PPO reaches 51.69% safety-qualified intervention success versus 36.33% for
+no-intervention training, a paired +15.36-point effect (95% CI +10.68--+20.05).
+On the hard first-goal-removed branch the gain is +33.24 points (+28.49--
++38.27), while the easy branch is unchanged. The result is state-based,
+simulation-only, and not solved: seed SD is 15.24 points and adaptive violation
+rate is 8.59%. D-134's separate Fetch pipeline remains the visual/parsed-
+language result, but its low-level controller is scripted.
 
 **Phase:** Phase 0 — simulator selected, core schema accepted and promoted to `src/atr/`.
 

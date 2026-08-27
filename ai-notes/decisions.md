@@ -2,6 +2,37 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-135: Promote integrated learned control only on safety-qualified, branch-stratified evidence
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; V6 three-seed training and held-out evaluation complete
+- **Decision:** Freeze `LearnedRecovery-v1` and V6 as the first experiment in
+  which one PPO policy both adapts and executes continuous manipulation. Compare
+  adaptive training, privileged unavailable-state training, and nominal-only
+  training with identical action spaces, budgets, safety objective, and
+  checkpoint protocol. Use safe success (task success without any protected-
+  object violation) as the primary endpoint; retain raw success, violations,
+  nominal controls, seed dispersion, and first/second-goal-removal strata.
+- **Reason:** V2's pooled raw success hid two problems: success concentrated on
+  the easier second-goal-removal branch, and episodes could succeed before later
+  violating the constraint. A paper-facing result must show recovery on the
+  hard branch and cannot count unsafe completion as success.
+- **Consequences:** All nine jobs completed exactly 99,942,400 transitions and
+  all 4,608 disjoint held-out episodes completed. Under intervention, adaptive
+  PPO achieves 397/768 safe successes (51.69%, Wilson 95% 48.16--55.21) versus
+  279/768 (36.33%, 33.00--39.79) for nominal-only training: paired difference
+  +15.36 points, bootstrap 95% CI +10.68--+20.05. On first-goal removal the
+  safe difference is +33.24 points (+28.49--+38.27); on second-goal removal it
+  is -0.24 (-7.56--+7.07). Privileged observation has higher raw success
+  (65.10% versus 59.77%) but more violations (20.83% versus 8.59%), so adaptive
+  has +5.60 points safe success (+1.17--+10.03). Safe seed SD is 15.24 points,
+  nominal adaptive safe success is 33.46%, and adaptive violations are not zero;
+  these remain explicit limitations. The result supports learned state-based
+  recovery with physical control, not pixel-based/open-language recovery or a
+  solved task. The runtime contract permits pose assignment only during reset;
+  the intervention is force/contact driven. Three frozen-policy recordings
+  cover first-goal removal, second-goal removal, and nominal completion.
+
 ## D-134: Combine adaptation and physical execution without teleporting
 
 - **Date:** 2026-08-27

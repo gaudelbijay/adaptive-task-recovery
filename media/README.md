@@ -6,6 +6,14 @@ isolated per D-022's rendering-desync guard, one reset per capture process),
 not mockups or scripted camera moves. Regenerate with a fresh capture script
 rather than hand-editing a GIF if the underlying behavior changes.
 
+`learned-recovery-montage.gif` is the Linux/CUDA exception to the older YCB
+capture rule above: `capture_learned_recovery_policy.py` searches a declared
+seed range without rendering, deterministically replays only the qualifying
+seed, and validates safe success for each of the two intervention branches and
+the nominal branch. JSON provenance and source MP4s live under
+`results/learned_recovery/videos/`; `build_recovery_montage.py` only resamples
+and labels those recordings.
+
 The rest of this directory predates that and is unrelated:
 
 ## Architecture diagram status

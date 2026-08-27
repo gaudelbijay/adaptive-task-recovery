@@ -184,6 +184,19 @@ unrequested object, or violate the glass constraint for reward.
   `feasibility_aware_policy`'s own measured behavior; a fully reward-
   optimal policy needs both the calibration *and* the mechanism-aware
   state, not either alone.
+  **Integrated learned-control confirmation (2026-08-27, D-135):** a separate
+  Panda benchmark now trains recovery and continuous control together, with no
+  teleport executor. Across 768 common-random-number held-out intervention
+  episodes, adaptive PPO improves safety-qualified success over a policy
+  trained only in nominal worlds by 15.36 percentage points (paired-bootstrap
+  95% CI 10.68--20.05). The effect is localized exactly where adaptation is
+  required: when the first requested goal is physically removed, adaptive safe
+  success is 33.24% versus 0%, a +33.24-point paired effect (28.49--38.27);
+  when the second goal is removed, safe success is statistically unchanged
+  (67.80% versus 68.05%). This is the strongest direct H2 result because the
+  same policy performs the motor control and the recovery. It uses simulator
+  state and a factorized instruction encoding, not images/open text, and does
+  not establish the full vision-language hypothesis.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and
@@ -238,6 +251,13 @@ unrequested object, or violate the glass constraint for reward.
   name, via a second protected-object type (D-100). Every live case so far
   is one scene/layout/seed, not a distribution of naturally occurring
   hazards — the honest remaining scope, not assumed broader.
+  **Boundary exposed by integrated PPO (2026-08-27, D-135):** safety shaping,
+  termination, and constrained checkpoint selection reduce but do not eliminate
+  physical violations: adaptive PPO violates the protected-object constraint in
+  8.59% of 768 held-out intervention episodes. Its safe success exceeds the
+  privileged-observation PPO because that policy violates constraints in
+  20.83%, but the result is not evidence that a learned reward replaces the
+  explicit H3 guard. The guard and the learned controller remain complementary.
 - **H4 — compositional generalization:** factorized goal and change
   representations transfer better to unseen goal-change combinations than a
   monolithic policy. **First real comparative test (2026-08-09, D-079):**
@@ -423,6 +443,17 @@ zero. This strengthens H1/H2's decision-consequence evidence but does not
 replace H3's dedicated guarded/unguarded safety ablations. Scope remains
 hierarchical: a calibrated frame-difference detector and high-level Q table
 sit above a scripted low-level Fetch skill.
+**Closed the learned-control integration gap, 2026-08-27 (D-135):** a new
+single-environment Panda experiment combines factorized ordered goals, a
+force-driven irreversible intervention, continuous PPO control, progress
+memory, and a protected-object constraint. Three methods by three seeds each
+complete 99,942,400 transitions and 4,608 disjoint held-out episodes across
+intervention/nominal conditions. Adaptive PPO improves intervention safe
+success over no-intervention training from 36.33% to 51.69%, with a paired
+interval excluding zero; the hard first-goal-removed branch improves from 0%
+to 33.24%. The policy still uses simulator state, retains 8.59% constraint
+violations and substantial seed variance, and therefore advances H2 without
+satisfying the full visual or hard-safety success criterion.
 
 ## Threats to validity
 

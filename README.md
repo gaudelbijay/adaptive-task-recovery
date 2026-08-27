@@ -7,6 +7,10 @@ representations to determine which language-specified goals remain feasible and
 revise its strategy to achieve as much of the original intent as possible.
 
 <p align="center">
+  <img src="media/demos/learned-recovery-montage.gif" width="900" alt="Three frozen-policy ManiSkill recordings of one Panda learned-control policy: recovery when the first requested cube is physically removed, recovery when the second cube is removed, and nominal completion of both ordered goals.">
+</p>
+
+<p align="center">
   <img src="media/demos/manipulation-task-montage.gif" width="680" alt="Four real ManiSkill recordings: a Fetch robot physically picks, carries, and places a can; a Panda arm picks a cube; a Panda arm picks a randomized YCB object; and a Unitree G1 humanoid places an apple in a bowl.">
 </p>
 
@@ -15,11 +19,12 @@ revise its strategy to achieve as much of the original intent as possible.
 </p>
 
 <p align="center"><sub>
-Every panel is a real ManiSkill3 recording. The montage combines physical Fetch
-pick/carry/place with frozen non-teleport PPO policies for PickCube, randomized
-YCB, and G1 apple-in-bowl; the second recording shows collision-aware Fetch
-replanning. See <a href="#what-this-project-does-not-claim">what this project
-does not claim</a> for the boundary between these separately evaluated tracks.
+Every panel is a real ManiSkill3 recording. The hero replays one frozen Panda
+PPO policy across both irreversible-change orderings and a nominal two-goal
+episode. The gallery retains physical Fetch pick/carry/place and the three
+standard learned-control tasks; the final recording shows collision-aware
+Fetch replanning. See <a href="#what-this-project-does-not-claim">what this
+project does not claim</a> for the boundary between evaluated tracks.
 </sub></p>
 
 ## Research question
@@ -59,7 +64,7 @@ and claim boundaries are in
 | | Hypothesis | Result |
 |---|---|---|
 | **H1** | A perceptual feasibility signal (not just privileged simulator state) is usable | **Confirmed.** Real zero-shot CLIP perception matches oracle behavior exactly on the project's own success-criteria benchmark — same recall, real reduction in wasted steps. A robustness gap was found by actually running the benchmark, then fixed and re-verified, not assumed away. |
-| **H2** | Feasibility-aware policies beat blindly continuing the plan | **Confirmed.** 30-seed paired benchmark on the real Fetch/apartment stack: identical goal recall, a statistically real drop in wasted steps (bootstrap CI excludes zero). A policy trained on two apartment layouts matched the oracle exactly on a third, never-seen layout, 10/10 seeds. |
+| **H2** | Feasibility-aware policies beat blindly continuing the plan | **Confirmed.** In the new continuous-control benchmark, adaptive PPO improves safety-qualified held-out success over no-intervention training by **+15.4 points** (paired 95% CI **+10.7 to +20.1**). On the hard first-goal-removed branch the gain is **+33.2 points** (**+28.5 to +38.3**) and is statistically unchanged on the easy branch. Earlier Fetch/apartment tests independently show lower wasted execution at matched recall. |
 | **H3** | The safety guard does real work, not "safe by doing nothing" | **Confirmed.** Built the two adversarial cases meant to break this claim — a goal that directly conflicts with a protected object, and a case where the guard turned out to be *too permissive*. Both found real bugs, both fixed, both locked into regression tests. Extended to real collision-aware navigation with live detours and fail-closed stops, verified under seed variance, not one staged scenario. |
 | **H4** | A factorized language representation generalizes; memorization doesn't | **Confirmed.** The real parser hits 100% across train, held-out paraphrase, and held-out composition splits. A hand-built monolithic memorizer hits 100% on train and 0% on anything held out. Re-verified on the full 180-case combinatorial sweep of the object pool, not a hand-picked sample. |
 | **H5** | Calibrated abstention beats forced decisions | **Confirmed — conditionally.** Abstaining only wins when a wrong forced decision is the expensive mistake; tested both directions honestly, not just the flattering one, and confirmed with 30-seed bootstrap intervals that exclude zero in both directions (`[−0.20, −0.06]` where abstention wins, `[+0.10, +0.14]` where it loses). The unconditional version of this hypothesis was wrong; the conditional one is real. |
@@ -73,6 +78,30 @@ checkpoint. Intervals below are pooled 95% Wilson intervals.
 | PickCube-v1 | **755/768 — 98.31%** [97.13%, 99.01%] |
 | PickSingleYCB-v1 | **530/768 — 69.01%** [65.65%, 72.18%] |
 | UnitreeG1PlaceAppleInBowl-v1 | **767/768 — 99.87%** [99.27%, 99.98%] |
+
+The primary integrated experiment learns recovery and continuous control in
+one environment. A force-driven sweeper physically removes either the first or
+second requested cube mid-episode; the same Panda PPO policy must infer what
+remains possible, execute the feasible ordered suffix, and avoid moving a
+protected object. All methods use the same continuous joint action space and
+three 99,942,400-transition training runs. Each result below is 768 disjoint
+held-out intervention episodes; **safe success** means task success with no
+protected-object violation anywhere in the episode.
+
+| Learned-control policy | Raw success | Violation | Safe success |
+|---|---:|---:|---:|
+| **Adaptive PPO** | 459/768 — 59.77% [56.26%, 63.18%] | 8.59% | **397/768 — 51.69%** [48.16%, 55.21%] |
+| Privileged unavailable-state PPO | 500/768 — 65.10% [61.67%, 68.39%] | 20.83% | 354/768 — 46.09% [42.60%, 49.63%] |
+| No-intervention-training PPO | 295/768 — 38.41% [35.04%, 41.90%] | 4.95% | 279/768 — 36.33% [33.00%, 39.79%] |
+
+Adaptive minus no-intervention safe success is **+15.36 points** (paired
+bootstrap 95% CI **[+10.68, +20.05]**). Adaptive also exceeds the privileged
+policy on safe success by **+5.60 points** (**[+1.17, +10.03]**): the oracle's
+higher raw completion is offset by more constraint failures. On first-goal
+removal, adaptive achieves **33.24% safe success** versus **0%** for the
+no-intervention policy; on second-goal removal they are matched at 67.80% and
+68.05%. This is learned state control, not a vision-policy result, and all
+three methods retain meaningful seed variance.
 
 The integration gap is now tested directly in one non-teleport Fetch episode.
 One parsed instruction asks for the can and cracker box while protecting the
@@ -106,7 +135,7 @@ calibration that didn't transfer, a hypothesis that only holds conditionally,
 a config value that never did what its own comment claimed, all reported as
 found, with the fix or the disclosed gap next to it.
 
-**Four capabilities beyond the five hypotheses, each separately scoped:**
+**Five capabilities beyond the five hypotheses, each separately scoped:**
 
 - **Real pick-and-place on Fetch** (D-124, D-130): navigate, reach with real closed-
   loop inverse kinematics, grasp with a real contact-force check
@@ -144,9 +173,19 @@ found, with the fix or the disclosed gap next to it.
   significantly reduces wasted execution relative to static continuation.
   The RGB detector is calibrated to one object/view and the low-level Fetch
   skill is scripted, not a learned motor policy.
+- **Integrated learned-control recovery** (D-135): one factorized-instruction
+  PPO policy controls Panda joints directly while a force-driven intervention
+  removes either ordered goal. Across 768 held-out intervention episodes,
+  adaptive training improves safe success over no-intervention training by
+  15.36 points with a paired interval excluding zero, including a 33.24-point
+  gain on the first-goal-removed branch. No pose assignment occurs after reset;
+  the result uses state observations and remains simulation-only.
 
-**What's still genuinely open:** collision geometry in the high-level safety
-screen is still spheres and points, not full robot/object meshes; CLIP
+**What's still genuinely open:** the learned-control recovery policy uses
+privileged simulator state rather than pixels or a self-supervised visual
+encoder, shows substantial seed variance, and still violates the protected
+object in 8.59% of held-out intervention episodes; collision geometry in the
+high-level safety screen is still spheres and points, not full robot/object meshes; CLIP
 calibration is scene-specific and does not transfer automatically; the Fetch
 controller has not solved the bowl grasp or a task where both requested Fetch
 objects remain achievable; everything is simulation-only, with no real-robot
@@ -168,7 +207,8 @@ result and every navigation-safety decision (D-091–D-123) is built on across
 for a demo's visual benefit would risk the whole evidence base for no
 research reason. So concretely:
 
-The other three montage panels replay frozen PPO checkpoints on standard
+The hero montage replays the integrated state-policy checkpoint. The other
+three learned-control panels replay frozen PPO checkpoints on standard
 ManiSkill tasks. They use continuous actions and no ATR teleport executor, but
 they do not include ATR's language goals, interventions, or Fetch apartment.
 

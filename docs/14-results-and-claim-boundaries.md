@@ -94,6 +94,64 @@ two-action high-level Q table, and the low-level motor skill remains scripted.
 The destroyed second object means the experiment measures valid partial
 completion, not two-object physical success.
 
+## Integrated learned continuous-control recovery
+
+`LearnedRecovery-v1` removes the hierarchy between recovery selection and motor
+execution. A Panda policy acts only through continuous `pd_joint_delta_pos`
+commands. It receives a factorized two-goal order, goal-progress memory, and
+simulator state. A dynamic sweeper physically removes one requested cube with
+applied force during the episode; the policy must complete the remaining
+ordered feasible goals without displacing a protected yellow object. Pose
+assignment is confined to randomized reset, and a runtime regression test
+forbids `Actor.set_pose()` during task execution.
+
+V6 trains three matched PPO methods for exactly 99,942,400 transitions per
+seed, three seeds each. Checkpoint selection uses only training-stream
+validation and scores success minus twice the failure rate. Final evaluation
+uses 256 disjoint held-out episodes per seed under intervention and another 256
+per seed under the nominal condition. Methods share held-out seeds. The primary
+endpoint is safe success: task success and no constraint violation at any time.
+
+| Method | Raw held-out success | Violation | Safe held-out success | Safe seed mean ± SD |
+|---|---:|---:|---:|---:|
+| **Adaptive PPO** | 459/768, 59.77% [56.26, 63.18] | 8.59% | **397/768, 51.69% [48.16, 55.21]** | 51.69 ± 15.24% |
+| Privileged unavailable-state PPO | 500/768, 65.10% [61.67, 68.39] | 20.83% | 354/768, 46.09% [42.60, 49.63] | 46.09 ± 6.81% |
+| No-intervention-training PPO | 295/768, 38.41% [35.04, 41.90] | 4.95% | 279/768, 36.33% [33.00, 39.79] | 36.33 ± 15.61% |
+
+Paired effects over the same 768 intervention episodes are:
+
+| Comparison | Raw-success difference | Safe-success difference |
+|---|---:|---:|
+| Adaptive − no-intervention training | +21.35 [17.32, 25.39] | **+15.36 [10.68, 20.05]** |
+| Adaptive − privileged unavailable state | −5.34 [−9.51, −1.17] | **+5.60 [1.17, 10.03]** |
+
+The raw/safe reversal against the privileged policy is not described as
+adaptive dominance: privileged state yields more raw completions, while its
+selected policies move the protected object more often. The constrained metric
+prefers adaptive PPO because the experiment defines those runs as failures.
+
+Branch stratification rules out the V2 shortcut in which success concentrated
+almost entirely on second-goal removal:
+
+| Removed goal | Adaptive safe success | No-intervention safe success | Paired difference |
+|---|---:|---:|---:|
+| First requested goal (hard recovery) | 33.24% [28.56, 38.27] | 0.00% [0.00, 1.06] | **+33.24 [28.49, 38.27]** |
+| Second requested goal | 67.80% [63.13, 72.15] | 68.05% [63.39, 72.37] | −0.24 [−7.56, 7.07] |
+
+The adaptive gain is isolated to the branch that requires abandoning the
+unavailable first goal, while safe performance is unchanged when the nominal
+prefix remains valid. Nominal safe success is 33.46% for adaptive, 37.24% for
+privileged, and 0% for no-intervention training; none of these policies should
+be presented as a solved two-object controller.
+
+This is the strongest same-task evidence for H2, but it is not the complete
+vision-language hypothesis. Observations are low-dimensional simulator state,
+language is the factorized order encoding rather than open-vocabulary text,
+the object set and intervention mechanism are narrow, adaptive safe success is
+only 51.69%, and seed dispersion is substantial. The 8.59% adaptive violation
+rate also means reward shaping plus termination does not replace the explicit
+runtime guard validated elsewhere under H3.
+
 ## Continuous non-teleport manipulation
 
 Three-seed, 50M-transition PPO runs use ManiSkill's official task-specific
