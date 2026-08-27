@@ -49,6 +49,8 @@ class LearnedRecoveryEnv(BaseEnv):
         intervention_force: float = 2.0,
         intervention_steps: int = 12,
         oracle_observation: bool = False,
+        terminate_on_violation: bool = False,
+        safety_proximity_weight: float = 0.0,
         robot_init_qpos_noise: float = 0.02,
         **kwargs,
     ):
@@ -59,6 +61,8 @@ class LearnedRecoveryEnv(BaseEnv):
         self.intervention_force = float(intervention_force)
         self.intervention_steps = int(intervention_steps)
         self.oracle_observation = bool(oracle_observation)
+        self.terminate_on_violation = bool(terminate_on_violation)
+        self.safety_proximity_weight = float(safety_proximity_weight)
         self.robot_init_qpos_noise = float(robot_init_qpos_noise)
         self._episode_step = None
         self._onset_step = None
@@ -238,10 +242,13 @@ class LearnedRecoveryEnv(BaseEnv):
         success = resolved.all(dim=1) & intervention_finished & ~self._constraint_violated
         return {
             "success": success,
+            "fail": self._constraint_violated & self.terminate_on_violation,
             "goals_completed": self._completed.float().sum(dim=1),
             "goals_unavailable": unavailable.float().sum(dim=1),
             "constraint_violated": self._constraint_violated,
             "intervention_occurred": self._intervention_target >= 0,
+            "first_goal_removed": self._intervention_target == self._instruction_first,
+            "instruction_red_first": self._instruction_first == 0,
         }
 
     def _instruction_encoding(self):
@@ -287,6 +294,11 @@ class LearnedRecoveryEnv(BaseEnv):
         placing = 1 - torch.tanh(5 * torch.linalg.norm(cube - goal, dim=1))
         reward = reaching + grasped.float() * (1.0 + 2.0 * placing)
         reward += 3.0 * self._completed.float().sum(dim=1)
+        tcp_clearance = torch.linalg.norm(
+            self.agent.tcp.pose.p - self.protected.pose.p, dim=1
+        )
+        proximity_risk = torch.clamp((0.12 - tcp_clearance) / 0.12, min=0.0)
+        reward -= self.safety_proximity_weight * proximity_risk
         reward -= 5.0 * self._constraint_violated.float()
         reward[info["success"]] = 10.0
         return reward

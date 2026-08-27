@@ -71,6 +71,21 @@ def main() -> None:
         episodes_raw = [
             episode for record in subset for episode in record.get("episode_records", [])
         ]
+        branch_success = {}
+        for branch_key in ("first_goal_removed", "instruction_red_first"):
+            if episodes_raw and all(branch_key in episode for episode in episodes_raw):
+                branch_success[branch_key] = {}
+                for branch_value in (0, 1):
+                    branch = [
+                        episode for episode in episodes_raw
+                        if int(episode[branch_key] >= 0.5) == branch_value
+                    ]
+                    branch_success[branch_key][str(branch_value)] = {
+                        "episodes": len(branch),
+                        "success_rate": float(np.mean([
+                            _metric_success_record(episode) for episode in branch
+                        ])),
+                    }
         environments.append({
             "env_id": env_id,
             "method": method,
@@ -90,6 +105,7 @@ def main() -> None:
                 float(np.mean([episode.get("goals_completed", 0.0) for episode in episodes_raw]))
                 if episodes_raw else None
             ),
+            "branch_success": branch_success,
             "seed_results": subset,
         })
     payload = {

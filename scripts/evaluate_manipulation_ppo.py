@@ -108,6 +108,7 @@ def main() -> None:
                 for key in (
                     "goals_completed", "goals_unavailable",
                     "constraint_violated", "intervention_occurred",
+                    "first_goal_removed", "instruction_red_first",
                 )
             }
             for _ in range(max_steps):

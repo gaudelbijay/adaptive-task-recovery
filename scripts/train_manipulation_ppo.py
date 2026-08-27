@@ -250,6 +250,9 @@ def main():
     history_path = run_dir / "metrics.jsonl"
     started = time.time()
     for iteration in range(start_iteration, num_iterations + 1):
+        if config.get("anneal_lr", False):
+            fraction_remaining = 1.0 - (iteration - 1.0) / num_iterations
+            optimizer.param_groups[0]["lr"] = fraction_remaining * config["learning_rate"]
         eval_success = float("nan")
         if iteration == start_iteration or iteration % int(config["eval_freq"]) == 0:
             eval_obs, _ = eval_envs.reset(seed=seed + iteration)
@@ -343,7 +346,11 @@ def main():
                     -adv * torch.clamp(ratio, 0.8, 1.2),
                 ).mean()
                 value_loss = 0.5 * ((new_value.view(-1) - b_returns[mb]) ** 2).mean()
-                loss = pg_loss - 0.0 * entropy.mean() + 0.5 * value_loss
+                loss = (
+                    pg_loss
+                    - float(config.get("entropy_coefficient", 0.0)) * entropy.mean()
+                    + float(config.get("value_coefficient", 0.5)) * value_loss
+                )
                 optimizer.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), 0.5)
