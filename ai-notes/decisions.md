@@ -2,6 +2,24 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-133: README media must replay real frozen policies, not illustrative animation
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; montage published
+- **Decision:** Replace the single-task README hero with a labeled 2x2 montage
+  built from the existing physical Fetch recording and fresh deterministic
+  replays of the frozen PickCube, randomized-YCB, and G1 apple-in-bowl
+  checkpoints. Keep the collision-aware Fetch detour as a separate recording.
+- **Reason:** The completed manipulation experiment covers three visibly
+  different standard tasks, while the old hero showed only Fetch. Generated or
+  staged imagery would be easier to produce but would not be evidence.
+- **Consequences:** Slurm capture array 1138530 replayed one successful episode
+  per task from the already-declared held-out seed range; all three tasks exited
+  zero and wrote MP4 plus JSON provenance. The montage builder slows short
+  successful trajectories and holds their terminal frames without altering
+  action order. README text explicitly separates standard-task PPO from ATR's
+  abstract adaptation executor and the still-unsolved Fetch bowl goal.
+
 ## D-132: Report continuous manipulation only on independent held-out episodes
 
 - **Date:** 2026-08-27

@@ -7,15 +7,19 @@ representations to determine which language-specified goals remain feasible and
 revise its strategy to achieve as much of the original intent as possible.
 
 <p align="center">
-  <img src="media/demos/fetch-real-pick-and-place.gif" width="330" alt="A Fetch robot navigates to a can, reaches down, closes its gripper, lifts and carries the can across a real ReplicaCAD apartment, and places it on a tray.">
-  <img src="media/demos/fetch-safety-detour.gif" width="330" alt="The same Fetch robot screens its planned route, finds a protected object sitting on it, and replans a detour instead of pushing through.">
+  <img src="media/demos/manipulation-task-montage.gif" width="680" alt="Four real ManiSkill recordings: a Fetch robot physically picks, carries, and places a can; a Panda arm picks a cube; a Panda arm picks a randomized YCB object; and a Unitree G1 humanoid places an apple in a bowl.">
+</p>
+
+<p align="center">
+  <img src="media/demos/fetch-safety-detour.gif" width="360" alt="A Fetch robot screens its planned route, finds a protected object sitting on it, and replans a detour instead of pushing through.">
 </p>
 
 <p align="center"><sub>
-Real ManiSkill3 simulation, real collision-aware path planning, real inverse
-kinematics, a real contact-force-verified grasp — no scripted camera moves,
-no teleportation. See <a href="#what-this-project-does-not-claim">what this
-project does not claim</a> for the honest boundary of what "real" covers here.
+Every panel is a real ManiSkill3 recording. The montage combines physical Fetch
+pick/carry/place with frozen non-teleport PPO policies for PickCube, randomized
+YCB, and G1 apple-in-bowl; the second recording shows collision-aware Fetch
+replanning. See <a href="#what-this-project-does-not-claim">what this project
+does not claim</a> for the boundary between these separately evaluated tracks.
 </sub></p>
 
 ## Research question
@@ -59,6 +63,16 @@ and claim boundaries are in
 | **H3** | The safety guard does real work, not "safe by doing nothing" | **Confirmed.** Built the two adversarial cases meant to break this claim — a goal that directly conflicts with a protected object, and a case where the guard turned out to be *too permissive*. Both found real bugs, both fixed, both locked into regression tests. Extended to real collision-aware navigation with live detours and fail-closed stops, verified under seed variance, not one staged scenario. |
 | **H4** | A factorized language representation generalizes; memorization doesn't | **Confirmed.** The real parser hits 100% across train, held-out paraphrase, and held-out composition splits. A hand-built monolithic memorizer hits 100% on train and 0% on anything held out. Re-verified on the full 180-case combinatorial sweep of the object pool, not a hand-picked sample. |
 | **H5** | Calibrated abstention beats forced decisions | **Confirmed — conditionally.** Abstaining only wins when a wrong forced decision is the expensive mistake; tested both directions honestly, not just the flattering one, and confirmed with 30-seed bootstrap intervals that exclude zero in both directions (`[−0.20, −0.06]` where abstention wins, `[+0.10, +0.14]` where it loses). The unconditional version of this hypothesis was wrong; the conditional one is real. |
+
+The separate non-teleport manipulation track trained three seeds per task for
+50M requested transitions and evaluated 256 disjoint-seed episodes per
+checkpoint. Intervals below are pooled 95% Wilson intervals.
+
+| Continuous-control task | Held-out success |
+|---|---:|
+| PickCube-v1 | **755/768 — 98.31%** [97.13%, 99.01%] |
+| PickSingleYCB-v1 | **530/768 — 69.01%** [65.65%, 72.18%] |
+| UnitreeG1PlaceAppleInBowl-v1 | **767/768 — 99.87%** [99.27%, 99.98%] |
 
 **How this held together:** every comparison is paired-seed and bootstrapped
 (docs/10's predeclared protocol, used consistently); every required baseline
@@ -114,16 +128,20 @@ are disclosed scope, not paper claims.
 
 ### What this project does not claim
 
-Both demos above are real, not scripted: real navigation, real collision-aware
-replanning, real inverse kinematics, and a real contact-force-verified grasp
+The Fetch recordings above are real, not scripted: real navigation, real
+collision-aware replanning, real inverse kinematics, and a real contact-force-verified grasp
 (`agent.is_grasping()`, ManiSkill3's own detector — checked at every stage,
 not assumed). The pick-and-place demo is built in a separate, additive module
 (`src/atr/envs/tidy_up_replicacad_manipulation.py`, D-124), deliberately kept
 apart from the `attempt_goal()` navigate-then-teleport contract every H1-H5
 result and every navigation-safety decision (D-091–D-123) is built on across
-336 tests — that contract stays exactly as it was; changing it project-wide
+300+ regression tests — that contract stays exactly as it was; changing it project-wide
 for a demo's visual benefit would risk the whole evidence base for no
 research reason. So concretely:
+
+The other three montage panels replay frozen PPO checkpoints on standard
+ManiSkill tasks. They use continuous actions and no ATR teleport executor, but
+they do not include ATR's language goals, interventions, or Fetch apartment.
 
 - **What's real:** Fetch, the potted meat can, one scene —
   navigate, reach, grasp, lift, carry across the apartment while still
