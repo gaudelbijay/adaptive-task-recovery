@@ -35,6 +35,51 @@ def _metric_success_record(record: dict) -> bool:
     raise KeyError("episode record has no success metric")
 
 
+def _paired_branch_effect(adaptive, baseline, keys, branch_value, rng) -> dict:
+    branch_keys = [
+        key for key in keys
+        if int(adaptive[key]["first_goal_removed"] >= 0.5) == branch_value
+    ]
+    if not branch_keys:
+        return {"paired_episodes": 0}
+    if any(
+        int(baseline[key]["first_goal_removed"] >= 0.5) != branch_value
+        for key in branch_keys
+    ):
+        raise ValueError("paired methods disagree on first-goal-removed branch")
+    raw = np.asarray([
+        float(_metric_success_record(adaptive[key]))
+        - float(_metric_success_record(baseline[key]))
+        for key in branch_keys
+    ])
+    safe = np.asarray([
+        float(
+            _metric_success_record(adaptive[key])
+            and adaptive[key].get("constraint_violated", 0.0) < 0.5
+        )
+        - float(
+            _metric_success_record(baseline[key])
+            and baseline[key].get("constraint_violated", 0.0) < 0.5
+        )
+        for key in branch_keys
+    ])
+    raw_samples = rng.choice(raw, size=(20000, len(raw)), replace=True).mean(axis=1)
+    safe_samples = rng.choice(safe, size=(20000, len(safe)), replace=True).mean(axis=1)
+    return {
+        "paired_episodes": len(branch_keys),
+        "success_rate_difference": float(raw.mean()),
+        "paired_bootstrap_95": [
+            float(np.quantile(raw_samples, 0.025)),
+            float(np.quantile(raw_samples, 0.975)),
+        ],
+        "safe_success_rate_difference": float(safe.mean()),
+        "safe_paired_bootstrap_95": [
+            float(np.quantile(safe_samples, 0.025)),
+            float(np.quantile(safe_samples, 0.975)),
+        ],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/manipulation_ppo_v1.json")
@@ -68,6 +113,15 @@ def main() -> None:
         episodes = sum(record["episodes"] for record in subset)
         success_trials = sum(record.get("success_trials", record["episodes"]) for record in subset)
         seed_rates = [record["success_rate"] for record in subset]
+        seed_safe_rates = []
+        for record in subset:
+            seed_episodes = record.get("episode_records", [])
+            if seed_episodes:
+                seed_safe_rates.append(float(np.mean([
+                    _metric_success_record(episode)
+                    and episode.get("constraint_violated", 0.0) < 0.5
+                    for episode in seed_episodes
+                ])))
         episodes_raw = [
             episode for record in subset for episode in record.get("episode_records", [])
         ]
@@ -85,19 +139,25 @@ def main() -> None:
                         episode for episode in episodes_raw
                         if int(episode[branch_key] >= 0.5) == branch_value
                     ]
+                    branch_raw_successes = sum(
+                        _metric_success_record(episode) for episode in branch
+                    )
+                    branch_safe_successes = sum(
+                        _metric_success_record(episode)
+                        and episode.get("constraint_violated", 0.0) < 0.5
+                        for episode in branch
+                    )
                     branch_success[branch_key][str(branch_value)] = {
                         "episodes": len(branch),
-                        "success_rate": float(np.mean([
-                            _metric_success_record(episode) for episode in branch
-                        ])),
+                        "success_rate": branch_raw_successes / len(branch),
+                        "success_wilson_95": _wilson(branch_raw_successes, len(branch)),
                         "constraint_violation_rate": float(np.mean([
                             episode.get("constraint_violated", 0.0) for episode in branch
                         ])),
-                        "safe_success_rate": float(np.mean([
-                            _metric_success_record(episode)
-                            and episode.get("constraint_violated", 0.0) < 0.5
-                            for episode in branch
-                        ])),
+                        "safe_success_rate": branch_safe_successes / len(branch),
+                        "safe_success_wilson_95": _wilson(
+                            branch_safe_successes, len(branch)
+                        ),
                     }
         environments.append({
             "env_id": env_id,
@@ -120,6 +180,13 @@ def main() -> None:
             ),
             "pooled_safe_success_wilson_95": (
                 _wilson(safe_successes, len(episodes_raw)) if episodes_raw else None
+            ),
+            "seed_safe_success_mean": (
+                float(np.mean(seed_safe_rates)) if seed_safe_rates else None
+            ),
+            "seed_safe_success_std": (
+                float(np.std(seed_safe_rates, ddof=1))
+                if len(seed_safe_rates) > 1 else (0.0 if seed_safe_rates else None)
             ),
             "mean_goals_completed": (
                 float(np.mean([episode.get("goals_completed", 0.0) for episode in episodes_raw]))
@@ -238,6 +305,12 @@ def main() -> None:
                     float(np.quantile(safe_samples, 0.025)),
                     float(np.quantile(safe_samples, 0.975)),
                 ],
+                "first_goal_removed_branches": {
+                    str(branch_value): _paired_branch_effect(
+                        adaptive_records, baseline_records, keys, branch_value, rng
+                    )
+                    for branch_value in (0, 1)
+                },
             })
         payload["paired_comparisons"] = comparisons
     _atomic_json(payload, root / "aggregate.json")
