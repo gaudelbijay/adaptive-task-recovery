@@ -71,6 +71,11 @@ def main() -> None:
         episodes_raw = [
             episode for record in subset for episode in record.get("episode_records", [])
         ]
+        safe_successes = sum(
+            _metric_success_record(episode)
+            and float(episode.get("constraint_violated", 0.0)) < 0.5
+            for episode in episodes_raw
+        )
         branch_success = {}
         for branch_key in ("first_goal_removed", "instruction_red_first"):
             if episodes_raw and all(branch_key in episode for episode in episodes_raw):
@@ -100,6 +105,13 @@ def main() -> None:
             "constraint_violation_rate": (
                 float(np.mean([episode.get("constraint_violated", 0.0) for episode in episodes_raw]))
                 if episodes_raw else None
+            ),
+            "safe_successes": safe_successes if episodes_raw else None,
+            "pooled_safe_success_rate": (
+                safe_successes / len(episodes_raw) if episodes_raw else None
+            ),
+            "pooled_safe_success_wilson_95": (
+                _wilson(safe_successes, len(episodes_raw)) if episodes_raw else None
             ),
             "mean_goals_completed": (
                 float(np.mean([episode.get("goals_completed", 0.0) for episode in episodes_raw]))
@@ -158,13 +170,32 @@ def main() -> None:
                 - float(_metric_success_record(baseline_records[key]))
                 for key in keys
             ])
+            safe_differences = np.asarray([
+                float(
+                    _metric_success_record(adaptive_records[key])
+                    and adaptive_records[key].get("constraint_violated", 0.0) < 0.5
+                )
+                - float(
+                    _metric_success_record(baseline_records[key])
+                    and baseline_records[key].get("constraint_violated", 0.0) < 0.5
+                )
+                for key in keys
+            ])
             samples = rng.choice(differences, size=(20000, len(differences)), replace=True).mean(axis=1)
+            safe_samples = rng.choice(
+                safe_differences, size=(20000, len(safe_differences)), replace=True
+            ).mean(axis=1)
             comparisons.append({
                 "adaptive_minus": baseline,
                 "paired_episodes": len(keys),
                 "success_rate_difference": float(differences.mean()),
                 "paired_bootstrap_95": [
                     float(np.quantile(samples, 0.025)), float(np.quantile(samples, 0.975))
+                ],
+                "safe_success_rate_difference": float(safe_differences.mean()),
+                "safe_paired_bootstrap_95": [
+                    float(np.quantile(safe_samples, 0.025)),
+                    float(np.quantile(safe_samples, 0.975)),
                 ],
             })
         payload["paired_comparisons"] = comparisons
