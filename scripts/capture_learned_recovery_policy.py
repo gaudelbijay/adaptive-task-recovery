@@ -90,39 +90,51 @@ def main() -> None:
     agent.load_state_dict(checkpoint["agent"])
     agent.eval()
 
+    def rollout(episode_seed: int, capture: bool = False):
+        observation, _ = env.reset(seed=episode_seed)
+        frames = [_frame(env)] if capture else []
+        branch_matches = args.branch == "nominal"
+        success_once = False
+        violation_once = False
+        steps = 0
+        for steps in range(1, int(task["num_eval_steps"]) + 1):
+            observation, _, _, truncated, info = env.step(
+                agent.get_action(observation, deterministic=True)
+            )
+            if steps == 1 and args.branch != "nominal":
+                first_removed = _scalar(info, "first_goal_removed")
+                branch_matches = first_removed == (args.branch == "first_goal_removed")
+            success_once |= _scalar(info, "success")
+            violation_once |= _scalar(info, "constraint_violated")
+            if capture:
+                frames.append(_frame(env))
+            if success_once or violation_once or _scalar({"done": truncated}, "done"):
+                break
+        return branch_matches, success_once, violation_once, steps, frames
+
     selected = None
     with torch.no_grad():
         for attempt in range(args.max_attempts):
             episode_seed = args.seed_base + attempt
-            observation, _ = env.reset(seed=episode_seed)
-            frames = [_frame(env)]
-            branch_matches = args.branch == "nominal"
-            success_once = False
-            violation_once = False
-            steps = 0
-            for steps in range(1, int(task["num_eval_steps"]) + 1):
-                observation, _, _, truncated, info = env.step(
-                    agent.get_action(observation, deterministic=True)
-                )
-                if steps == 1 and args.branch != "nominal":
-                    first_removed = _scalar(info, "first_goal_removed")
-                    branch_matches = first_removed == (args.branch == "first_goal_removed")
-                success_once |= _scalar(info, "success")
-                violation_once |= _scalar(info, "constraint_violated")
-                frames.append(_frame(env))
-                if success_once or violation_once or _scalar({"done": truncated}, "done"):
-                    break
+            branch_matches, success_once, violation_once, steps, _ = rollout(episode_seed)
             if branch_matches and success_once and not violation_once:
-                selected = (episode_seed, steps, frames)
+                selected = (episode_seed, steps)
                 break
-    env.close()
     if selected is None:
+        env.close()
         raise RuntimeError(
             f"no safe successful {args.branch} episode found in "
             f"{args.max_attempts} declared seeds beginning at {args.seed_base}"
         )
 
-    episode_seed, steps, frames = selected
+    episode_seed, search_steps = selected
+    with torch.no_grad():
+        branch_matches, success_once, violation_once, steps, frames = rollout(
+            episode_seed, capture=True
+        )
+    env.close()
+    if not branch_matches or not success_once or violation_once or steps != search_steps:
+        raise RuntimeError("deterministic rendered replay did not match the qualifying search rollout")
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
     stem = f"{method}_{training_seed}_{args.branch}"
