@@ -112,6 +112,10 @@ uses 256 disjoint held-out episodes per seed under intervention and another 256
 per seed under the nominal condition. Methods share held-out seeds. The primary
 endpoint is safe success: task success and no constraint violation at any time.
 
+![V6 learning curves across all three seeds, with independent held-out raw and safe success overlays.](../media/results/learned-recovery-v6-curves.png)
+
+The vector version is [available as PDF](../media/results/learned-recovery-v6-curves.pdf).
+
 | Method | Raw held-out success | Violation | Safe held-out success | Safe seed mean ± SD |
 |---|---:|---:|---:|---:|
 | **Adaptive PPO** | 459/768, 59.77% [56.26, 63.18] | 8.59% | **397/768, 51.69% [48.16, 55.21]** | 51.69 ± 15.24% |
