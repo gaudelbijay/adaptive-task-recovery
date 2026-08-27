@@ -16,6 +16,7 @@ from atr.evaluation.benchmark_suite import (
     validate_result_completeness,
     write_summary_table_csv,
 )
+from atr.evaluation.benchmark_suite import _metric_values
 
 
 def _spec(seed_stop=4):
@@ -188,3 +189,19 @@ def test_completeness_check_detects_globally_missing_case(tmp_path):
     incomplete = [r for r in records if r["case"]["case_id"] != missing_case]
     with pytest.raises(ValueError, match="incomplete result set"):
         validate_result_completeness(spec, incomplete)
+
+
+def test_constraint_metric_prefers_uniform_oracle_evaluation():
+    outcome = {
+        "goals_achieved": 1,
+        "total_steps": 2,
+        "wasted_steps": 0,
+        # A policy-specific flag can be absent or even wrong; all real
+        # policies must be scored from the same environment-oracle map.
+        "dont_move_glass_violated": False,
+        "oracle_constraint_violations": {
+            "dont_move_glass": True,
+            "keep_medicine_upright": False,
+        },
+    }
+    assert _metric_values(outcome)["constraint_violations"] == 1.0

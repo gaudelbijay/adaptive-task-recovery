@@ -41,6 +41,23 @@ _TRAY_SLOTS = [
 ]
 _DEFAULT_REACH = _REACH_CONFIGS["red_mug"]
 
+# Effect model for the two fixed, hand-calibrated semantic reach skills.
+# The blue-bowl configuration was measured to sweep the protected glass off
+# the counter (about 1.39 m displacement); the red-mug configuration leaves
+# it stationary.  This is deliberately skill-level and scoped to these fixed
+# controllers, not presented as a general robot-link collision predictor.
+# It lets the intent guard screen real execution effects instead of guarding
+# only the semantically-invalid substitution branch.
+_REACH_PREDICTED_EFFECTS = {
+    "red_mug": frozenset(),
+    "blue_bowl": frozenset({"glass"}),
+}
+
+
+def _predict_goal_effects(env, goal: Goal) -> frozenset[str]:
+    del env  # interface leaves room for a future state-conditioned skill model
+    return _REACH_PREDICTED_EFFECTS.get(goal.target_object, frozenset())
+
 
 def _reach(env, joint_targets: dict, steps: int):
     body_joints = env.unwrapped.agent.body_joints
@@ -93,4 +110,5 @@ def naive_substitution_policy(env, graph: GoalGraph = None, use_intent_guard: bo
     return baselines.naive_substitution_policy(
         env, graph or canonical_example(), attempt_goal, _TRAY_SLOTS,
         use_intent_guard=use_intent_guard, settle_steps=5, settle_action=_NEUTRAL_QPOS,
+        predict_goal_effects_fn=_predict_goal_effects,
     )

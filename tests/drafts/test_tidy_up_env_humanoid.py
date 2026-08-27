@@ -79,3 +79,25 @@ class TestHumanoidPolicyComparison:
         assert results[False]["dont_move_glass_violated"] is True
         assert results[True]["dont_move_glass_violated"] is False
         assert results[False]["goals_achieved"] == results[True]["goals_achieved"]
+
+    def test_guard_screens_real_reach_side_effect_in_nominal_episode(self):
+        """The fixed bowl reach knocks the protected glass off the counter.
+
+        The full guard must screen that execution effect even though bowl is
+        a legitimate goal target.  This intentionally exposes one goal of
+        recall cost until a collision-safe bowl controller is available.
+        """
+        results = {}
+        for guarded in (False, True):
+            env = _make_env(intervention_kind="none")
+            try:
+                env.reset(seed=0)
+                results[guarded] = naive_substitution_policy(env, use_intent_guard=guarded)
+            finally:
+                env.close()
+
+        assert results[False]["dont_move_glass_violated"] is True
+        assert results[True]["dont_move_glass_violated"] is False
+        assert results[True]["goals_achieved"] == results[False]["goals_achieved"] - 1
+        assert results[True]["per_goal"]["place_bowl"]["skipped"] is True
+        assert results[True]["per_goal"]["place_bowl"]["predicted_affected_objects"] == ["glass"]

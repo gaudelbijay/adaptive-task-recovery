@@ -2,10 +2,167 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-132: Report continuous manipulation only on independent held-out episodes
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; experiment complete
+- **Decision:** Freeze the nine best state-PPO checkpoints after their
+  batch-aligned 50M-transition runs, evaluate each deterministically on 256
+  disjoint-seed episodes, pool successes per task, and report Wilson intervals
+  plus seed-level sample standard deviation. Keep these results separate from
+  ATR's high-level teleport executor and the unsolved Fetch bowl controller.
+- **Reason:** Training-stream success selects checkpoints and is optimistic;
+  only an independently seeded protocol can support a manipulation result.
+  Standard ManiSkill tasks provide a recognizable continuous-control baseline,
+  but they do not share the ATR intervention or embodiment contract.
+- **Consequences:** PickCube succeeds in 755/768 held-out episodes (98.31%,
+  Wilson 95% 97.13--99.01); randomized PickSingleYCB in 530/768 (69.01%,
+  65.65--72.18); and UnitreeG1PlaceAppleInBowl in 767/768 (99.87%,
+  99.27--99.98). Seed means equal the pooled rates because every seed has 256
+  trials; sample SDs are 0.90, 4.30, and 0.23 percentage points respectively.
+  All nine continuation checks and held-out jobs exited zero, aggregation and
+  plots completed, G1 native logs contain zero capacity overflows, and the
+  repository's four disjoint validation shards completed 345 tests with zero
+  failures. These numbers support learned continuous manipulation only on the
+  named standard tasks.
+
+## D-131: Restart every G1 seed with a uniform 256 MiB collision stack
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; replacement runs complete
+- **Decision:** Cancel and quarantine all three 64 MiB G1 runs, raise the
+  immutable `collision_stack_size` uniformly to 256 MiB, and replace the
+  continuation/evaluation/aggregation dependency chain. Do not reuse a clean
+  64 MiB checkpoint alongside 256 MiB seeds.
+- **Reason:** Seed 4796 exceeded 64 MiB at about 11.4M transitions and SAPIEN
+  requested as much as 69,717,648 bytes. The warning is nonfatal at the Python
+  layer, so allowing it to continue would silently admit corrupted simulator
+  transitions. A uniform configuration preserves comparability, and 256 MiB
+  is more than 3.8 times the new observed peak.
+- **Consequences:** The 64 MiB run artifacts and native logs remain available
+  under an invalid-run audit directory. PickCube and PickSingleYCB are
+  untouched. Replacement array 1138277, continuation array 1138278, held-out
+  array 1138281, and aggregate job 1138282 all completed successfully. The
+  corrected G1 logs contain zero collision-stack overflows.
+
+## D-130: Promote only contact-verified Fetch stages; full physical task remains unsolved
+
+- **Date:** 2026-08-27
+- **Status:** Accepted negative/partial result
+- **Decision:** Evaluate the two ATR goals sequentially for 10 episodes using
+  real navigation, IK control, contact-based `is_grasping`, physical carry,
+  release, settling, and the shared final goal/constraint oracle. Record the
+  requested tray slot and final object pose in each completed placement.
+- **Reason:** A one-object demo and a teleport executor cannot establish that
+  the full manipulation task is solved. Stage-specific contact evidence and a
+  common task oracle are required before promoting a manipulation claim.
+- **Consequences:** The can is grasped, retained through navigation, and placed
+  successfully in 10/10 episodes at the assigned slot. The bowl obtains zero
+  contact-verified grasps in the sequential evaluation, so mean completion is
+  1.0/2.0, complete-task success is 0/10, and constraint violations are 0/10.
+  A 69-candidate position/approach/torso diagnostic also yields zero bowl
+  grasps. This is a reproducible controller limitation, not evidence that the
+  embodiment can never solve the task and not something ManiSkill PPO on a
+  different embodiment silently fixes.
+
+## D-129: Fail loud on GPU simulator capacity and preserve invalid checkpoints
+
+- **Date:** 2026-08-27
+- **Status:** Superseded by D-131 after the 64 MiB setting also overflowed
+- **Decision:** Give the 1,024-environment Unitree G1 experiment an explicit
+  64 MiB PhysX `collision_stack_size` in its immutable task configuration.
+  Quarantine every run that emitted collision-stack overflow diagnostics and
+  restart it from zero through the continuation array. Replace pending Slurm scripts
+  whose submission-time snapshots still selected system Python with verified
+  `.venv/bin/python` jobs and new dependencies.
+- **Reason:** SAPIEN first reported that the configured 4 MiB collision stack
+  needed 5.34 MiB and, in a longer 16 MiB validation run, later peaked near
+  27 MiB. The corrected 64 MiB capacity matches PhysX's upstream default and
+  exceeds the observed requirement by more than twofold. Continuing would turn a
+  simulator-capacity error into apparently valid training data. Separately,
+  Slurm stores the submitted batch script rather than rereading a later edit;
+  a pilot evaluator demonstrated that the old snapshot could not import
+  Gymnasium from system Python.
+- **Consequences:** PickCube and YCB runs/checkpoints were untouched. Invalid
+  4 MiB and 16 MiB partial G1 checkpoints remain recoverable in separate audit
+  directories but cannot be loaded because the
+  corrected task configuration includes the stack size. Continuation job
+  1138267 waits for both the original array and clean G1 recovery array
+  1138265; held-out evaluation 1138268 and aggregate/plot job 1138269 then use
+  the project virtual environment and explicit success dependencies. The
+  current wrapper converts any native simulator `buffer overflow detected`
+  message into a failed Slurm task before evaluation can start.
+
+## D-128: Constraint metrics must come from one environment oracle for every policy
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; corrected v3 run complete
+- **Decision:** `benchmark_suite.execute_case()` now appends the environment's
+  final `evaluate()["constraint_violations"]` map to every policy outcome, and
+  `_metric_values()` uses that common oracle map. Policy-specific
+  `*_violated` fields remain only as a legacy/synthetic-executor fallback.
+  Freeze v1/v2 artifacts, but do not use their constraint columns in claims.
+- **Reason:** The prior metric extractor counted only top-level keys ending in
+  `_violated`. Static and oracle-feasibility policies do not emit those keys,
+  so their constraint metric was silently zero even when the same physical
+  reach displaced the protected glass. This was an evaluator asymmetry, not a
+  favorable result.
+- **Consequences:** A new content-addressed 500-case/2,000-policy-run humanoid
+  safety benchmark (`adaptive_recovery_guard_effects_v3__c79e3ad66aaf0e91`)
+  completed with exact pairing. Static violated constraints in 100% of cases;
+  oracle feasibility in 75.2% (95% bootstrap CI 71.4--79.0); unguarded
+  substitution in 77.8% (74.2--81.4); the effect-aware guard in 0%. The guard
+  achieves 1.00 goals versus oracle's 1.69 (1.65--1.73), exposing a real
+  safety/recall tradeoff: detecting an unsafe fixed skill is not the same as
+  having a safe alternative skill. One regression test makes oracle scoring
+  override missing or contradictory policy-specific flags; focused benchmark
+  suite is 9/9 passing.
+
+## D-127: Large-scale learned policies are diagnostics unless their executor is physical
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; manipulation PPO run complete
+- **Decision:** Keep tabular feasibility-Q, mechanism-aware Q, domain-randomized
+  Q, and behavioral cloning as high-level decision-layer diagnostics because
+  their TidyUp skill executor uses teleport-on-success. Establish manipulation
+  evidence separately with checkpointed PPO on ManiSkill's official
+  three-seed, 50M-transition state-policy configurations for `PickCube-v1`,
+  `PickSingleYCB-v1`, and `UnitreeG1PlaceAppleInBowl-v1`. No ATR teleport code
+  is imported by that trainer. Every Slurm task saves atomic latest/best model,
+  optimizer, counter, and RNG checkpoints and has a 24-hour continuation job.
+- **Reason:** Calling the small attempt/skip problem "large-scale RL" would
+  conflate a contextual decision layer with continuous contact control. The
+  project needs both the adaptation comparison and credible manipulation.
+- **Consequences:** The 40 learned high-level runs completed. On held-out
+  resource-contention mechanisms, feasibility-Q and behavioral cloning match
+  oracle means exactly (1.375 goals, 6.640625 wasted steps), while a policy
+  keyed on privileged mechanism identity collapses to zero goals on unseen
+  identities. Blind domain randomization is conservative (1.0 goal, zero
+  waste), illustrating that the scalar reward can prefer lower recall. These
+  are not physical-manipulation claims. The nine real-control PPO tasks and
+  their separate 256-episode-per-seed held-out evaluation completed; D-132
+  freezes the results and claim boundary.
+
+## D-126: First full scaled benchmark completed; favorable claims remain scoped
+
+- **Date:** 2026-08-27
+- **Status:** Accepted
+- **Decision:** Preserve the completed v1 benchmark directory and report its
+  paired efficiency results, while superseding only its safety metric via
+  D-128 rather than rewriting artifacts.
+- **Reason:** Immutable evidence must survive later bug discovery. Reusing the
+  same output path would hide the audit trail.
+- **Consequences:** All 12,800 policy episodes completed. Overall oracle and
+  static goal achievement are equal at 1.68625, but static wastes 14.24 more
+  steps per paired case (95% bootstrap CI 12.708--15.842). This supports an
+  efficiency/adaptation claim across the frozen matrix, not superiority in
+  recall and not a manipulation claim. Raw records, validated aggregate JSON,
+  and CSV remain on Jarvis under the content-addressed run directory.
+
 ## D-125: Freeze a cluster-ready, scaled benchmark contract
 
 - **Date:** 2026-08-24
-- **Status:** Accepted; full cluster run pending
+- **Status:** Accepted; full cluster run complete (see D-126/D-128)
 - **Decision:** Add `atr.evaluation.benchmark_suite`, two versioned manifests,
   CLI runner/aggregator, and a SLURM array launcher. The full v1 manifest
   expands deterministically to 3,200 content-addressed cases and 12,800 paired
@@ -28,11 +185,13 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   wasted steps, static waste of 25 steps in three embodiments and 231 on Fetch.
   A final real safety-adapter smoke confirmed the result schema preserves the
   expected guarded/unguarded separation (0 versus 1 constraint violation).
-  The 32-cell/128-episode pilot and full 12,800-episode run remain intentionally
-  unexecuted until cluster resources are available. This infrastructure
-  guarantees deterministic accounting and fail-loud validity checks, not
-  favorable findings. Competitive external LLM/VLM baselines, broader task/
-  object diversity, and manipulation promotion remain scientific gaps.
+  The 32-cell/128-episode pilot and full 12,800-episode run subsequently
+  completed on Jarvis (D-126). This infrastructure guarantees deterministic
+  accounting and fail-loud validity checks, not favorable findings. D-128
+  later found that v1's constraint metric was not uniform across policies;
+  its efficiency/goal metrics remain valid, while safety claims use v3.
+  Competitive external LLM/VLM baselines, broader task/object diversity, and
+  manipulation promotion remain scientific gaps.
 
 ## D-124: Real pick-and-place for the Fetch demo, additive to attempt_goal()'s teleport contract
 

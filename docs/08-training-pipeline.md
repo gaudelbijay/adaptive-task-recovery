@@ -86,3 +86,45 @@ Start with low-dimensional actions, small images, short horizons, and frozen
 encoders. Profile data loading and representation inference before scaling RL.
 Do not choose a large vision-language backbone until a cheap oracle-state
 pipeline demonstrates that the benchmark and evaluation can answer the question.
+
+## Non-teleport manipulation track
+
+The high-level TidyUp Q/BC experiments use the established abstract skill
+executor and must be labeled decision-layer diagnostics. Physical manipulation
+is trained separately with `scripts/train_manipulation_ppo.py`; that trainer
+imports ManiSkill tasks directly and does not import an ATR teleport executor.
+`configs/manipulation_ppo_v1.json` matches ManiSkill v3.0.0b22's official
+three-seed state-PPO baseline settings for PickCube, randomized PickSingleYCB,
+and Unitree G1 apple-in-bowl (50M transitions per seed/task).
+The 1,024-environment G1 task explicitly reserves a 256 MiB PhysX collision
+stack. A capacity warning invalidates the affected run even if the process
+continues; partial 4 MiB, 16 MiB, and 64 MiB runs are quarantined rather than
+resumed. The 64 MiB setting was itself rejected after one seed requested
+69,717,648 bytes at about 11.4M transitions; all seeds use the same corrected
+capacity rather than mixing simulator configurations.
+
+Each task writes atomic `latest.pt` and `best.pt` checkpoints containing model,
+optimizer, iteration/global-step counters, and Python/NumPy/Torch/CUDA RNG
+state. Jarvis sends `SIGUSR1` five minutes before the 24-hour limit; the trainer
+saves at the next iteration boundary. Submit an `afterany` continuation array
+with the identical immutable config. Simulator state itself is not portable
+across jobs, so a continuation re-seeds the environment stream while resuming
+the full optimization state; report that limitation.
+
+Final evidence comes from `evaluate_manipulation_ppo.py`, not the
+checkpoint-selection evaluations embedded in training. It loads `best.pt`,
+uses a disjoint seed range and reconfiguration on every vector slot, runs 256
+deterministic held-out episodes per training seed, and records Wilson intervals.
+`aggregate_manipulation_results.py` refuses to aggregate until all nine held-out
+artifacts exist.
+
+```bash
+mkdir -p results/slurm
+ATR_PYTHON=.venv/bin/python \
+  sbatch --array=0-8%9 scripts/slurm_manipulation_ppo.sh
+
+# Submit again with --dependency=afterany:<training-job-id> for 24 h resume.
+# Submit evaluation after the continuation succeeds.
+sbatch --array=0-8%9 --dependency=afterok:<continuation-job-id> \
+  scripts/slurm_manipulation_eval.sh
+```

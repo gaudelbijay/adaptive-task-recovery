@@ -283,6 +283,8 @@ def execute_case(case: BenchmarkCase, policy_name: str) -> dict:
     try:
         env.reset(seed=case.seed)
         result = policy_fn(env)
+        final_evaluation = env.unwrapped.evaluate()
+        result["oracle_constraint_violations"] = final_evaluation["constraint_violations"]
         oracle_exists = dict(env.unwrapped._exists)
     finally:
         env.close()
@@ -300,9 +302,14 @@ def _jsonable(value):
 
 
 def _metric_values(outcome: dict) -> dict[str, float]:
-    violations = sum(
-        bool(value) for key, value in outcome.items() if key.endswith("_violated")
-    )
+    if "oracle_constraint_violations" in outcome:
+        violations = sum(bool(value) for value in outcome["oracle_constraint_violations"].values())
+    else:
+        # Backward-compatible analysis for synthetic executors and legacy
+        # records. Real simulator execution always supplies the oracle map.
+        violations = sum(
+            bool(value) for key, value in outcome.items() if key.endswith("_violated")
+        )
     values = {
         "goals_achieved": float(outcome["goals_achieved"]),
         "total_steps": float(outcome["total_steps"]),

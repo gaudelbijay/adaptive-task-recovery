@@ -1,7 +1,7 @@
 ---
 title: Scaled Experiment Execution
 status: active
-last_updated: 2026-08-24
+last_updated: 2026-08-27
 ---
 
 # Scaled experiment execution
@@ -10,6 +10,41 @@ This workflow turns the project's hand-authored comparisons into deterministic,
 paired, resumable experiment artifacts. It guarantees validation and
 reproducibility properties; it cannot guarantee that a scientific hypothesis
 will receive favorable support. Negative results remain results.
+
+## Completed execution and metric audit
+
+The full v1 matrix completed on Jarvis: 3,200 paired cases and 12,800 policy
+episodes. Oracle feasibility and static execution have identical overall goal
+achievement (1.68625), while static wastes 14.24 additional steps per paired
+case (95% bootstrap CI 12.708--15.842). This is evidence for efficiency under
+world change, not improved recall.
+
+Do **not** use the v1 or guard-v2 `constraint_violations` columns. Those runs
+derived the metric from optional policy-specific result keys, so static and
+oracle policies that omitted the key were scored as zero. D-128 corrected the
+runner to call the environment's final oracle evaluator for every policy. The
+content-addressed v3 safety run (500 cases, 2,000 policy episodes) reports:
+
+- static: 1.000 violations/case;
+- oracle feasibility: 0.752 (95% CI 0.714--0.790);
+- unguarded substitution: 0.778 (0.742--0.814);
+- effect-aware guard: 0.000.
+
+The guard's safety is not free: it achieves 1.00 goals/case versus 1.69 for
+oracle feasibility because the fixed bowl skill itself is unsafe and no safe
+alternative trajectory exists in the current skill library. Report this as a
+safety/recall frontier and an execution-skill limitation.
+
+High-level learned-policy results are stored separately under
+`results/rl_training`. They use the abstract teleport-on-success skill contract
+and therefore remain decision-layer diagnostics. Continuous, non-teleport
+manipulation PPO uses the official ManiSkill three-seed/50M-transition settings
+for PickCube, randomized PickSingleYCB, and Unitree G1 apple-in-bowl. Its
+independent 256-episode-per-seed evaluation is complete: pooled success is
+755/768 (98.31%) for PickCube, 530/768 (69.01%) for PickSingleYCB, and 767/768
+(99.87%) for G1 apple-in-bowl. Exact intervals, seed dispersion, simulator
+capacity audit, and claim boundaries are in
+[`14-results-and-claim-boundaries.md`](14-results-and-claim-boundaries.md).
 
 ## Frozen benchmark
 

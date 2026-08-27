@@ -101,7 +101,11 @@ def _ee_pos_local(arm_ctrl) -> np.ndarray:
 
 
 def _world_to_local(arm_ctrl, world_pos) -> np.ndarray:
-    return (arm_ctrl.root_link.pose.inv() * sapien.Pose(p=world_pos)).p
+    # This real-manipulation helper is deliberately single-environment CPU
+    # control. Convert both operands to SAPIEN poses before composing them;
+    # mixing ManiSkill's batched ``Pose`` wrapper with a raw ``sapien.Pose``
+    # silently produced an incorrect translation magnitude.
+    return (arm_ctrl.root_link.pose.sp.inv() * sapien.Pose(p=world_pos)).p
 
 
 def _servo_arm_to(
@@ -179,7 +183,11 @@ def attempt_goal_with_real_grasp(
     lift_target = _ee_pos_local(arm_ctrl) + np.array([0.0, 0.0, 0.15])
     _servo_arm_to(env, arm_ctrl, lift_target, gripper_action=-1.0, max_steps=40)
 
-    nav2 = _navigate_to(env, _TRAY_POSITION, steps=nav_steps, target_object="__tray__")
+    # Use the caller's assigned slot, as the abstract skill contract does.
+    # The original single-object demo happened to pass the tray center, which
+    # hid this distinction; multi-object execution needs separate drop points.
+    tray_slot_xyz = np.asarray(tray_slot_xyz, dtype=float)
+    nav2 = _navigate_to(env, tray_slot_xyz, steps=nav_steps, target_object="__tray__")
     carried = bool(agent.is_grasping(obj))
     if not nav2.reached_target or not carried:
         return {
@@ -187,7 +195,9 @@ def attempt_goal_with_real_grasp(
             "grasped": True, "carried": carried,
         }
 
-    drop_world = np.array([_TRAY_POSITION[0], _TRAY_POSITION[1], _TRAY_SURFACE_TOP_Z + _APPROACH_HEIGHT])
+    drop_world = np.array([
+        tray_slot_xyz[0], tray_slot_xyz[1], _TRAY_SURFACE_TOP_Z + _APPROACH_HEIGHT,
+    ])
     _servo_arm_to(env, arm_ctrl, _world_to_local(arm_ctrl, drop_world), gripper_action=-1.0, tol=0.03)
     _hold_gripper(env, 1.0, 10)  # release
     _hold_gripper(env, 1.0, 30)  # let real physics settle
@@ -195,4 +205,11 @@ def attempt_goal_with_real_grasp(
     steps_used = env.unwrapped._elapsed_control_steps - before
     state = env.unwrapped._world_state()
     achieved = goal_achieved(goal, state, _TRAY_POSITION, _TRAY_HALF_SIZES)
-    return {"achieved": achieved, "steps_used": steps_used, "grasped": True, "carried": carried}
+    return {
+        "achieved": achieved,
+        "steps_used": steps_used,
+        "grasped": True,
+        "carried": carried,
+        "tray_slot": tray_slot_xyz.tolist(),
+        "final_object_position": obj.pose.sp.p.tolist(),
+    }

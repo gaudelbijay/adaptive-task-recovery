@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "name": "adaptive_recovery_guard_effects_v2",
+  "policies": [
+    "static",
+    "oracle_feasibility",
+    "guarded_substitution",
+    "unguarded_substitution"
+  ],
+  "metrics": [
+    "goals_achieved",
+    "wasted_steps",
+    "constraint_violations",
+    "navigation_replans",
+    "navigation_safety_blocks",
+    "navigation_failures"
+  ],
+  "seeds": {"start": 0, "stop": 100},
+  "environments": [
+    {
+      "env_id": "TidyUp-Humanoid-v1",
+      "scene_variants": [null],
+      "conditions": [
+        {"label": "nominal", "intervention_kind": "none", "onset_step_range": [4, 6]},
+        {"label": "destroyed_early", "intervention_kind": "bowl_destroyed", "onset_step_range": [4, 6]},
+        {"label": "destroyed_wide", "intervention_kind": "bowl_destroyed", "onset_step_range": [10, 80]},
+        {"label": "temporary_early", "intervention_kind": "temporary_obstacle", "onset_step_range": [4, 6]},
+        {"label": "temporary_wide", "intervention_kind": "temporary_obstacle", "onset_step_range": [10, 80]}
+      ]
+    }
+  ]
+}

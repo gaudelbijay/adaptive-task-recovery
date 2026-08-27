@@ -57,6 +57,9 @@ supplies its own.
 from __future__ import annotations
 
 import random
+import hashlib
+import json
+from pathlib import Path
 from typing import Callable
 
 import gymnasium as gym
@@ -65,6 +68,7 @@ import numpy as np
 from atr.feasibility.oracle import goal_feasible
 from atr.language.goal_graph import GoalGraph
 from atr.policies.baselines import _summarize
+from atr.training.checkpointing import JsonCheckpointManager, TrainingCheckpoint
 
 SKIP, ATTEMPT = 0, 1
 _ALPHA = 0.3  # single-step decisions per goal -- no bootstrapping needed, so no gamma/discount
@@ -112,6 +116,57 @@ def _state_key(goal_id: str, feasible: bool, intervention_kind: str, include_int
     return (goal_id, feasible)
 
 
+def _serialize_q_table(q_table: dict[tuple, dict[int, float]]) -> dict:
+    """JSON-safe Q-table representation used by resumable training."""
+    return {
+        "q_table": [
+            {
+                "key": list(key),
+                "actions": {str(action): float(value) for action, value in actions.items()},
+            }
+            for key, actions in sorted(q_table.items(), key=lambda item: repr(item[0]))
+        ]
+    }
+
+
+def _deserialize_q_table(payload: dict) -> dict[tuple, dict[int, float]]:
+    return {
+        tuple(record["key"]): {
+            int(action): float(value) for action, value in record["actions"].items()
+        }
+        for record in payload["q_table"]
+    }
+
+
+def load_q_table_checkpoint(path: str | Path) -> dict[tuple, dict[int, float]]:
+    """Load an inspectable JSON Q-learning checkpoint for evaluation."""
+    checkpoint = TrainingCheckpoint.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
+    return _deserialize_q_table(checkpoint.learner_state)
+
+
+def _training_fingerprint(
+    graph: GoalGraph,
+    intervention_kinds: tuple[str, ...],
+    onset_step_bounds: tuple[int, int],
+    reach_steps: int,
+    seed: int,
+    include_intervention_kind: bool,
+) -> str:
+    """Fingerprint every setting that changes the stochastic trajectory."""
+    payload = {
+        "algorithm": "tabular_q_v1",
+        "goal_ids": [goal.id for goal in graph.goals],
+        "intervention_kinds": list(intervention_kinds),
+        "onset_step_bounds": list(onset_step_bounds),
+        "reach_steps": reach_steps,
+        "seed": seed,
+        "include_intervention_kind": include_intervention_kind,
+        "alpha": _ALPHA,
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
+
 def train_q_table(
     make_env: Callable[[str, tuple[int, int]], "gym.Env"],
     graph: GoalGraph,
@@ -123,6 +178,10 @@ def train_q_table(
     n_episodes: int = 120,
     seed: int = 0,
     include_intervention_kind: bool = False,
+    checkpoint_dir: str | Path | None = None,
+    checkpoint_every: int = 100,
+    resume: bool = True,
+    validation_fn: Callable[[dict], float] | None = None,
 ) -> dict:
     """Tabular Q-learning over (goal_id, feasible) -> {SKIP: q, ATTEMPT: q}
     (or (goal_id, feasible, intervention_kind) when
@@ -136,10 +195,32 @@ def train_q_table(
     env/goal-graph combination -- see module docstring for why this is one
     parameterized function, not one per env.
     """
+    if n_episodes < 0:
+        raise ValueError("n_episodes must be non-negative")
+    if checkpoint_dir is not None and checkpoint_every <= 0:
+        raise ValueError("checkpoint_every must be positive")
+
     rng = random.Random(seed)
     q: dict[tuple, dict[int, float]] = {}
+    start_episode = 0
+    manager = None
+    fingerprint = _training_fingerprint(
+        graph, intervention_kinds, onset_step_bounds, reach_steps, seed,
+        include_intervention_kind,
+    )
+    if checkpoint_dir is not None:
+        manager = JsonCheckpointManager(checkpoint_dir, fingerprint)
+        prior = manager.load_latest(required=False) if resume else None
+        if prior is not None:
+            q = _deserialize_q_table(prior.learner_state)
+            rng.setstate(prior.rng_state())
+            start_episode = prior.completed_episodes
+            if start_episode > n_episodes:
+                raise ValueError(
+                    f"checkpoint has {start_episode} episodes, exceeding requested {n_episodes}"
+                )
 
-    for ep in range(n_episodes):
+    for ep in range(start_episode, n_episodes):
         epsilon = max(0.05, 1.0 - ep / (n_episodes * 0.6))
         intervention_kind = rng.choice(intervention_kinds)
         onset_step = rng.randint(*onset_step_bounds)
@@ -166,6 +247,20 @@ def train_q_table(
                 q[key][action] += _ALPHA * (reward - q[key][action])
         finally:
             env.close()
+
+        completed = ep + 1
+        if manager is not None and (
+            completed % checkpoint_every == 0 or completed == n_episodes
+        ):
+            score = None if validation_fn is None else float(validation_fn(q))
+            manager.save(TrainingCheckpoint(
+                schema_version=1,
+                config_fingerprint=fingerprint,
+                completed_episodes=completed,
+                learner_state=_serialize_q_table(q),
+                rng_state_repr=repr(rng.getstate()),
+                validation_score=score,
+            ))
     return q
 
 

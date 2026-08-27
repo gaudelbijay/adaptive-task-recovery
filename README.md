@@ -48,8 +48,9 @@ and constraints, and choose an acceptable partial or alternative completion.
 Five hypotheses, each with real evidence — paired seeds, bootstrap confidence
 intervals, and real ManiSkill3 simulator episodes, not toy numbers. Full
 detail and every underlying number is in
-[`ai-notes/decisions.md`](ai-notes/decisions.md) (D-001–D-125); this is the
-short version.
+[`ai-notes/decisions.md`](ai-notes/decisions.md); the paper-facing result index
+and claim boundaries are in
+[`docs/14-results-and-claim-boundaries.md`](docs/14-results-and-claim-boundaries.md).
 
 | | Hypothesis | Result |
 |---|---|---|
@@ -70,39 +71,46 @@ calibration that didn't transfer, a hypothesis that only holds conditionally,
 a config value that never did what its own comment claimed, all reported as
 found, with the fix or the disclosed gap next to it.
 
-**Two capabilities beyond the five hypotheses, both real:**
+**Three capabilities beyond the five hypotheses, each separately scoped:**
 
-- **Real pick-and-place on Fetch** (D-124): navigate, reach with real closed-
+- **Real pick-and-place on Fetch** (D-124, D-130): navigate, reach with real closed-
   loop inverse kinematics, grasp with a real contact-force check
   (`agent.is_grasping()`), carry across the apartment while still gripping,
   place, and release — verified with the project's own `goal_achieved()`
-  check, not a custom one. See the demo GIF at the top. Deliberately kept
-  separate from the tested policy pipeline (single object, not benchmarked
-  across seeds yet) rather than risking the contract 336 existing tests
-  depend on for a demo's visual benefit.
+  check, not a custom one. In the current sequential 10-episode evaluation,
+  the can is physically grasped and placed in 10/10 episodes, while the bowl
+  grasp fails in 10/10: 1.0/2.0 mean goals and 0/10 complete tasks. This
+  negative result is kept explicit. The controller remains separate from the
+  abstract policy benchmark.
 - **A cluster-ready scaled benchmark contract** (D-125): versioned manifests,
   content-addressed cases, resumable sharded execution, strict pairing/
   completeness validation, and stratified bootstrap CIs — built because the
   prior harness was correct for small in-process comparisons but couldn't
   safely run at scale. Full v1 expands to 3,200 cases / 12,800 paired policy
   episodes across all four environment families, all three ReplicaCAD
-  layouts, and 100 seeds. Smoke-tested end to end (8/8 canonical episodes,
-  8/8 cross-embodiment episodes including Fetch and the held-out third
-  layout, all with zero failures and the expected recall/waste/safety
-  pattern) — **the full run itself hasn't happened yet; it's gated on
-  cluster access this project doesn't have on hand.** Stated plainly rather
-  than implied: this is validated infrastructure for a larger result, not
-  the result itself.
+  layouts, and 100 seeds. The frozen v1 run is complete: 3,200 paired cases
+  and 12,800 policy episodes. Oracle feasibility and static execution both
+  achieve 1.68625 goals/case, while static execution wastes 14.24 additional
+  steps per paired case (95% paired-bootstrap CI 12.708–15.842). The original
+  v1 safety column is invalid because of an evaluator asymmetry and is not
+  used; a corrected 2,000-episode effect-aware safety benchmark is reported
+  separately in the result index.
+- **Learned non-teleport manipulation** (D-132): three-seed state-PPO on
+  standard ManiSkill tasks, 50M requested transitions per seed and 256
+  independent held-out episodes per seed. Pooled held-out success is 98.31%
+  for PickCube (755/768), 69.01% for randomized PickSingleYCB (530/768), and
+  99.87% for Unitree G1 apple-in-bowl (767/768). This establishes continuous
+  control on those tasks; it does not imply transfer to the Fetch apartment or
+  turn the abstract adaptation benchmark into physical manipulation.
 
-**What's still genuinely open:** collision geometry is still spheres and
-points, not full robot/object meshes; CLIP calibration is scene-specific and
-doesn't transfer automatically (confirmed by testing it on a new apartment
-layout and watching it fail); real pick-and-place covers one object on one
-embodiment, not yet benchmarked at scale; the full 12,800-episode cluster
-run is built and smoke-tested but not yet executed; everything runs in
-simulation on CPU otherwise, no real robot; and one object's placement choice
-in the two original apartment layouts still has no explanation anyone's
-found. None of these are blocking — they're disclosed scope, not surprises.
+**What's still genuinely open:** collision geometry in the high-level safety
+screen is still spheres and points, not full robot/object meshes; CLIP
+calibration is scene-specific and does not transfer automatically; the Fetch
+controller has not solved the bowl grasp or the complete two-object physical
+task; everything is simulation-only, with no real-robot result; and the
+standard-task PPO policies do not yet combine language-conditioned recovery,
+irreversible-change adaptation, and continuous control in one system. These
+are disclosed scope, not paper claims.
 
 ### What this project does not claim
 
@@ -117,11 +125,13 @@ result and every navigation-safety decision (D-091–D-123) is built on across
 for a demo's visual benefit would risk the whole evidence base for no
 research reason. So concretely:
 
-- **What's real:** Fetch, one object (the potted meat can), one scene —
+- **What's real:** Fetch, the potted meat can, one scene —
   navigate, reach, grasp, lift, carry across the apartment while still
   gripping, place, release, and a real physics-settled final position,
-  verified with the project's own `goal_achieved()` check, not a custom one.
-- **What isn't (yet):** this hasn't been benchmarked across seeds or objects,
+  verified with the project's own `goal_achieved()` check, not a custom one,
+  in 10/10 sequential episodes.
+- **What isn't (yet):** the scripted bowl grasp failed in all 10 episodes, so
+  the complete two-object physical task remains unsolved. This controller
   isn't wired into any policy the H1–H5 results depend on, and doesn't cover
   the humanoid embodiment — a real analytic-Jacobian IK check there
   (`src/atr/control/ik_solver.py`) found, and kept as a disclosed regression
@@ -168,12 +178,15 @@ apartment across three independently verified scene layouts), the end-to-end
 pipeline, the evaluation harness, a queryable dataset-split registry
 (instruction-, intervention-, and scene-layout-level), a log interface,
 experiment tracking, real pick-and-place on Fetch (D-124, see the demo GIF
-above), and a cluster-ready scaled benchmark contract (D-125, smoke-tested,
-full run pending cluster access) all live in `src/atr/`, tested and
-`git`-committed architecture. Only `dinov2_probe.py` remains spike-stage in
+above), and the completed cluster-scale benchmark contract/run (D-125--D-126)
+all live in `src/atr/` as tested architecture. Checkpointed non-teleport PPO
+and held-out evaluation for three standard ManiSkill manipulation tasks are
+complete: 2,304 held-out episodes across nine trained policies, with pooled
+success reported above. Only `dinov2_probe.py` remains spike-stage in
 `spikes/task_schema_draft/` — DINOv2 wired into a real live decision loop,
 a genuine robustness gap found and closed (D-054/D-055), still not
-promotion-ready. 336 tests passing.
+promotion-ready. See the result index for the latest validation status rather
+than relying on a historical test count.
 See [STATUS.md](STATUS.md) for current work, [`ai-notes/decisions.md`](ai-notes/decisions.md)
 for the full decision-by-decision record, and [docs/](docs/) for the study design.
 

@@ -1,14 +1,63 @@
 ---
 title: References and Reading Queue
-status: draft
-last_updated: 2026-07-26
+status: verified-core
+last_updated: 2026-08-27
 ---
 
 # References and Reading Queue
 
-This is a topic-organized queue, not yet a verified bibliography. Add exact
-authors, titles, venues, years, URLs/DOIs, and notes only after checking primary
-sources.
+Core entries below were checked against the paper or official project source.
+The remaining sections are a reading queue and must not be cited as completed
+coverage.
+
+## Verified core bibliography
+
+- Ahn, M., et al. (2022). *Do As I Can, Not As I Say: Grounding
+  Language in Robotic Affordances*. arXiv:2204.01691; later CoRL 2022.
+  https://arxiv.org/abs/2204.01691
+- Huang, W., et al. (2022). *Inner Monologue: Embodied Reasoning through
+  Planning with Language Models*. arXiv:2207.05608; later CoRL 2022.
+  https://arxiv.org/abs/2207.05608
+- Ren, A. Z., et al. (2023). *Robots That Ask For Help: Uncertainty Alignment
+  for Large Language Model Planners*. CoRL 2023. arXiv:2307.01928.
+  https://arxiv.org/abs/2307.01928
+- Driess, D., et al. (2023). *PaLM-E: An Embodied Multimodal Language Model*.
+  arXiv:2303.03378. https://arxiv.org/abs/2303.03378
+- Brohan, A., et al. (2023). *RT-2: Vision-Language-Action Models Transfer Web
+  Knowledge to Robotic Control*. arXiv:2307.15818.
+  https://arxiv.org/abs/2307.15818
+- Liang, J., Huang, W., Xia, F., Xu, P., Hausman, K., Ichter, B., Florence, P.,
+  and Zeng, A. (2023). *Code as Policies: Language Model Programs for Embodied
+  Control*. arXiv:2209.07753. https://arxiv.org/abs/2209.07753
+- Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., and Cao, Y.
+  (2023). *ReAct: Synergizing Reasoning and Acting in Language Models*. ICLR
+  2023. arXiv:2210.03629. https://arxiv.org/abs/2210.03629
+- Alshiekh, M., Bloem, R., Ehlers, R., Könighofer, B., Niekum, S., and
+  Topcu, U. (2018). *Safe Reinforcement Learning via Shielding*. AAAI 2018.
+  arXiv:1708.08611. https://arxiv.org/abs/1708.08611
+- Carr, S., Jansen, N., Junges, S., and Topcu, U. (2022). *Safe Reinforcement
+  Learning via Shielding under Partial Observability*. arXiv:2204.00755.
+  https://arxiv.org/abs/2204.00755
+- Schulman, J., Wolski, F., Dhariwal, P., Radford, A., and Klimov, O. (2017).
+  *Proximal Policy Optimization Algorithms*. arXiv:1707.06347.
+  https://arxiv.org/abs/1707.06347
+- Tao, S., et al. *ManiSkill3: GPU Parallelized Robotics Simulation and
+  Rendering for Generalizable Embodied AI*. arXiv:2410.00425 (2024).
+  https://arxiv.org/abs/2410.00425. Official implementation and PPO task
+  commands: https://github.com/mani-skill/ManiSkill and
+  https://github.com/mani-skill/ManiSkill/blob/v3.0.0b22/examples/baselines/ppo/baselines.sh.
+  The authors' baseline learning-curve report is
+  https://wandb.ai/stonet2000/ManiSkill/reports/PPO-Results--VmlldzoxMDQzNDMzOA
+
+## Comparison notes
+
+SayCan supplies the feasibility-grounded skill-selection comparison; Inner
+Monologue supplies the feedback-driven replanning comparison; KnowNo supplies
+the calibrated-abstention comparison; shielding supplies the hard-constraint
+comparison; and PPO/ManiSkill supply the real-control learning comparison.
+Because their embodiments, observations, goals, and success definitions differ,
+published success percentages must not be placed beside ATR numbers as if they
+were measured on a shared test set.
 
 ## Vision-language embodied control
 

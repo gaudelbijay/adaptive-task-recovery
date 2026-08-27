@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "adaptive_recovery_rl_pilot",
+  "episodes": 20,
+  "checkpoint_every": 10,
+  "seeds": {"start": 0, "stop": 1},
+  "variants": [
+    {"name": "feasibility_q", "include_intervention_kind": false}
+  ],
+  "train_intervention_kinds": ["none", "bowl_destroyed", "temporary_obstacle"],
+  "onset_step_bounds": [1, 60],
+  "validation_seeds": {"start": 10000, "stop": 10002},
+  "test_seeds": {"start": 20000, "stop": 20002},
+  "held_out_test_intervention_kinds": [
+    "resource_contention",
+    "resource_contention_temporary"
+  ]
+}

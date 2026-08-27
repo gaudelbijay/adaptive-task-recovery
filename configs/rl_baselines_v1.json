@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "adaptive_recovery_rl_baselines_v1",
+  "training_episodes": 5000,
+  "seeds": {"start": 0, "stop": 10},
+  "variants": ["blind_domain_randomized_q", "behavioral_cloning"],
+  "train_intervention_kinds": ["none", "bowl_destroyed", "temporary_obstacle"],
+  "onset_step_bounds": [1, 60],
+  "test_seeds": {"start": 20000, "stop": 20032},
+  "held_out_test_intervention_kinds": [
+    "resource_contention",
+    "resource_contention_temporary"
+  ]
+}

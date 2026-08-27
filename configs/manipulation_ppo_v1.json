@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "name": "manipulation_ppo_v1",
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "env_id": "PickCube-v1",
+      "total_timesteps": 50000000,
+      "num_envs": 4096,
+      "num_steps": 4,
+      "num_eval_steps": 50,
+      "control_mode": "pd_joint_delta_pos"
+    },
+    {
+      "env_id": "PickSingleYCB-v1",
+      "total_timesteps": 50000000,
+      "num_envs": 4096,
+      "num_steps": 16,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos"
+    },
+    {
+      "env_id": "UnitreeG1PlaceAppleInBowl-v1",
+      "total_timesteps": 50000000,
+      "num_envs": 1024,
+      "num_steps": 32,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "collision_stack_size": 268435456
+    }
+  ],
+  "num_eval_envs": 16,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "checkpoint_freq": 25,
+  "learning_rate": 0.0003,
+  "gamma": 0.8,
+  "gae_lambda": 0.9
+}

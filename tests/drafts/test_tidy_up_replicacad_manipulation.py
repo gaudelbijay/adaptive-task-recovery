@@ -34,10 +34,11 @@ class TestRealPickAndPlace:
             agent = env.unwrapped.agent
             obj = env.unwrapped._get_actor("potted_meat_can")
             goal = Goal(id="place_can", predicate="on_tray", target_object="potted_meat_can", priority=0)
+            tray_slot = _TRAY_POSITION + np.array([0.1, 0.0, 0.0])
 
             assert not agent.is_grasping(obj)  # sanity: not grasping before we start
 
-            result = attempt_goal_with_real_grasp(env, goal, _TRAY_POSITION)
+            result = attempt_goal_with_real_grasp(env, goal, tray_slot)
 
             assert result["grasped"]
             assert result["carried"]
@@ -49,6 +50,7 @@ class TestRealPickAndPlace:
             final_pos = obj.pose.sp.p
             for axis in range(3):
                 assert abs(final_pos[axis] - _TRAY_POSITION[axis]) <= _TRAY_HALF_SIZES[axis]
+            assert abs(final_pos[0] - tray_slot[0]) < 0.08
         finally:
             env.close()
 

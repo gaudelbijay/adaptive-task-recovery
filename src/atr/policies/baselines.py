@@ -104,6 +104,7 @@ def naive_substitution_policy(
     use_intent_guard: bool = False,
     settle_steps: int = 0,
     settle_action: np.ndarray | None = None,
+    predict_goal_effects_fn: Callable | None = None,
 ) -> dict:
     """The "invalid agent" from docs/01's own worked example: rather than
     accepting an infeasible goal, substitutes an unrequested object --
@@ -133,6 +134,20 @@ def naive_substitution_policy(
     for i, goal in enumerate(graph.goals):
         state = env.unwrapped._world_state()
         if goal_feasible(goal, state):
+            if use_intent_guard and predict_goal_effects_fn is not None:
+                affected_objects = frozenset(predict_goal_effects_fn(env, goal))
+                allowed, reason = validate_action(
+                    goal.target_object, graph, state=state,
+                    affected_objects=affected_objects,
+                )
+                if not allowed:
+                    per_goal[goal.id] = {
+                        "achieved": False, "steps_used": 0, "skipped": True,
+                        "substitution_attempted": False,
+                        "blocked_reason": reason,
+                        "predicted_affected_objects": sorted(affected_objects),
+                    }
+                    continue
             per_goal[goal.id] = attempt_goal_fn(env, goal, tray_slots[i])
             continue
 
