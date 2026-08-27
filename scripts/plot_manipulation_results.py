@@ -43,9 +43,10 @@ def main() -> None:
     axes = np.atleast_1d(axes)
     for axis, experiment in zip(axes, experiments, strict=True):
         env_id = experiment["env_id"]
+        method = experiment.get("method", env_id)
         curves = []
         for seed in config["seeds"]:
-            path = root / env_id / f"seed_{seed}" / "metrics.jsonl"
+            path = root / method / f"seed_{seed}" / "metrics.jsonl"
             records = _records(path)
             x = np.asarray([record["global_step"] for record in records], dtype=float) / 1e6
             y = np.asarray([
@@ -62,12 +63,27 @@ def main() -> None:
         values = np.stack([y for _, y in curves])
         axis.plot(common_x, np.nanmean(values, axis=0), color="black", linewidth=2, label="seed mean")
         if aggregate is not None:
-            result = next(item for item in aggregate["environments"] if item["env_id"] == env_id)
+            result = next(
+                item for item in aggregate["environments"]
+                if item.get("method", item["env_id"]) == method
+            )
             heldout = result["pooled_success_rate"]
             low, high = result["pooled_success_wilson_95"]
-            axis.axhline(heldout, color="#c23b22", linestyle="--", linewidth=1.5, label="held-out pooled")
+            axis.axhline(heldout, color="#c23b22", linestyle="--", linewidth=1.5, label="held-out raw")
             axis.fill_between([common_x.min(), common_x.max()], low, high, color="#c23b22", alpha=0.10)
-        axis.set_title(env_id.replace("-v1", ""))
+            if result.get("pooled_safe_success_rate") is not None:
+                safe = result["pooled_safe_success_rate"]
+                safe_low, safe_high = result["pooled_safe_success_wilson_95"]
+                axis.axhline(
+                    safe, color="#218739", linestyle=":", linewidth=1.8,
+                    label="held-out safe",
+                )
+                axis.fill_between(
+                    [common_x.min(), common_x.max()], safe_low, safe_high,
+                    color="#218739", alpha=0.08,
+                )
+        title = method.removesuffix("_ppo").replace("_", " ")
+        axis.set_title(title if method != env_id else env_id.replace("-v1", ""))
         axis.set_xlabel("Environment transitions (millions)")
         axis.set_ylim(-0.03, 1.03)
         axis.grid(alpha=0.2)
