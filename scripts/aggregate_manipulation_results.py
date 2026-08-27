@@ -90,6 +90,14 @@ def main() -> None:
                         "success_rate": float(np.mean([
                             _metric_success_record(episode) for episode in branch
                         ])),
+                        "constraint_violation_rate": float(np.mean([
+                            episode.get("constraint_violated", 0.0) for episode in branch
+                        ])),
+                        "safe_success_rate": float(np.mean([
+                            _metric_success_record(episode)
+                            and episode.get("constraint_violated", 0.0) < 0.5
+                            for episode in branch
+                        ])),
                     }
         environments.append({
             "env_id": env_id,
@@ -133,6 +141,14 @@ def main() -> None:
             subset = [record for record in nominal_records if record.get("method") == method]
             successes = sum(record["successes"] for record in subset)
             trials = sum(record["success_trials"] for record in subset)
+            episodes_raw = [
+                episode for record in subset for episode in record.get("episode_records", [])
+            ]
+            safe_successes = sum(
+                _metric_success_record(episode)
+                and episode.get("constraint_violated", 0.0) < 0.5
+                for episode in episodes_raw
+            )
             payload["nominal_condition"].append({
                 "method": method,
                 "seeds": len(subset),
@@ -140,6 +156,18 @@ def main() -> None:
                 "successes": successes,
                 "pooled_success_rate": successes / trials,
                 "pooled_success_wilson_95": _wilson(successes, trials),
+                "constraint_violation_rate": (
+                    float(np.mean([
+                        episode.get("constraint_violated", 0.0) for episode in episodes_raw
+                    ])) if episodes_raw else None
+                ),
+                "safe_successes": safe_successes if episodes_raw else None,
+                "pooled_safe_success_rate": (
+                    safe_successes / len(episodes_raw) if episodes_raw else None
+                ),
+                "pooled_safe_success_wilson_95": (
+                    _wilson(safe_successes, len(episodes_raw)) if episodes_raw else None
+                ),
             })
     # Recovery configs store per-episode records and use common held-out reset
     # seeds across methods. Report paired adaptive-policy effects in addition
