@@ -40,6 +40,29 @@ treated as a common leaderboard.
 - **ReAct** interleaves reasoning with environment actions in interactive text
   domains. It supports the closed-loop motivation but is not a physical
   manipulation or formal intent-constraint baseline.
+- **RecoveryChaining** learns a local recovery policy that returns a failed
+  manipulation system to a state where nominal model-based controllers can
+  resume. It is the closest learned-control recovery comparator. ATR's
+  integrated benchmark instead makes an exogenous change permanently remove a
+  language goal, so correct behavior may be to abandon that goal and complete
+  the feasible suffix rather than restore the nominal trajectory.
+- **REFLECT** turns multimodal execution histories into failure explanations
+  that guide corrective high-level plans. It assumes the rest of the
+  environment remains static and identifies low-level control failure as a
+  limitation; ATR isolates persistent external changes and trains the
+  continuous policy directly, but does not yet provide REFLECT's open-ended
+  explanation interface.
+- **Autonomous Interactive Correction** uses interaction feedback to correct
+  low-level SE(3) contact-pose predictions for articulated objects. It is a
+  corrective-control comparator, while ATR evaluates ordered multi-goal
+  completion after a goal becomes infeasible and a protected object must not
+  move.
+- **Failure-Aware RL / FailureBench** combines a safety critic with an offline
+  recovery policy to reduce intervention-requiring failures during real-world
+  online RL. Its safety/recovery framing is directly relevant; ATR's current
+  evidence is simulation-only and instead reports an explicit hard-constraint
+  violation rate and safety-qualified task success under a controlled
+  irreversible intervention.
 
 ## Vision-language embodied agents
 
@@ -103,6 +126,21 @@ their link to those constraints.
 This table is a task-definition comparison, not a claim that ATR outperforms
 these systems on their published benchmarks. The quantitative comparisons in
 this repository use identical ATR cases, paired seeds, and common evaluators.
+
+## Recovery-system comparison
+
+| System | Recovery unit | Failure/change | Low-level control | Explicit protected-object metric |
+|---|---|---|---:|---:|
+| Inner Monologue | LLM replanning | Execution feedback | Pretrained skills | No |
+| REFLECT | Explanation + replan | Execution/planning failure | Existing skills | No |
+| RecoveryChaining | Learned local policy + nominal options | Nominal-controller failure | Yes | No |
+| Autonomous Interactive Correction | Corrected contact pose | Articulated interaction failure | Pose execution | No |
+| Failure-Aware RL | Safety critic + recovery policy | Intervention-requiring failure | Yes | No (IR-failure metric) |
+| ATR integrated learned recovery | One language-conditioned PPO policy | Persistent exogenous goal loss | Yes | Yes |
+
+The last row describes the frozen experiment contract. Its numerical entry is
+added to the result index only after all three seeds and the independent
+held-out evaluation complete.
 
 ## Literature-review protocol
 

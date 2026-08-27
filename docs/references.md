@@ -48,13 +48,29 @@ coverage.
   https://github.com/mani-skill/ManiSkill/blob/v3.0.0b22/examples/baselines/ppo/baselines.sh.
   The authors' baseline learning-curve report is
   https://wandb.ai/stonet2000/ManiSkill/reports/PPO-Results--VmlldzoxMDQzNDMzOA
+- Vats, S., Jha, D. K., Likhachev, M., Kroemer, O., and Romeres, D. (2025).
+  *RecoveryChaining: Learning Local Recovery Policies for Robust
+  Manipulation*. arXiv:2410.13979. https://arxiv.org/abs/2410.13979
+- Liu, J., et al. (2023). *REFLECT: Summarizing Robot Experiences for Failure
+  Explanation and Correction*. CoRL 2023.
+  https://openreview.net/forum?id=46A8MZidbn
+- Xiong, C., et al. (2024). *Autonomous Interactive Correction MLLM for Robust
+  Robotic Manipulation*. CoRL 2024.
+  https://openreview.net/forum?id=S8jQtafbT3
+- Li, H., et al. (2026). *Failure-Aware RL: Reliable Offline-to-Online
+  Reinforcement Learning with Self-Recovery for Real-World Manipulation*.
+  arXiv:2601.07821. https://arxiv.org/abs/2601.07821
 
 ## Comparison notes
 
 SayCan supplies the feasibility-grounded skill-selection comparison; Inner
 Monologue supplies the feedback-driven replanning comparison; KnowNo supplies
 the calibrated-abstention comparison; shielding supplies the hard-constraint
-comparison; and PPO/ManiSkill supply the real-control learning comparison.
+comparison; RecoveryChaining supplies the closest learned local-recovery
+comparison; REFLECT and Autonomous Interactive Correction supply failure-
+explanation and corrective-control comparisons; Failure-Aware RL supplies the
+closest safety-critic/recovery-policy comparison; and PPO/ManiSkill supply the
+real-control learning comparison.
 Because their embodiments, observations, goals, and success definitions differ,
 published success percentages must not be placed beside ATR numbers as if they
 were measured on a shared test set.
