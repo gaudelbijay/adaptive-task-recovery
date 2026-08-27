@@ -321,13 +321,19 @@ def main() -> None:
         writer.writerow([
             "method", "environment", "training_seeds", "heldout_episodes", "successes",
             "pooled_success_rate", "wilson_95_low", "wilson_95_high",
-            "seed_success_mean", "seed_success_std",
+            "seed_success_mean", "seed_success_std", "constraint_violation_rate",
+            "safe_successes", "pooled_safe_success_rate", "safe_wilson_95_low",
+            "safe_wilson_95_high", "seed_safe_success_mean", "seed_safe_success_std",
         ])
         for result in environments:
+            safe_interval = result["pooled_safe_success_wilson_95"] or [None, None]
             writer.writerow([
                 result["method"], result["env_id"], result["seeds"], result["episodes"], result["successes"],
                 result["pooled_success_rate"], *result["pooled_success_wilson_95"],
                 result["seed_success_mean"], result["seed_success_std"],
+                result["constraint_violation_rate"], result["safe_successes"],
+                result["pooled_safe_success_rate"], *safe_interval,
+                result["seed_safe_success_mean"], result["seed_safe_success_std"],
             ])
     os.replace(temporary, csv_path)
     print(json.dumps(payload, indent=2, sort_keys=True))
