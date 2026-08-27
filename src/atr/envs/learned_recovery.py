@@ -112,8 +112,8 @@ class LearnedRecoveryEnv(BaseEnv):
             self.scene, [0.025, 0.042, 0.025], [0.25, 0.25, 0.25, 1], "blue_sweeper",
             initial_pose=sapien.Pose(p=[-0.16, 0.12, 0.025]),
         )
-        self.protected = actors.build_cylinder(
-            self.scene, radius=0.022, half_length=0.055,
+        self.protected = actors.build_box(
+            self.scene, half_sizes=[0.022, 0.022, 0.055],
             color=[0.95, 0.8, 0.05, 1], name="protected_object",
             initial_pose=sapien.Pose(p=[0.08, 0.0, 0.055]),
         )

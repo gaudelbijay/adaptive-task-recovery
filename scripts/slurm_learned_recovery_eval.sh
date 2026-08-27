@@ -17,7 +17,7 @@ export CUDA_CACHE_PATH="${ATR_NODE_CACHE}/cuda"
 export XDG_CACHE_HOME="${ATR_NODE_CACHE}/xdg"
 export PYTHONUNBUFFERED=1
 
-ATR_RECOVERY_CONFIG="${ATR_RECOVERY_CONFIG:-configs/learned_recovery_ppo_v1.json}"
+ATR_RECOVERY_CONFIG="${ATR_RECOVERY_CONFIG:-configs/learned_recovery_ppo_v2.json}"
 ATR_RECOVERY_OUTPUT="${ATR_RECOVERY_OUTPUT:-results/learned_recovery}"
 ATR_PYTHON="${ATR_PYTHON:-.venv/bin/python}"
 

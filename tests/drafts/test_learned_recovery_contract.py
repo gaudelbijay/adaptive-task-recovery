@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 ENVIRONMENT = ROOT / "src/atr/envs/learned_recovery.py"
-CONFIG = ROOT / "configs/learned_recovery_ppo_v1.json"
+CONFIG = ROOT / "configs/learned_recovery_ppo_v2.json"
 
 
 def test_pose_assignment_is_reset_only():
@@ -68,6 +68,8 @@ def test_runtime_step_rejects_any_pose_assignment(monkeypatch):
             raise AssertionError("actor pose assignment occurred after reset")
 
         monkeypatch.setattr(Actor, "set_pose", forbidden)
-        env.step(env.action_space.sample() * 0)
+        for _ in range(5):
+            _, _, _, _, info = env.step(env.action_space.sample() * 0)
+        assert not bool(info["constraint_violated"].item())
     finally:
         env.close()

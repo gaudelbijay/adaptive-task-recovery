@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "name": "learned_recovery_ppo_v1",
+  "name": "learned_recovery_ppo_v2",
   "seeds": [9351, 4796, 1788],
   "experiments": [
     {
