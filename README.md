@@ -74,6 +74,27 @@ checkpoint. Intervals below are pooled 95% Wilson intervals.
 | PickSingleYCB-v1 | **530/768 — 69.01%** [65.65%, 72.18%] |
 | UnitreeG1PlaceAppleInBowl-v1 | **767/768 — 99.87%** [99.27%, 99.98%] |
 
+The integration gap is now tested directly in one non-teleport Fetch episode.
+One parsed instruction asks for the can and cracker box while protecting the
+master-chef can; the cracker is irreversibly removed during physical can
+execution. A fixed RGB change detector feeds a reward-trained Q policy, the
+intent/navigation guard screens accepted actions, and the contact-verified
+Fetch controller executes them. Thirty paired seeds per policy give:
+
+| Integrated Fetch policy | Achievable can completion | Wasted physical steps | Violations |
+|---|---:|---:|---:|
+| Static | 63.3% [46.7%, 80.0%] | 461.6 [370.4, 552.9] | 0/30 |
+| Privileged oracle | 60.0% [43.3%, 76.7%] | 191.6 [111.8, 271.4] | 0/30 |
+| **Visual learned + guard** | **76.7%** [60.0%, 90.0%] | **111.8** [47.9, 191.6] | **0/30** |
+
+Visual feasibility is 30/30 for every policy and the audit records zero
+teleport calls across all 90 episodes. Learned versus static wasted-step
+difference is **−349.9** (paired-bootstrap 95% CI **[−470.8, −226.8]**).
+More directly, static continuation spends 285.9 steps on the destroyed goal
+[274.6, 297.3], while oracle and learned spend exactly 0.
+The completion difference is not statistically resolved, so the supported
+claim is recovery efficiency at matched safety—not higher completion.
+
 **How this held together:** every comparison is paired-seed and bootstrapped
 (docs/10's predeclared protocol, used consistently); every required baseline
 (domain-randomized, symbolic replanner, imitation learning, frame-difference
@@ -85,7 +106,7 @@ calibration that didn't transfer, a hypothesis that only holds conditionally,
 a config value that never did what its own comment claimed, all reported as
 found, with the fix or the disclosed gap next to it.
 
-**Three capabilities beyond the five hypotheses, each separately scoped:**
+**Four capabilities beyond the five hypotheses, each separately scoped:**
 
 - **Real pick-and-place on Fetch** (D-124, D-130): navigate, reach with real closed-
   loop inverse kinematics, grasp with a real contact-force check
@@ -116,15 +137,23 @@ found, with the fix or the disclosed gap next to it.
   99.87% for Unitree G1 apple-in-bowl (767/768). This establishes continuous
   control on those tasks; it does not imply transfer to the Fetch apartment or
   turn the abstract adaptation benchmark into physical manipulation.
+- **Integrated non-teleport recovery** (D-134): parsed language, fixed-camera
+  RGB change detection, a Q policy trained through the physical Fetch
+  executor, intent/navigation guarding, an irreversible object removal, and
+  contact-verified can manipulation now run in one episode. The learned policy
+  significantly reduces wasted execution relative to static continuation.
+  The RGB detector is calibrated to one object/view and the low-level Fetch
+  skill is scripted, not a learned motor policy.
 
 **What's still genuinely open:** collision geometry in the high-level safety
 screen is still spheres and points, not full robot/object meshes; CLIP
 calibration is scene-specific and does not transfer automatically; the Fetch
-controller has not solved the bowl grasp or the complete two-object physical
-task; everything is simulation-only, with no real-robot result; and the
-standard-task PPO policies do not yet combine language-conditioned recovery,
-irreversible-change adaptation, and continuous control in one system. These
-are disclosed scope, not paper claims.
+controller has not solved the bowl grasp or a task where both requested Fetch
+objects remain achievable; everything is simulation-only, with no real-robot
+result; and the integrated pipeline uses a calibrated frame-difference signal
+plus a scripted low-level Fetch skill rather than a self-supervised visual
+encoder plus learned continuous motor policy. These are disclosed scope, not
+paper claims.
 
 ### What this project does not claim
 
@@ -149,8 +178,9 @@ they do not include ATR's language goals, interventions, or Fetch apartment.
   verified with the project's own `goal_achieved()` check, not a custom one,
   in 10/10 sequential episodes.
 - **What isn't (yet):** the scripted bowl grasp failed in all 10 episodes, so
-  the complete two-object physical task remains unsolved. This controller
-  isn't wired into any policy the H1–H5 results depend on, and doesn't cover
+  the complete two-achievable-object physical task remains unsolved. D-134
+  wires this controller into a separate integrated recovery policy, but it
+  does not retroactively change the H1–H5 benchmarks and doesn't cover
   the humanoid embodiment — a real analytic-Jacobian IK check there
   (`src/atr/control/ik_solver.py`) found, and kept as a disclosed regression
   test rather than hidden, that neither goal object is within true contact

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "experiment": "nonteleport_fetch_v1",
+  "instruction": "Put the potted meat can and the cracker box on the table, and do not move the master chef can.",
+  "environment": "TidyUp-ReplicaCAD-v1",
+  "control_mode": "pd_ee_delta_pos",
+  "intervention": "cracker_box_destroyed",
+  "intervention_onset_step_range": [5, 6],
+  "executor": "attempt_goal_with_real_grasp",
+  "teleport_allowed": false,
+  "decision_training_episodes": 30,
+  "decision_training_seed": 0,
+  "decision_failure_reward": -0.1,
+  "never_move_tolerance_m": 0.05,
+  "physical_evaluation_seeds": 30,
+  "policies": ["static", "oracle", "visual_learned_guarded"],
+  "visual_detector": {
+    "kind": "fixed_camera_rgb_mean_absolute_change",
+    "crop_y0_y1_x0_x1": [128, 384, 128, 384],
+    "calibration_seeds_per_class": 5,
+    "max_intact_score": 1.1785379648208618,
+    "min_destroyed_score": 2.283198118209839,
+    "frozen_threshold": 1.7308680415153503
+  },
+  "primary_metrics": [
+    "achievable_goal_completion",
+    "wasted_steps",
+    "destroyed_goal_wasted_steps",
+    "constraint_violations",
+    "visual_feasibility_accuracy"
+  ]
+}

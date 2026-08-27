@@ -60,6 +60,40 @@ split. The privileged mechanism-ID policy collapses on unseen identities,
 while the blind policy sacrifices recall to avoid waste. This is evidence
 about representation and reward behavior, not evidence of general robot skill.
 
+## Integrated non-teleport Fetch recovery
+
+This is the first experiment that combines the ATR components in one physical
+episode rather than evaluating decision and manipulation tracks separately. A
+parsed instruction requests the potted-meat can and cracker box while protecting
+the master-chef can. The cracker is irreversibly removed during real can
+execution. A fixed-camera RGB change score supplies feasibility, a physically
+trained Q table chooses attempt/skip, the intent/navigation guard screens the
+action, and `attempt_goal_with_real_grasp()` performs real navigation, IK,
+contact-verified grasp, carry, and release. The module never imports the
+teleport executor.
+
+| Policy | Achievable can completion | Wasted steps | Violations |
+|---|---:|---:|---:|
+| Static | 0.633 [0.467, 0.800] | 461.6 [370.4, 552.9] | 0.000 [0.000, 0.000] |
+| Privileged oracle | 0.600 [0.433, 0.767] | 191.6 [111.8, 271.4] | 0.000 [0.000, 0.000] |
+| Visual learned + guard | 0.767 [0.600, 0.900] | 111.8 [47.9, 191.6] | 0.000 [0.000, 0.000] |
+
+The RGB classifier is correct in 30/30 intervention episodes per policy and
+the 90-record audit sums to zero teleport calls. Visual learned minus static
+wasted steps is -349.9 with paired-bootstrap interval [-470.8, -226.8]. Its
+destroyed-goal-only waste is 0.0 versus static's 285.9 [274.6, 297.3], which
+isolates adaptation from stochastic failures of the shared can controller. Its
+completion difference is +0.133 with interval [-0.100, +0.367], so completion
+improvement is not claimed. Physical can outcomes are simulator-stochastic
+even under paired seeds; this makes the efficiency result stronger than a
+raw comparison of unpaired success percentages.
+
+This closes the integration gap only at a hierarchical level. Perception is a
+scene/object-calibrated frame-difference detector, the learned component is a
+two-action high-level Q table, and the low-level motor skill remains scripted.
+The destroyed second object means the experiment measures valid partial
+completion, not two-object physical success.
+
 ## Continuous non-teleport manipulation
 
 Three-seed, 50M-transition PPO runs use ManiSkill's official task-specific
@@ -82,13 +116,14 @@ checkpoint-continuation checks exited successfully, and all nine held-out
 evaluations reported every requested success trial. The G1 runs use an
 explicit 256 MiB PhysX collision stack; their complete native logs contain
 zero overflow diagnostics. Partial 4 MiB, 16 MiB, and 64 MiB G1 runs are
-quarantined and excluded. The full repository validation is 345 passed and
+quarantined and excluded. The latest full repository validation is 348 passed and
 zero failed across four deterministic, disjoint test-file shards.
 
 These standard-task results establish learned continuous manipulation without
-ATR's teleport executor. They do not establish adaptation after irreversible
-changes, language conditioning, visual-policy learning, or transfer to the
-Fetch ReplicaCAD task. Exact numerical ranking against ManiSkill's published
+ATR's teleport executor. The separate integrated Fetch result above establishes
+hierarchical adaptation, but these PPO checkpoints themselves do not establish
+adaptation after irreversible changes, language conditioning, or transfer to
+the Fetch ReplicaCAD task. Exact numerical ranking against ManiSkill's published
 curves is also avoided because this run uses the readable PPO implementation,
 a separately declared held-out protocol, and no CUDA-graph optimization.
 

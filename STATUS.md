@@ -5,6 +5,17 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
+**Latest integrated result (D-134, 2026-08-27):** the project now runs parsed
+language, RGB change perception, a reward-trained adaptive Q policy, the
+intent/navigation guard, an irreversible intervention, and contact-verified
+Fetch pick/carry/place in one non-teleport episode. A 30-seed paired evaluation
+per policy (90 physical episodes) records 100% visual feasibility accuracy,
+0/90 violations, zero teleport calls, and 349.9 fewer wasted steps for visual
+learned + guard versus static continuation (95% paired-bootstrap CI 226.8--
+470.8 fewer). Completion improvement is not claimed because its CI crosses
+zero. The low-level Fetch controller is scripted and the destroyed second goal
+is skipped; learned continuous motor adaptation remains open.
+
 **Phase:** Phase 0 — simulator selected, core schema accepted and promoted to `src/atr/`.
 
 The project now studies whether a robot can tell when something it was asked

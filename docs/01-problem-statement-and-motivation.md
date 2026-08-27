@@ -410,6 +410,19 @@ seed-varying benchmark. `static` vs `oracle_feasibility`, 30 paired seeds,
 camera is mobile, not fixed, so it has no CLIP calibration at all — running
 `full_agent` here is a distinct, larger piece of work, not a natural
 extension of this check.
+**Closed the physical-integration gap, 2026-08-27 (D-134):** a separate
+fixed-camera Fetch task now combines parsed language, RGB change perception,
+reward-trained high-level Q adaptation, the intent/navigation guard, an
+irreversible cracker-box removal, and contact-verified physical can
+pick/carry/place without importing the teleport executor. Across 30 paired
+seeds per policy, visual learned + guard reduces wasted physical steps by
+349.9 relative to static continuation (95% paired-bootstrap interval 226.8--
+470.8 fewer), with 0/90 violations and zero teleport calls. Achievable-can
+completion is not claimed to improve because its paired interval crosses
+zero. This strengthens H1/H2's decision-consequence evidence but does not
+replace H3's dedicated guarded/unguarded safety ablations. Scope remains
+hierarchical: a calibrated frame-difference detector and high-level Q table
+sit above a scripted low-level Fetch skill.
 
 ## Threats to validity
 

@@ -2,6 +2,42 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-134: Combine adaptation and physical execution without teleporting
+
+- **Date:** 2026-08-27
+- **Status:** Accepted; 30-seed paired run complete
+- **Decision:** Freeze one ReplicaCAD Fetch task that parses two requested
+  objects plus a hard never-move constraint, removes the visible cracker box
+  irreversibly during physical can execution, derives feasibility from a
+  calibrated fixed-camera RGB change score, selects attempt/skip with a
+  reward-trained Q table, screens actions with the intent/navigation guard,
+  and executes with contact-verified physical grasp/carry/release. Compare
+  static, privileged oracle, and visual-learned-guarded policies on 30 paired
+  seeds. The integrated module must not import the teleport executor.
+- **Reason:** Prior ATR decision results used teleport-on-success, while prior
+  non-teleport manipulation results did not include language, intervention,
+  perception, learned adaptation, and intent preservation in one episode.
+- **Consequences:** Calibration cleanly separates intact RGB change scores
+  (1.154--1.179) from destroyed scores (2.2832), freezing threshold 1.730868.
+  Physical Q training converges to attempt the can (0.999906) and skip the
+  missing cracker (attempt value -0.083193). Across 90 physical episodes,
+  visual feasibility is 100%, violations are 0/90, and teleport calls are
+  0. Visual learned + guard reduces wasted steps by 349.9 relative to static
+  continuation, paired-bootstrap 95% CI 226.8--470.8 fewer steps.
+  Static spends 285.9 steps on the destroyed goal alone (95% CI 274.6--297.3),
+  while learned and oracle spend zero, separating recovery behavior from shared
+  can-controller stochasticity. Completion is 76.7% versus 63.3%, but its
+  paired CI crosses zero and is not claimed as
+  an improvement. Failed bowl/duplicate-cracker camera calibrations, an
+  invalid unnormalized physical reward checkpoint, and a too-tight generic
+  2 cm settling tolerance remain preserved as audit findings. The accepted
+  task uses the established Fetch 5 cm never-move tolerance. This is
+  hierarchical integration: RGB change and high-level Q are learned/decision
+  components; the low-level motor controller is scripted, and the second goal
+  is destroyed rather than physically completed. Four disjoint final-tree
+  validation shards completed 348 tests with zero failures (jobs 1138890--
+  1138893).
+
 ## D-133: README media must replay real frozen policies, not illustrative animation
 
 - **Date:** 2026-08-27

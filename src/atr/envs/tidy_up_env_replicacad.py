@@ -65,6 +65,8 @@ import numpy as np
 import torch
 
 from mani_skill.envs.scenes.base_env import SceneManipulationEnv
+from mani_skill.sensors.camera import CameraConfig
+from mani_skill.utils import sapien_utils
 from mani_skill.utils.registration import register_env
 
 from atr.language.goal_graph import Constraint, Goal, GoalGraph
@@ -129,10 +131,27 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
 
     SUPPORTED_ROBOTS = ["fetch"]
 
+    @property
+    def _default_human_render_camera_configs(self):
+        """Fixed intervention camera used by the non-teleport pipeline.
+
+        Fetch's ordinary camera follows its mobile base, so a before/after
+        pixel comparison would mostly measure navigation.  This fixed view
+        observes the recovery-object work surface independently of robot motion.  It is
+        a sensor only: policy code still receives pixels, never actor state.
+        """
+        # The scene contains multiple visually identical cracker-box actors.
+        # Aim at the exact task alias's calibrated position, not the nearer
+        # duplicate visible from the bowl work surface.
+        pose = sapien_utils.look_at([3.15, -1.25, 1.25], [3.72, -0.62, 0.52])
+        return CameraConfig("render_camera", pose, 512, 512, 1, 0.01, 100)
+
     def __init__(
         self,
         *args,
-        intervention_kind: Literal["bowl_destroyed", "temporary_obstacle", "none"] = "bowl_destroyed",
+        intervention_kind: Literal[
+            "bowl_destroyed", "cracker_box_destroyed", "temporary_obstacle", "none"
+        ] = "bowl_destroyed",
         onset_step_range: tuple[int, int] = (2, 3),
         obstacle_duration_steps: int = 20,
         **kwargs,
@@ -226,6 +245,10 @@ class TidyUpReplicaCADEnv(SceneManipulationEnv):
         if self.intervention_kind == "bowl_destroyed":
             self._get_actor("bowl").remove_from_scene()
             self._exists["bowl"] = False
+        elif self.intervention_kind == "cracker_box_destroyed":
+            self._get_actor("cracker_box").remove_from_scene()
+            self._exists["cracker_box"] = False
+            self.scene.update_render()
         elif self.intervention_kind == "temporary_obstacle":
             import sapien
 
