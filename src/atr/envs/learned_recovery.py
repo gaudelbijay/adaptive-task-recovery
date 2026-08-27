@@ -51,6 +51,7 @@ class LearnedRecoveryEnv(BaseEnv):
         oracle_observation: bool = False,
         terminate_on_violation: bool = False,
         safety_proximity_weight: float = 0.0,
+        constraint_violation_penalty: float = 5.0,
         robot_init_qpos_noise: float = 0.02,
         **kwargs,
     ):
@@ -63,6 +64,7 @@ class LearnedRecoveryEnv(BaseEnv):
         self.oracle_observation = bool(oracle_observation)
         self.terminate_on_violation = bool(terminate_on_violation)
         self.safety_proximity_weight = float(safety_proximity_weight)
+        self.constraint_violation_penalty = float(constraint_violation_penalty)
         self.robot_init_qpos_noise = float(robot_init_qpos_noise)
         self._episode_step = None
         self._onset_step = None
@@ -299,7 +301,7 @@ class LearnedRecoveryEnv(BaseEnv):
         )
         proximity_risk = torch.clamp((0.12 - tcp_clearance) / 0.12, min=0.0)
         reward -= self.safety_proximity_weight * proximity_risk
-        reward -= 5.0 * self._constraint_violated.float()
+        reward -= self.constraint_violation_penalty * self._constraint_violated.float()
         reward[info["success"]] = 10.0
         return reward
 

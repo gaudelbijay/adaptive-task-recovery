@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 ENVIRONMENT = ROOT / "src/atr/envs/learned_recovery.py"
 CONFIG = ROOT / "configs/learned_recovery_ppo_v2.json"
-SAFE_CONFIG = ROOT / "configs/learned_recovery_ppo_v5.json"
+SAFE_CONFIG = ROOT / "configs/learned_recovery_ppo_v6.json"
 
 
 def test_pose_assignment_is_reset_only():
@@ -58,7 +58,8 @@ def test_safe_followup_is_matched_and_annealed():
     assert len(config["experiments"]) == 3
     for experiment in config["experiments"]:
         assert experiment["env_kwargs"]["terminate_on_violation"] is True
-        assert experiment["env_kwargs"]["safety_proximity_weight"] == 2.0
+        assert experiment["env_kwargs"]["safety_proximity_weight"] == 5.0
+        assert experiment["env_kwargs"]["constraint_violation_penalty"] == 20.0
         assert experiment["total_timesteps"] == 100_000_000
 
 

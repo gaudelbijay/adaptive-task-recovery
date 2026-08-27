@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "name": "learned_recovery_ppo_v5",
+  "name": "learned_recovery_ppo_v6",
   "seeds": [9351, 4796, 1788],
   "experiments": [
     {
@@ -12,8 +12,8 @@
       "num_steps": 32,
       "num_eval_steps": 200,
       "control_mode": "pd_joint_delta_pos",
-      "env_kwargs": {"intervention_probability": 0.5, "terminate_on_violation": true, "safety_proximity_weight": 2.0},
-      "eval_env_kwargs": {"intervention_probability": 1.0, "terminate_on_violation": true, "safety_proximity_weight": 2.0}
+      "env_kwargs": {"intervention_probability": 0.5, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0},
+      "eval_env_kwargs": {"intervention_probability": 1.0, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0}
     },
     {
       "method": "safe_privileged_oracle_ppo",
@@ -24,8 +24,8 @@
       "num_steps": 32,
       "num_eval_steps": 200,
       "control_mode": "pd_joint_delta_pos",
-      "env_kwargs": {"intervention_probability": 0.5, "oracle_observation": true, "terminate_on_violation": true, "safety_proximity_weight": 2.0},
-      "eval_env_kwargs": {"intervention_probability": 1.0, "oracle_observation": true, "terminate_on_violation": true, "safety_proximity_weight": 2.0}
+      "env_kwargs": {"intervention_probability": 0.5, "oracle_observation": true, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0},
+      "eval_env_kwargs": {"intervention_probability": 1.0, "oracle_observation": true, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0}
     },
     {
       "method": "safe_no_intervention_training_ppo",
@@ -36,8 +36,8 @@
       "num_steps": 32,
       "num_eval_steps": 200,
       "control_mode": "pd_joint_delta_pos",
-      "env_kwargs": {"intervention_probability": 0.0, "terminate_on_violation": true, "safety_proximity_weight": 2.0},
-      "eval_env_kwargs": {"intervention_probability": 1.0, "terminate_on_violation": true, "safety_proximity_weight": 2.0}
+      "env_kwargs": {"intervention_probability": 0.0, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0},
+      "eval_env_kwargs": {"intervention_probability": 1.0, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0}
     }
   ],
   "num_eval_envs": 64,
