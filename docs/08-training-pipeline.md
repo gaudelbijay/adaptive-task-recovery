@@ -118,6 +118,33 @@ deterministic held-out episodes per training seed, and records Wilson intervals.
 `aggregate_manipulation_results.py` refuses to aggregate until all nine held-out
 artifacts exist.
 
+## Integrated learned-control recovery
+
+`configs/learned_recovery_ppo_v6.json` is the frozen experiment that removes
+the hierarchy between ATR's recovery decision and its motor controller. One
+Panda PPO policy receives the factorized two-goal instruction, continuous robot
+and scene state, and goal-progress memory. During the same episode, a dynamic
+sweeper physically removes either requested cube; the policy must resolve the
+ordered feasible suffix while keeping a protected object fixed. Actor pose
+assignment is confined to randomized reset. The intervention uses applied
+force and contact dynamics, and policy execution contains no teleport path.
+
+The matched three-seed comparison trains 100M requested transitions per seed:
+
+- adaptive PPO, trained with a 50/50 mix of nominal and intervention episodes;
+- privileged-oracle PPO, with the same training distribution plus explicit
+  unavailable-goal bits;
+- no-intervention-training PPO, trained only in nominal worlds and evaluated
+  under the same intervention as the other policies.
+
+All methods share PPO architecture, optimizer settings, continuous action
+space, safety shaping, and checkpoint budget. A protected-object displacement
+terminates an episode. Best checkpoints maximize validation success minus two
+times the validation failure rate, with return used only as a tiny tie-break.
+The Slurm script atomically saves model, optimizer, counters, and RNG state on
+`SIGUSR1` and automatically resubmits an incomplete run before Jarvis's 24-hour
+limit. No simulator state is claimed to survive a job boundary.
+
 ```bash
 mkdir -p results/slurm
 ATR_PYTHON=.venv/bin/python \

@@ -154,6 +154,24 @@ Predeclare primary metrics and splits. Use paired episode seeds across methods,
 bootstrap confidence intervals, and effect sizes. Correct or clearly label
 multiple exploratory comparisons. Publish per-seed results and failure cases.
 
+### Integrated learned-recovery protocol
+
+The frozen `learned_recovery_ppo_v6` evaluation loads the training-selected
+`best.pt` checkpoint and runs 256 deterministic held-out episodes per seed in
+each of two conditions: intervention probability 1.0 and nominal probability
+0.0. Evaluation seeds are disjoint from training and checkpoint selection.
+Methods with the same training seed receive common random numbers, enabling a
+paired bootstrap comparison over 768 episodes. Raw episode records are retained.
+
+The primary endpoint is **safe success**: ordered task success and no
+protected-object violation anywhere in the episode. Raw success and violation
+rate remain separate secondary metrics. Results are also stratified by whether
+the first requested goal or the second requested goal was physically removed;
+this prevents a policy that only handles the easy ordering from appearing to
+solve recovery. Nominal evaluation checks the cost of intervention training.
+The result is not promoted until all nine checkpoints, 4,608 held-out episodes,
+branch labels, and paired comparisons are complete.
+
 **Scaled execution (D-125):** the frozen v1 matrix and cluster workflow
 are specified in [`docs/11-scaled-experiments.md`](11-scaled-experiments.md).
 Unlike the original in-process harness, it uses content-addressed cases,
