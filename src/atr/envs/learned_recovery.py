@@ -50,6 +50,7 @@ class LearnedRecoveryEnv(BaseEnv):
         intervention_steps: int = 12,
         oracle_observation: bool = False,
         asymmetric_critic_observation: bool = False,
+        required_goals: int = 2,
         terminate_on_violation: bool = False,
         safety_proximity_weight: float = 0.0,
         constraint_violation_penalty: float = 5.0,
@@ -65,6 +66,9 @@ class LearnedRecoveryEnv(BaseEnv):
         self.intervention_steps = int(intervention_steps)
         self.oracle_observation = bool(oracle_observation)
         self.asymmetric_critic_observation = bool(asymmetric_critic_observation)
+        if required_goals not in (1, 2):
+            raise ValueError("required_goals must be 1 or 2")
+        self.required_goals = int(required_goals)
         self.terminate_on_violation = bool(terminate_on_violation)
         self.safety_proximity_weight = float(safety_proximity_weight)
         self.constraint_violation_penalty = float(constraint_violation_penalty)
@@ -248,7 +252,10 @@ class LearnedRecoveryEnv(BaseEnv):
         intervention_finished = self._episode_step >= (
             self._onset_step + self.intervention_steps
         )
-        success = resolved.all(dim=1) & intervention_finished & ~self._constraint_violated
+        rows = torch.arange(self.num_envs, device=self.device)
+        first_resolved = resolved[rows, self._instruction_first]
+        task_resolved = first_resolved if self.required_goals == 1 else resolved.all(dim=1)
+        success = task_resolved & intervention_finished & ~self._constraint_violated
         return {
             "success": success,
             "fail": self._constraint_violated & self.terminate_on_violation,

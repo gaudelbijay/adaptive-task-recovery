@@ -30,3 +30,9 @@ Failure of V1 blocks claims about recovery and triggers curriculum/teacher
 distillation rather than spending full recovery budgets on an incompetent
 controller. All final claims require held-out deterministic evaluation and
 per-seed reporting; training-time best metrics are only a selection diagnostic.
+
+The predeclared curriculum fallback changes only the number of goals required
+for termination during pretraining. It uses the same scene, camera, robot,
+continuous controller, reward components, randomization, and physical dynamics.
+The transferred policy is then optimized and evaluated with both ordered goals
+required; no curriculum result is reported as full-task success.

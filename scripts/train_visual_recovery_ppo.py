@@ -280,6 +280,20 @@ def main():
         start_iteration = int(checkpoint["iteration"]) + 1
         global_step, best_score = int(checkpoint["global_step"]), float(checkpoint["best_score"])
         best_metrics = dict(checkpoint["best_metrics"]); restore_rng(checkpoint["rng"])
+    elif task.get("init_checkpoint"):
+        initialization_path = Path(str(task["init_checkpoint"]).format(seed=seed))
+        if not initialization_path.exists():
+            raise FileNotFoundError(f"initialization checkpoint unavailable: {initialization_path}")
+        initialization = torch.load(initialization_path, map_location=device, weights_only=False)
+        if initialization.get("observation_contract") != "rgb_qpos_qvel_instruction_v1":
+            raise ValueError("initialization checkpoint has an incompatible observation contract")
+        agent.load_state_dict(initialization["agent"], strict=True)
+        (run_dir / "initialization.json").write_text(json.dumps({
+            "checkpoint": str(initialization_path),
+            "source_task": initialization["task"],
+            "source_iteration": int(initialization["iteration"]),
+            "source_global_step": int(initialization["global_step"]),
+        }, indent=2) + "\n", encoding="utf-8")
 
     n, t = int(task["num_envs"]), int(task["num_steps"])
     batch_size = n * t
