@@ -42,3 +42,8 @@ input from named training-only fields and behavior-clones its bounded commands.
 The RGB student is subsequently fine-tuned with PPO. This is reported as
 privileged training, never as pure visual RL; deployment and held-out evaluation
 still instantiate only the restricted visual actor.
+
+Only a full ordered-task checkpoint is eligible to initialize adaptive recovery.
+Recovery training samples physical interventions with probability 0.5 and model
+selection evaluates probability 1.0. Final held-out reports include both forced
+intervention and nominal conditions so adaptation and retention are separable.
