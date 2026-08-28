@@ -31,6 +31,7 @@ from torch.distributions import Normal
 import mani_skill.envs  # noqa: F401
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
+from mani_skill.utils.common import flatten_state_dict
 
 
 def layer_init(layer, std=np.sqrt(2), bias=0.0):
@@ -163,6 +164,27 @@ def extract_observation(obs, asymmetric):
     return rgb, proprio, critic
 
 
+def reconstruct_state_teacher_observation(obs):
+    """Rebuild the exact state-mode vector from explicitly named critic fields."""
+    extra = obs["extra"]
+    state = {
+        "agent": obs["agent"],
+        "extra": {
+            "tcp_pose": extra["tcp_pose"],
+            "instruction": extra["instruction"],
+            "goal_progress": extra["goal_progress"],
+            "red_cube_pose": extra["critic_red_cube_pose"],
+            "blue_cube_pose": extra["critic_blue_cube_pose"],
+            "red_goal_pos": extra["critic_red_goal_pos"],
+            "blue_goal_pos": extra["critic_blue_goal_pos"],
+            "red_sweeper_pose": extra["critic_red_sweeper_pose"],
+            "blue_sweeper_pose": extra["critic_blue_sweeper_pose"],
+            "protected_pose": extra["critic_protected_pose"],
+        },
+    }
+    return flatten_state_dict(state, use_torch=True)
+
+
 def atomic_save(payload, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}")
@@ -272,7 +294,8 @@ def main():
 
     latest_path, best_path = run_dir / "latest.pt", run_dir / "best.pt"
     start_iteration, global_step, best_score, best_metrics = 1, 0, float("-inf"), {}
-    if latest_path.exists():
+    resuming = latest_path.exists()
+    if resuming:
         checkpoint = torch.load(latest_path, map_location=device, weights_only=False)
         if checkpoint["task"] != task:
             raise ValueError("checkpoint task does not match immutable task configuration")
@@ -295,6 +318,60 @@ def main():
             "source_global_step": int(initialization["global_step"]),
         }, indent=2) + "\n", encoding="utf-8")
 
+    if task.get("bc_teacher_checkpoint") and not resuming:
+        if not task["asymmetric_critic"]:
+            raise ValueError("teacher distillation requires named asymmetric observation fields")
+        from train_manipulation_ppo import Agent as StateAgent
+
+        teacher_path = Path(str(task["bc_teacher_checkpoint"]).format(seed=seed))
+        if not teacher_path.exists():
+            raise FileNotFoundError(f"state teacher checkpoint unavailable: {teacher_path}")
+        teacher_checkpoint = torch.load(teacher_path, map_location=device, weights_only=False)
+        teacher_observation = reconstruct_state_teacher_observation(initial_obs)
+        teacher = StateAgent(teacher_observation.shape[1], action_dim).to(device)
+        teacher.load_state_dict(teacher_checkpoint["agent"])
+        teacher.eval()
+        bc_observation = initial_obs
+        bc_losses = []
+        bc_updates = int(task.get("bc_pretrain_updates", 0))
+        for _ in range(bc_updates):
+            rgb, proprio, _ = extract_observation(bc_observation, True)
+            state_observation = reconstruct_state_teacher_observation(bc_observation)
+            with torch.no_grad():
+                teacher_action = torch.clamp(
+                    teacher.get_action(state_observation, deterministic=True), -1.0, 1.0,
+                )
+            student_action = agent.get_action(rgb, proprio, deterministic=True)
+            bc_loss = F.mse_loss(student_action, teacher_action)
+            optimizer.zero_grad(); bc_loss.backward()
+            nn.utils.clip_grad_norm_(agent.parameters(), 1.0); optimizer.step()
+            bc_losses.append(float(bc_loss.detach()))
+            with torch.no_grad():
+                bc_observation, _, _, _, _ = envs.step(teacher_action)
+        atomic_save({
+            "schema_version": 1,
+            "observation_contract": "rgb_qpos_qvel_instruction_v1",
+            "task": task,
+            "agent": agent.state_dict(),
+            "teacher_checkpoint": str(teacher_path),
+            "teacher_task": teacher_checkpoint["task"],
+            "bc_updates": bc_updates,
+            "bc_transitions": bc_updates * int(task["num_envs"]),
+            "final_bc_loss": bc_losses[-1] if bc_losses else None,
+            "mean_last_100_bc_loss": float(np.mean(bc_losses[-100:])) if bc_losses else None,
+        }, run_dir / "bc_initialization.pt")
+        (run_dir / "bc_pretraining.json").write_text(json.dumps({
+            "teacher_checkpoint": str(teacher_path),
+            "bc_updates": bc_updates,
+            "bc_transitions": bc_updates * int(task["num_envs"]),
+            "initial_bc_loss": bc_losses[0] if bc_losses else None,
+            "final_bc_loss": bc_losses[-1] if bc_losses else None,
+            "mean_last_100_bc_loss": float(np.mean(bc_losses[-100:])) if bc_losses else None,
+        }, indent=2) + "\n", encoding="utf-8")
+        next_obs, _ = envs.reset(seed=seed)
+    else:
+        next_obs = initial_obs
+
     n, t = int(task["num_envs"]), int(task["num_steps"])
     batch_size = n * t
     iterations = int(task["total_timesteps"]) // batch_size
@@ -311,7 +388,6 @@ def main():
     dones = torch.empty((t, n), device=device)
     next_dones = torch.empty((t, n), device=device)
     values = torch.empty((t, n), device=device)
-    next_obs = initial_obs
     next_done = torch.zeros(n, device=device)
     stop_requested = False
 

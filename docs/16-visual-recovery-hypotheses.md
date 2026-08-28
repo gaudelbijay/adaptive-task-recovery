@@ -36,3 +36,9 @@ for termination during pretraining. It uses the same scene, camera, robot,
 continuous controller, reward components, randomization, and physical dynamics.
 The transferred policy is then optimized and evaluated with both ordered goals
 required; no curriculum result is reported as full-task success.
+
+A separate teacher-distillation fallback reconstructs the existing state PPO
+input from named training-only fields and behavior-clones its bounded commands.
+The RGB student is subsequently fine-tuned with PPO. This is reported as
+privileged training, never as pure visual RL; deployment and held-out evaluation
+still instantiate only the restricted visual actor.
