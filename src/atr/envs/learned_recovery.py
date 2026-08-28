@@ -53,6 +53,7 @@ class LearnedRecoveryEnv(BaseEnv):
         safety_proximity_weight: float = 0.0,
         constraint_violation_penalty: float = 5.0,
         robot_init_qpos_noise: float = 0.02,
+        vision_camera_size: int = 128,
         **kwargs,
     ):
         if not 0 <= intervention_probability <= 1:
@@ -66,6 +67,9 @@ class LearnedRecoveryEnv(BaseEnv):
         self.safety_proximity_weight = float(safety_proximity_weight)
         self.constraint_violation_penalty = float(constraint_violation_penalty)
         self.robot_init_qpos_noise = float(robot_init_qpos_noise)
+        self.vision_camera_size = int(vision_camera_size)
+        if self.vision_camera_size < 16:
+            raise ValueError("vision_camera_size must be at least 16 pixels")
         self._episode_step = None
         self._onset_step = None
         self._intervention_target = None
@@ -77,7 +81,8 @@ class LearnedRecoveryEnv(BaseEnv):
     @property
     def _default_sensor_configs(self):
         pose = sapien_utils.look_at(eye=[0.45, 0.0, 0.72], target=[0.05, 0.0, 0.04])
-        return [CameraConfig("base_camera", pose, 128, 128, np.pi / 2, 0.01, 100)]
+        size = self.vision_camera_size
+        return [CameraConfig("base_camera", pose, size, size, np.pi / 2, 0.01, 100)]
 
     @property
     def _default_human_render_camera_configs(self):

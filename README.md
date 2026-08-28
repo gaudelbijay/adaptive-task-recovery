@@ -194,6 +194,16 @@ plus a scripted low-level Fetch skill rather than a self-supervised visual
 encoder plus learned continuous motor policy. These are disclosed scope, not
 paper claims.
 
+That final gap has now been tested directly with a pixel-based NE-Dreamer
+pilot, not left hypothetical. The decoder-free world model optimized its
+self-supervised next-embedding objective (83.2% mean loss reduction), but the
+continuous recovery policy achieved **0/768** final held-out successes after
+250k environment steps per seed. Actions were bounded, all metrics were
+finite, and the exact two-sided 95% upper bound is 0.48%, so this is a real
+negative control-learning result rather than a crashed run. See
+[`docs/15-vision-ne-dreamer-pilot.md`](docs/15-vision-ne-dreamer-pilot.md) for
+the protocol, upstream action/replay bug found and fixed, and next experiment.
+
 ### What this project does not claim
 
 The Fetch recordings above are real, not scripted: real navigation, real

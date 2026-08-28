@@ -1,0 +1,10 @@
+# Additive dependencies for the pinned NE-Dreamer integration.  PyTorch,
+# Gymnasium, and ManiSkill are provided by the main Jarvis environment.
+tensordict>=0.9,<1
+torchrl>=0.9,<1
+hydra-core>=1.3,<1.4
+omegaconf>=2.3,<2.4
+wandb>=0.16,<1
+boto3>=1.26,<2
+python-dotenv>=1,<2
+einops>=0.7,<1

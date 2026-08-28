@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "name": "learned_recovery_nedreamer_pilot_v2",
+  "upstream_repository": "https://github.com/corl-team/nedreamer.git",
+  "upstream_commit": "7ca2193657ba42fb33e4c3e308c538d83dd393ac",
+  "seeds": [9351, 4796, 1788],
+  "algorithm": "ne_dreamer",
+  "action_transform": "straight_through_elementwise_bound",
+  "model_size": "size12M",
+  "total_environment_steps": 250000,
+  "num_envs": 64,
+  "num_eval_envs": 16,
+  "episode_steps": 200,
+  "camera_size": 64,
+  "batch_size": 8,
+  "batch_length": 32,
+  "replay_capacity": 200000,
+  "train_ratio": 32,
+  "eval_every": 25000,
+  "log_every": 5000,
+  "checkpoint_every_eval": true,
+  "control_mode": "pd_joint_delta_pos",
+  "reward_mode": "normalized_dense",
+  "env_kwargs": {
+    "intervention_probability": 0.5,
+    "terminate_on_violation": false,
+    "safety_proximity_weight": 5.0,
+    "constraint_violation_penalty": 20.0
+  },
+  "eval_env_kwargs": {
+    "intervention_probability": 1.0,
+    "terminate_on_violation": false,
+    "safety_proximity_weight": 5.0,
+    "constraint_violation_penalty": 20.0
+  }
+}
