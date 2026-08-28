@@ -9,6 +9,7 @@ wrapper.
 |---|---|---:|---:|---|---|
 | Direct visual gate, 3 methods × 3 seeds | `visual_recovery_ppo_gate_v1.json` | `1139228` (tasks 3–8), `1139237` (tasks 0–2) | `1139242` / `1139243` | Running | Exploratory: training process loaded v1 skip semantics; held-out evaluation uses clean semantics |
 | First-goal visual curriculum, 3 seeds | `visual_recovery_curriculum_v1.json` | `1139246` | — | Dependency queued | Pretraining only; never reported as full-task success |
+| Direct clean visual control, 3 seeds | `visual_recovery_direct_v2.json` | `1139267` | `1139268` / `1139269` | Dependency queued | Matched no-curriculum v2 baseline with robot TCP proprioception |
 | Ordered two-goal transfer, 3 seeds | `visual_recovery_transfer_v1.json` | `1139247` | `1139255` / `1139256` | Dependency queued | Eligible under `LearnedRecovery-v2` |
 | State-teacher visual bootstrap, 3 seeds | `visual_recovery_distilled_v1.json` | `1139252` | `1139253` / `1139254` | Dependency queued | Eligible, disclosed privileged training |
 | Physical-intervention visual recovery, 3 seeds | `visual_recovery_intervention_v1.json` | `1139257` | `1139258` / `1139259` | Dependency queued | Primary final method if gates pass |
