@@ -372,7 +372,12 @@ def main():
 
         flat = lambda x: x.reshape((-1,) + x.shape[2:])
         b_rgb, b_next_rgb = flat(rgbs), flat(next_rgbs)
-        b_prop, b_critic, b_pre = flat(proprios), flat(critic_states), flat(pre_actions)
+        b_prop = flat(proprios)
+        # A symmetric critic has an intentional zero-width privileged tensor;
+        # spell out both dimensions because reshape cannot infer ``-1`` from
+        # an empty tensor.
+        b_critic = critic_states.reshape(batch_size, cdim)
+        b_pre = flat(pre_actions)
         b_logprob, b_adv, b_return = logprobs.reshape(-1), advantages.reshape(-1), returns.reshape(-1)
         b_nonterminal = (1.0 - next_dones).reshape(-1)
         indices = np.arange(batch_size)
