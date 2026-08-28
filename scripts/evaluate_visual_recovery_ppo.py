@@ -152,6 +152,7 @@ def main():
         "training_seed": seed, "checkpoint": "best.pt",
         "checkpoint_iteration": int(checkpoint["iteration"]),
         "checkpoint_global_step": int(checkpoint["global_step"]),
+        "training_source_sha256": checkpoint.get("source_sha256"),
         "seed_base": args.seed_base, "episodes": len(episode_records),
         "successes": successes, "success_rate": successes / len(episode_records),
         "success_wilson_95": wilson(successes, len(episode_records)),

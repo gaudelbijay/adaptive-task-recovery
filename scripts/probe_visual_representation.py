@@ -162,6 +162,7 @@ def main():
         "observation_contract": checkpoint["observation_contract"],
         "method": task["method"], "training_seed": seed,
         "checkpoint_global_step": int(checkpoint["global_step"]),
+        "training_source_sha256": checkpoint.get("source_sha256"),
         "train_samples": args.samples, "test_samples": args.samples,
         "targets": [f"{key}:{axis}" for key in POSE_KEYS for axis in ("x", "y", "z")],
         "learned_encoder": learned, "random_encoder": random_result,

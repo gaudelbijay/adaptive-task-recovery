@@ -12,6 +12,7 @@ by ManiSkill instead of scoring an unexecuted, subsequently clipped sample.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import os
@@ -32,6 +33,16 @@ import mani_skill.envs  # noqa: F401
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 from mani_skill.utils.common import flatten_state_dict
+
+
+_SOURCE_PATHS = {
+    "trainer": Path(__file__).resolve(),
+    "environment": Path(__file__).resolve().parents[1] / "src/atr/envs/learned_recovery.py",
+}
+SOURCE_SHA256 = {
+    name: hashlib.sha256(path.read_bytes()).hexdigest()
+    for name, path in _SOURCE_PATHS.items()
+}
 
 
 def layer_init(layer, std=np.sqrt(2), bias=0.0):
@@ -243,6 +254,7 @@ def env_kwargs(task, evaluation=False):
 def checkpoint_payload(agent, optimizer, iteration, global_step, best_score, best_metrics, task):
     return {
         "schema_version": 1, "observation_contract": "rgb_qpos_qvel_instruction_v1",
+        "source_sha256": SOURCE_SHA256,
         "task": task, "agent": agent.state_dict(), "optimizer": optimizer.state_dict(),
         "iteration": iteration, "global_step": global_step,
         "best_score": best_score, "best_metrics": best_metrics, "rng": rng_state(),
