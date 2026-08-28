@@ -49,6 +49,7 @@ class LearnedRecoveryEnv(BaseEnv):
         intervention_force: float = 2.0,
         intervention_steps: int = 12,
         oracle_observation: bool = False,
+        asymmetric_critic_observation: bool = False,
         terminate_on_violation: bool = False,
         safety_proximity_weight: float = 0.0,
         constraint_violation_penalty: float = 5.0,
@@ -63,6 +64,7 @@ class LearnedRecoveryEnv(BaseEnv):
         self.intervention_force = float(intervention_force)
         self.intervention_steps = int(intervention_steps)
         self.oracle_observation = bool(oracle_observation)
+        self.asymmetric_critic_observation = bool(asymmetric_critic_observation)
         self.terminate_on_violation = bool(terminate_on_violation)
         self.safety_proximity_weight = float(safety_proximity_weight)
         self.constraint_violation_penalty = float(constraint_violation_penalty)
@@ -271,6 +273,21 @@ class LearnedRecoveryEnv(BaseEnv):
         }
         if self.oracle_observation:
             obs["oracle_unavailable"] = self._unavailable().float()
+        # These quantities are available only to explicitly asymmetric
+        # training code.  The visual policy extractor never reads them, and
+        # evaluation can disable this option entirely.  Keeping the fields
+        # named and separate prevents accidental pose leakage through a
+        # generic flattened observation.
+        if self.asymmetric_critic_observation:
+            obs.update({
+                "critic_red_cube_pose": self.red_cube.pose.raw_pose,
+                "critic_blue_cube_pose": self.blue_cube.pose.raw_pose,
+                "critic_red_goal_pos": self.red_goal.pose.p,
+                "critic_blue_goal_pos": self.blue_goal.pose.p,
+                "critic_red_sweeper_pose": self.red_sweeper.pose.raw_pose,
+                "critic_blue_sweeper_pose": self.blue_sweeper.pose.raw_pose,
+                "critic_protected_pose": self.protected.pose.raw_pose,
+            })
         if "state" in self.obs_mode:
             obs.update({
                 "red_cube_pose": self.red_cube.pose.raw_pose,
