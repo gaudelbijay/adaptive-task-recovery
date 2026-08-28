@@ -146,6 +146,7 @@ def main():
     payload = {
         "schema_version": 1,
         "protocol": "held-out deterministic restricted-input visual-policy evaluation",
+        "benchmark_semantics": "intervention_target_only_v2",
         "observation_contract": checkpoint["observation_contract"],
         "env_id": task["env_id"], "method": task["method"], "condition": args.condition,
         "training_seed": seed, "checkpoint": "best.pt",

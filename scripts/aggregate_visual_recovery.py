@@ -60,6 +60,7 @@ def main():
         "schema_version": 1,
         "experiment": config["name"],
         "protocol": "held-out deterministic restricted-input visual-policy evaluation",
+        "benchmark_semantics": "intervention_target_only_v2",
         "conditions": {},
     }
     rng = np.random.default_rng(20260827)
