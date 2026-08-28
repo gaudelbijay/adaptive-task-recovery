@@ -4,7 +4,7 @@
   "seeds": [9351, 4796, 1788],
   "experiments": [{
     "method": "curriculum_transfer_adaptive_visual_ppo",
-    "env_id": "LearnedRecovery-v1",
+    "env_id": "LearnedRecovery-v2",
     "registration_module": "atr.envs.learned_recovery",
     "init_checkpoint": "results/visual_recovery_ppo/visual_recovery_transfer_v1/ordered_asymmetric_temporal_ppo/seed_{seed}/best.pt",
     "total_timesteps": 100000000,

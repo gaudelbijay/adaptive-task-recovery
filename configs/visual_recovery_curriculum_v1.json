@@ -4,7 +4,7 @@
   "seeds": [9351, 4796, 1788],
   "experiments": [{
     "method": "first_goal_asymmetric_temporal_ppo",
-    "env_id": "LearnedRecovery-v1",
+    "env_id": "LearnedRecovery-v2",
     "registration_module": "atr.envs.learned_recovery",
     "total_timesteps": 15000000,
     "num_envs": 256,

@@ -47,3 +47,9 @@ Only a full ordered-task checkpoint is eligible to initialize adaptive recovery.
 Recovery training samples physical interventions with probability 0.5 and model
 selection evaluates probability 1.0. Final held-out reports include both forced
 intervention and nominal conditions so adaptation and retention are separable.
+
+`LearnedRecovery-v2` closes an exploit in the original benchmark: an object is
+skippable only when it is the preselected physical intervention target, is
+actually unavailable, and intervention onset has occurred. Objects thrown away
+by the robot do not satisfy a goal. Runs started under v1 semantics are retained
+as exploratory diagnostics and are ineligible for final claims.

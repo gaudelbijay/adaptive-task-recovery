@@ -38,6 +38,19 @@ def test_intervention_is_force_driven():
     assert source.count(".apply_force(") == 4  # GPU and scalar CPU paths, two sweepers
 
 
+def test_only_the_physical_intervention_target_can_be_skipped():
+    source = ENVIRONMENT.read_text(encoding="utf-8")
+    assert "def _recognized_unavailable" in source
+    assert "physical & target & valid_target[:, None] & intervention_started[:, None]" in source
+    tree = ast.parse(source)
+    functions = {
+        node.name: ast.unparse(node)
+        for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+    }
+    assert "self._recognized_unavailable()" in functions["_update_task_memory"]
+    assert "self._recognized_unavailable()" in functions["compute_dense_reward"]
+
+
 def test_all_primary_methods_learn_the_same_continuous_control_space():
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     experiments = config["experiments"]

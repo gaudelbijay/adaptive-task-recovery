@@ -32,6 +32,7 @@ from mani_skill.utils.scene_builder.table import TableSceneBuilder
 from mani_skill.utils.structs.pose import Pose
 
 
+@register_env("LearnedRecovery-v2", max_episode_steps=200)
 @register_env("LearnedRecovery-v1", max_episode_steps=200)
 class LearnedRecoveryEnv(BaseEnv):
     """Two-goal manipulation with a physical, irreversible intervention."""
@@ -222,6 +223,21 @@ class LearnedRecoveryEnv(BaseEnv):
         positions = torch.stack([self.red_cube.pose.p, self.blue_cube.pose.p], dim=1)
         return (positions[:, :, 0] > 0.36) | (positions[:, :, 2] < -0.02)
 
+    def _recognized_unavailable(self) -> torch.Tensor:
+        """Return only losses causally attributable to the benchmark intervention.
+
+        A policy cannot satisfy the task by throwing objects away.  Skipping is
+        permitted only for the preselected physical intervention target and
+        only after that intervention has begun.
+        """
+        physical = self._unavailable()
+        valid_target = self._intervention_target >= 0
+        target = torch.nn.functional.one_hot(
+            self._intervention_target.clamp_min(0), 2
+        ).bool()
+        intervention_started = self._episode_step >= self._onset_step
+        return physical & target & valid_target[:, None] & intervention_started[:, None]
+
     def _placed(self) -> torch.Tensor:
         cubes = torch.stack([self.red_cube.pose.p, self.blue_cube.pose.p], dim=1)
         goals = torch.stack([self.red_goal.pose.p, self.blue_goal.pose.p], dim=1)
@@ -230,7 +246,7 @@ class LearnedRecoveryEnv(BaseEnv):
         return xy_close & on_table
 
     def _update_task_memory(self):
-        unavailable = self._unavailable()
+        unavailable = self._recognized_unavailable()
         placed = self._placed()
         first = self._instruction_first
         second = 1 - first
@@ -261,6 +277,7 @@ class LearnedRecoveryEnv(BaseEnv):
             "fail": self._constraint_violated & self.terminate_on_violation,
             "goals_completed": self._completed.float().sum(dim=1),
             "goals_unavailable": unavailable.float().sum(dim=1),
+            "goals_physically_unavailable": self._unavailable().float().sum(dim=1),
             "constraint_violated": self._constraint_violated,
             "intervention_occurred": self._intervention_target >= 0,
             "first_goal_removed": self._intervention_target == self._instruction_first,
@@ -279,7 +296,7 @@ class LearnedRecoveryEnv(BaseEnv):
             "goal_progress": self._completed.float(),
         }
         if self.oracle_observation:
-            obs["oracle_unavailable"] = self._unavailable().float()
+            obs["oracle_unavailable"] = self._recognized_unavailable().float()
         # These quantities are available only to explicitly asymmetric
         # training code.  The visual policy extractor never reads them, and
         # evaluation can disable this option entirely.  Keeping the fields
@@ -308,7 +325,7 @@ class LearnedRecoveryEnv(BaseEnv):
         return obs
 
     def compute_dense_reward(self, obs: Any, action: torch.Tensor, info: dict):
-        unavailable = self._unavailable()
+        unavailable = self._recognized_unavailable()
         rows = torch.arange(self.num_envs, device=self.device)
         first = self._instruction_first
         second = 1 - first

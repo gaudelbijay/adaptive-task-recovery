@@ -4,7 +4,7 @@
   "seeds": [9351, 4796, 1788],
   "experiments": [{
     "method": "state_teacher_bc_asymmetric_temporal_ppo",
-    "env_id": "LearnedRecovery-v1",
+    "env_id": "LearnedRecovery-v2",
     "registration_module": "atr.envs.learned_recovery",
     "bc_teacher_checkpoint": "results/learned_recovery/learned_recovery_ppo_v6/safe_adaptive_ppo/seed_{seed}/best.pt",
     "bc_pretrain_updates": 5000,
