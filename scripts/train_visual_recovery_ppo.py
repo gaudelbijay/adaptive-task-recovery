@@ -330,18 +330,33 @@ def main():
         if iteration == start_iteration or iteration % int(config["eval_freq"]) == 0:
             eval_obs, _ = eval_envs.reset(seed=seed + 10_000 + iteration)
             eval_metrics = defaultdict(list)
+            eval_maxima = {
+                key: torch.zeros(config["num_eval_envs"], device=device)
+                for key in ("goals_completed", "goals_unavailable", "constraint_violated")
+            }
             with torch.no_grad():
                 for _ in range(int(task["num_eval_steps"])):
                     ergb, eprop, _ = extract_observation(eval_obs, task["asymmetric_critic"])
                     eval_obs, _, _, _, info = eval_envs.step(agent.get_action(ergb, eprop, True))
+                    for key in eval_maxima:
+                        if key in info:
+                            eval_maxima[key] = torch.maximum(
+                                eval_maxima[key], info[key].detach().float().reshape(-1),
+                            )
                     if "final_info" in info:
                         mask = info["_final_info"]
                         for key, value in info["final_info"]["episode"].items():
                             eval_metrics[key].append(value[mask].float())
             means = {key: float(torch.cat(value).mean()) for key, value in eval_metrics.items() if value and torch.cat(value).numel()}
+            means.update({key: float(value.mean()) for key, value in eval_maxima.items()})
             success = metric_success(means)
             failure = float(means.get("constraint_violated", means.get("fail_once", 0.0)))
-            score = success - float(config.get("selection_failure_penalty", 0.0)) * failure
+            # Return breaks exact success/safety ties without ever outweighing
+            # a single percentage point of the primary metric.
+            score = (
+                success - float(config.get("selection_failure_penalty", 0.0)) * failure
+                + 1e-6 * float(means.get("return", 0.0))
+            )
             with history_path.open("a", encoding="utf-8") as handle:
                 handle.write(json.dumps({"iteration": iteration, "global_step": global_step, "eval": means, "elapsed_seconds": time.time() - started}) + "\n")
             if np.isfinite(score) and score > best_score:
