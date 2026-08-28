@@ -20,7 +20,8 @@ from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
 from train_visual_recovery_ppo import (
-    VisualAgent, env_kwargs, extract_observation, metric_success, select_task,
+    VisualAgent, env_kwargs, extract_observation, metric_success,
+    observation_contract, select_task,
 )
 
 
@@ -76,7 +77,9 @@ def main():
         envs = FlattenActionSpaceWrapper(envs)
     envs = ManiSkillVectorEnv(envs, args.num_envs, ignore_terminations=True, record_metrics=True)
     observation, _ = envs.reset(seed=args.seed_base + seed * 100000)
-    rgb, proprio, critic_state = extract_observation(observation, task["asymmetric_critic"])
+    rgb, proprio, critic_state = extract_observation(
+        observation, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+    )
     action_dim = int(np.prod(envs.single_action_space.shape))
     agent = VisualAgent(
         task["image_size"], proprio.shape[1], critic_state.shape[1], action_dim,
@@ -85,7 +88,7 @@ def main():
     checkpoint = torch.load(checkpoint_path, map_location="cuda", weights_only=False)
     if checkpoint["task"] != task:
         raise ValueError("checkpoint task does not match immutable task configuration")
-    if checkpoint.get("observation_contract") != "rgb_qpos_qvel_instruction_v1":
+    if checkpoint.get("observation_contract") != observation_contract(task):
         raise ValueError("checkpoint lacks the restricted visual observation contract")
     agent.load_state_dict(checkpoint["agent"])
     agent.eval()
@@ -107,7 +110,9 @@ def main():
             maxima = {key: torch.zeros(args.num_envs, device="cuda") for key in tracked_maxima}
             branch_values = {}
             for step in range(int(task["num_eval_steps"])):
-                rgb, proprio, _ = extract_observation(observation, task["asymmetric_critic"])
+                rgb, proprio, _ = extract_observation(
+                    observation, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+                )
                 observation, _, _, _, info = envs.step(agent.get_action(rgb, proprio, True))
                 if step == 0:
                     for key in branches:

@@ -23,7 +23,7 @@ def _assignment_literal(name):
     raise AssertionError(f"assignment not found: {name}")
 
 
-def test_actor_extra_contract_contains_only_instruction():
+def test_base_actor_extra_contract_contains_only_instruction():
     assert _assignment_literal("ACTOR_EXTRA_KEYS") == ("instruction",)
 
 
@@ -38,7 +38,7 @@ def test_deployed_action_api_cannot_receive_privileged_critic_state():
     raise AssertionError("VisualAgent.get_action not found")
 
 
-def test_actor_proprio_is_qpos_qvel_and_instruction_only():
+def test_actor_proprio_contains_only_robot_state_and_instruction():
     function = next(
         node for node in _module().body
         if isinstance(node, ast.FunctionDef) and node.name == "extract_observation"
@@ -48,7 +48,8 @@ def test_actor_proprio_is_qpos_qvel_and_instruction_only():
     assert "obs['agent']['qvel']" in source
     assert "ACTOR_EXTRA_KEYS" in source
     actor_section = source.split("if asymmetric:", 1)[0]
-    for forbidden in ("goal_progress", "tcp_pose", "critic_red", "critic_blue", "oracle"):
+    assert "tcp_pose" in actor_section
+    for forbidden in ("goal_progress", "critic_red", "critic_blue", "oracle"):
         assert forbidden not in actor_section
 
 
@@ -61,4 +62,5 @@ def test_policy_actions_are_tanh_bounded_and_never_posthoc_clipped():
 
 def test_checkpoint_declares_restricted_observation_contract():
     source = TRAINER.read_text(encoding="utf-8")
-    assert source.count('"rgb_qpos_qvel_instruction_v1"') >= 3
+    assert '"rgb_qpos_qvel_instruction_v1"' in source
+    assert '"rgb_qpos_qvel_tcp_instruction_v2"' in source

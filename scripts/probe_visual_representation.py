@@ -17,7 +17,9 @@ import mani_skill.envs  # noqa: F401
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
-from train_visual_recovery_ppo import VisualAgent, env_kwargs, extract_observation, select_task
+from train_visual_recovery_ppo import (
+    VisualAgent, env_kwargs, extract_observation, observation_contract, select_task,
+)
 
 
 POSE_KEYS = (
@@ -31,7 +33,9 @@ def collect(agent, envs, task, samples, seed):
     features, targets, images = [], [], []
     with torch.no_grad():
         while sum(item.shape[0] for item in features) < samples:
-            rgb, proprio, _ = extract_observation(observation, task["asymmetric_critic"])
+            rgb, proprio, _ = extract_observation(
+                observation, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+            )
             features.append(agent.encode(rgb).cpu())
             images.append(rgb.cpu())
             targets.append(torch.cat([
@@ -108,7 +112,7 @@ def main():
     run_dir = Path(args.output) / config["name"] / task["method"] / f"seed_{seed}"
     checkpoint_path = run_dir / "best.pt"
     checkpoint = torch.load(checkpoint_path, map_location="cuda", weights_only=False)
-    if checkpoint.get("observation_contract") != "rgb_qpos_qvel_instruction_v1":
+    if checkpoint.get("observation_contract") != observation_contract(task):
         raise ValueError("checkpoint lacks restricted visual contract")
 
     kwargs = env_kwargs(task, evaluation=True)
@@ -119,7 +123,9 @@ def main():
         envs = FlattenActionSpaceWrapper(envs)
     envs = ManiSkillVectorEnv(envs, args.num_envs, ignore_terminations=True, record_metrics=False)
     observation, _ = envs.reset(seed=args.seed_base + seed)
-    rgb, proprio, privileged = extract_observation(observation, task["asymmetric_critic"])
+    rgb, proprio, privileged = extract_observation(
+        observation, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+    )
     action_dim = int(np.prod(envs.single_action_space.shape))
     agent = VisualAgent(
         task["image_size"], proprio.shape[1], privileged.shape[1], action_dim,

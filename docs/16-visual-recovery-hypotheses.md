@@ -1,10 +1,12 @@
 # Visual recovery: staged hypotheses and decision gates
 
 The final policy must execute continuous robot commands in `LearnedRecovery-v1`.
-It receives RGB, Panda joint position/velocity, and the parsed two-token order
-instruction. It never receives cube, goal, sweeper, protected-object, TCP, or
-task-progress state. Simulator state may be used by a disclosed training-only
-critic or by evaluation metrics.
+It receives RGB, Panda joint position/velocity, robot TCP pose, and the parsed
+two-token order instruction. TCP is robot proprioception derived from its own
+kinematics, not object/task state. It never receives cube, goal, sweeper,
+protected-object, or task-progress state. Simulator state may be used by a
+disclosed training-only critic or by evaluation metrics. The exploratory direct
+gate additionally excludes TCP and therefore remains a stricter baseline.
 
 ## Predeclared hypotheses
 

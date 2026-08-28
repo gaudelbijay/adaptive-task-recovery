@@ -156,10 +156,18 @@ CRITIC_EXTRA_KEYS = (
 )
 
 
-def extract_observation(obs, asymmetric):
+def observation_contract(task):
+    if task.get("actor_tcp_pose", False):
+        return "rgb_qpos_qvel_tcp_instruction_v2"
+    return "rgb_qpos_qvel_instruction_v1"
+
+
+def extract_observation(obs, asymmetric, actor_tcp_pose=False):
     """Return structurally separated actor and critic inputs from raw RGB obs."""
     rgb = obs["sensor_data"]["base_camera"]["rgb"]
     actor_parts = [obs["agent"]["qpos"], obs["agent"]["qvel"]]
+    if actor_tcp_pose:
+        actor_parts.append(obs["extra"]["tcp_pose"])
     actor_parts.extend(obs["extra"][key] for key in ACTOR_EXTRA_KEYS)
     proprio = torch.cat(actor_parts, dim=1)
     if asymmetric:
@@ -253,7 +261,7 @@ def env_kwargs(task, evaluation=False):
 
 def checkpoint_payload(agent, optimizer, iteration, global_step, best_score, best_metrics, task):
     return {
-        "schema_version": 1, "observation_contract": "rgb_qpos_qvel_instruction_v1",
+        "schema_version": 1, "observation_contract": observation_contract(task),
         "source_sha256": SOURCE_SHA256,
         "task": task, "agent": agent.state_dict(), "optimizer": optimizer.state_dict(),
         "iteration": iteration, "global_step": global_step,
@@ -296,7 +304,9 @@ def main():
     envs = ManiSkillVectorEnv(envs, task["num_envs"], record_metrics=True)
     eval_envs = ManiSkillVectorEnv(eval_envs, config["num_eval_envs"], ignore_terminations=True, record_metrics=True)
     initial_obs, _ = envs.reset(seed=seed)
-    initial_rgb, initial_proprio, initial_critic = extract_observation(initial_obs, task["asymmetric_critic"])
+    initial_rgb, initial_proprio, initial_critic = extract_observation(
+        initial_obs, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+    )
     action_dim = int(np.prod(envs.single_action_space.shape))
     agent = VisualAgent(
         task["image_size"], initial_proprio.shape[1], initial_critic.shape[1], action_dim,
@@ -320,7 +330,7 @@ def main():
         if not initialization_path.exists():
             raise FileNotFoundError(f"initialization checkpoint unavailable: {initialization_path}")
         initialization = torch.load(initialization_path, map_location=device, weights_only=False)
-        if initialization.get("observation_contract") != "rgb_qpos_qvel_instruction_v1":
+        if initialization.get("observation_contract") != observation_contract(task):
             raise ValueError("initialization checkpoint has an incompatible observation contract")
         agent.load_state_dict(initialization["agent"], strict=True)
         (run_dir / "initialization.json").write_text(json.dumps({
@@ -347,7 +357,9 @@ def main():
         bc_losses = []
         bc_updates = int(task.get("bc_pretrain_updates", 0))
         for _ in range(bc_updates):
-            rgb, proprio, _ = extract_observation(bc_observation, True)
+            rgb, proprio, _ = extract_observation(
+                bc_observation, True, task.get("actor_tcp_pose", False),
+            )
             state_observation = reconstruct_state_teacher_observation(bc_observation)
             with torch.no_grad():
                 teacher_action = torch.clamp(
@@ -362,7 +374,7 @@ def main():
                 bc_observation, _, _, _, _ = envs.step(teacher_action)
         atomic_save({
             "schema_version": 1,
-            "observation_contract": "rgb_qpos_qvel_instruction_v1",
+            "observation_contract": observation_contract(task),
             "task": task,
             "agent": agent.state_dict(),
             "teacher_checkpoint": str(teacher_path),
@@ -424,7 +436,9 @@ def main():
             }
             with torch.no_grad():
                 for _ in range(int(task["num_eval_steps"])):
-                    ergb, eprop, _ = extract_observation(eval_obs, task["asymmetric_critic"])
+                    ergb, eprop, _ = extract_observation(
+                        eval_obs, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+                    )
                     eval_obs, _, _, _, info = eval_envs.step(agent.get_action(ergb, eprop, True))
                     for key in eval_maxima:
                         if key in info:
@@ -455,7 +469,9 @@ def main():
         agent.eval()
         for step in range(t):
             global_step += n
-            rgb, proprio, critic_state = extract_observation(next_obs, task["asymmetric_critic"])
+            rgb, proprio, critic_state = extract_observation(
+                next_obs, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+            )
             rgbs[step], proprios[step], critic_states[step], dones[step] = rgb, proprio, critic_state, next_done
             with torch.no_grad():
                 pre, action, logprob, _, value, _ = agent.action_and_value(rgb, proprio, critic_state)
@@ -463,17 +479,24 @@ def main():
             next_obs, reward, terminated, truncated, info = envs.step(action)
             next_done = (terminated | truncated).float()
             next_dones[step] = next_done
-            next_rgb, _, _ = extract_observation(next_obs, task["asymmetric_critic"])
+            next_rgb, _, _ = extract_observation(
+                next_obs, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+            )
             next_rgbs[step] = next_rgb
             rewards[step] = reward.view(-1)
             if "final_info" in info:
                 mask = info["_final_info"]
-                frgb, fprop, fcritic = extract_observation(info["final_observation"], task["asymmetric_critic"])
+                frgb, fprop, fcritic = extract_observation(
+                    info["final_observation"], task["asymmetric_critic"],
+                    task.get("actor_tcp_pose", False),
+                )
                 with torch.no_grad():
                     final_values[step, mask] = agent.get_value(frgb[mask], fprop[mask], fcritic[mask]).view(-1)
 
         with torch.no_grad():
-            nrgb, nprop, ncritic = extract_observation(next_obs, task["asymmetric_critic"])
+            nrgb, nprop, ncritic = extract_observation(
+                next_obs, task["asymmetric_critic"], task.get("actor_tcp_pose", False),
+            )
             next_value = agent.get_value(nrgb, nprop, ncritic).reshape(1, -1)
             advantages = torch.zeros_like(rewards)
             last_gae = 0

@@ -14,6 +14,7 @@
     "num_eval_steps": 200,
     "control_mode": "pd_joint_delta_pos",
     "image_size": 64,
+    "actor_tcp_pose": true,
     "asymmetric_critic": true,
     "augmentation_pad": 0,
     "temporal_ssl_coefficient": 0.05,
