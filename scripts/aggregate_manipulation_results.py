@@ -201,6 +201,9 @@ def main() -> None:
         "protocol": "held-out deterministic state-policy evaluation",
         "environments": environments,
     }
+    semantics = {record.get("benchmark_semantics") for record in records}
+    if len(semantics) == 1 and None not in semantics:
+        payload["benchmark_semantics"] = semantics.pop()
     if nominal_records:
         payload["nominal_condition"] = []
         for experiment in config["experiments"]:

@@ -19,12 +19,14 @@ export PYTHONUNBUFFERED=1
 
 ATR_RECOVERY_CONFIG="${ATR_RECOVERY_CONFIG:-configs/learned_recovery_ppo_v6.json}"
 ATR_RECOVERY_OUTPUT="${ATR_RECOVERY_OUTPUT:-results/learned_recovery}"
+ATR_RECOVERY_CHECKPOINT_OUTPUT="${ATR_RECOVERY_CHECKPOINT_OUTPUT:-${ATR_RECOVERY_OUTPUT}}"
 ATR_PYTHON="${ATR_PYTHON:-.venv/bin/python}"
 
 for ATR_CONDITION in intervention nominal; do
   "${ATR_PYTHON}" scripts/evaluate_manipulation_ppo.py \
     --config "${ATR_RECOVERY_CONFIG}" \
     --output "${ATR_RECOVERY_OUTPUT}" \
+    --checkpoint-output "${ATR_RECOVERY_CHECKPOINT_OUTPUT}" \
     --task-index "${SLURM_ARRAY_TASK_ID}" \
     --episodes "${ATR_EVAL_EPISODES:-256}" \
     --num-envs "${ATR_EVAL_NUM_ENVS:-32}" \

@@ -49,6 +49,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/manipulation_ppo_v1.json")
     parser.add_argument("--output", default="results/manipulation_ppo")
+    parser.add_argument(
+        "--checkpoint-output", default=None,
+        help="Optional separate result root containing immutable training checkpoints",
+    )
     parser.add_argument("--task-index", type=int, default=int(os.environ.get("SLURM_ARRAY_TASK_ID", "0")))
     parser.add_argument("--episodes", type=int, default=256)
     parser.add_argument("--num-envs", type=int, default=32)
@@ -68,7 +72,8 @@ def main() -> None:
     seed = int(task["seed"])
     experiment_name = task.get("method", task["env_id"])
     run_dir = Path(args.output) / config["name"] / experiment_name / f"seed_{seed}"
-    checkpoint_path = run_dir / "best.pt"
+    checkpoint_root = Path(args.checkpoint_output or args.output)
+    checkpoint_path = checkpoint_root / config["name"] / experiment_name / f"seed_{seed}" / "best.pt"
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"best checkpoint is not available: {checkpoint_path}")
 
@@ -157,6 +162,7 @@ def main() -> None:
     payload = {
         "schema_version": 1,
         "protocol": "held-out deterministic state-policy evaluation",
+        "benchmark_semantics": "intervention_target_only_v2",
         "env_id": task["env_id"],
         "method": experiment_name,
         "condition": args.condition,
