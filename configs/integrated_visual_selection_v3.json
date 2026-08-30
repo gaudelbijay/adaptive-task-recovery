@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "name": "integrated_visual_selection_v3",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_integrated_teacher_extension_v5/aggregate.json",
+  "candidates": [
+    {
+      "label": "strict_stable_visual",
+      "method": "event_reward_strict_removal_stable_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/aggregate_nominal.json"
+    },
+    {
+      "label": "integrated_teacher_visual",
+      "method": "event_reward_integrated_teacher_dagger_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_integrated_teacher_dagger_v15/aggregate_nominal.json"
+    }
+  ],
+  "thresholds": {
+    "minimum_strict_safe": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "claim_boundary": "post-audit extension comparison frozen before V15 training; ranks only independently eligible RGB policies and cannot alter preregistered V1-V5"
+}

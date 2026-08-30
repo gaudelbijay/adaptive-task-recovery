@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "v35_final_release_gate_v1",
+  "standard_aggregate": "results/visual_recovery_ppo/visual_recovery_v34_translation_repair_v35/aggregate.json",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_v35_translation_repair_v18/aggregate.json",
+  "unseen_aggregate": "results/paper/v35_confirmatory_unseen_visual_ood_v1/aggregate.json",
+  "candidate_method": "v34_translation_repair",
+  "candidate_strict_label": "v35_translation_repair_visual",
+  "incumbent_strict_label": "v19_visual_incumbent",
+  "thresholds": {
+    "minimum_standard_nominal_safe_success": 0.90,
+    "minimum_standard_intervention_safe_success": 0.90,
+    "minimum_standard_per_seed_safe_success": 0.80,
+    "minimum_strict_safe_success": 0.90,
+    "minimum_strict_per_seed_safe_success": 0.80,
+    "maximum_strict_safe_success_drop_from_incumbent": 0.05,
+    "minimum_mean_unseen_ood_safe_success": 0.80,
+    "minimum_unseen_ood_per_seed_safe_success": 0.60,
+    "require_all_frozen_unseen_ood_hypotheses": true,
+    "require_causal_progress_utility": true
+  },
+  "claim_boundary": "Frozen before full V35 training outcomes. Passing supports simulation-only three-seed retention, strict-removal control, and D-176 unseen-domain robustness for supervised translation repair on privileged V34/V19 training; it does not establish pure SSL, end-to-end pixel RL, real-robot transfer, or general visual robustness."
+}

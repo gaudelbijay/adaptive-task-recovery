@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_comparison_v1",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "clean_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_progress_dagger_v6_event_reward.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "adaptive_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_progress_intervention_v7_event_reward.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "adaptive_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v8_event_reward.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

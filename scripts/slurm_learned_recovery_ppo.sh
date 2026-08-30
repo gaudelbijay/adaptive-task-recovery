@@ -5,7 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --signal=B:USR1@300
+#SBATCH --signal=USR1@300
+#SBATCH --requeue
 #SBATCH --output=results/slurm/recovery_%A_%a.out
 #SBATCH --error=results/slurm/recovery_%A_%a.err
 
@@ -34,13 +35,13 @@ if grep -qi "buffer overflow detected" "${ATR_TASK_STDERR}"; then
 fi
 
 # Jarvis limits a job to 24 hours. SIGUSR1 makes the trainer atomically save
-# at an update boundary; an incomplete task then resubmits only itself and the
-# next allocation resumes model, optimizer, counters, and RNG from latest.pt.
+# at an update boundary; an incomplete array element is requeued under the
+# same Slurm identity so downstream afterok jobs remain blocked. The next
+# allocation resumes model, optimizer, counters, and RNG from latest.pt.
 if ! "${ATR_PYTHON}" scripts/check_manipulation_training_complete.py \
   --config "${ATR_RECOVERY_CONFIG}" \
   --output "${ATR_RECOVERY_OUTPUT}" \
   --task-index "${SLURM_ARRAY_TASK_ID}"; then
-  sbatch --array="${SLURM_ARRAY_TASK_ID}" \
-    --export="ALL,ATR_RECOVERY_CONFIG=${ATR_RECOVERY_CONFIG},ATR_RECOVERY_OUTPUT=${ATR_RECOVERY_OUTPUT},ATR_PYTHON=${ATR_PYTHON}" \
-    scripts/slurm_learned_recovery_ppo.sh
+  ATR_REQUEUE_ID="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}_${SLURM_ARRAY_TASK_ID}"
+  scontrol requeue "${ATR_REQUEUE_ID}"
 fi

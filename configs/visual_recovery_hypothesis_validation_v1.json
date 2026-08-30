@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_hypothesis_validation_v1",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "required_training_seeds": 3,
+  "required_episodes": 768,
+  "strict_removal_protocol": "held-out deterministic strict-actual-removal policy evaluation",
+  "v1": {
+    "minimum_nominal_success": 0.70,
+    "primary": {
+      "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json",
+      "method": "event_reward_rgb_ppo",
+      "disclosure": "direct RGB + qpos/qvel + instruction PPO; no teacher or privileged critic"
+    },
+    "fallback_visual_competence": {
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/aggregate.json",
+      "method": "event_reward_learned_progress_dagger_visual_ppo",
+      "disclosure": "restricted RGB actor; training-only state teacher, asymmetric critic, pose/progress labels, and temporal SSL"
+    }
+  },
+  "v2": {
+    "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json",
+    "primary": {
+      "treatment": "event_reward_rgb_asymmetric_ppo",
+      "control": "event_reward_rgb_ppo"
+    }
+  },
+  "v3": {
+    "minimum_pooled_improvement": 0.05,
+    "primary": {
+      "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json",
+      "treatment": "event_reward_rgb_asymmetric_temporal_ppo",
+      "control": "event_reward_rgb_asymmetric_ppo"
+    },
+    "protocol_extension": {
+      "path": "results/visual_recovery_ppo/visual_recovery_dagger_ablation_v7_event_reward/aggregate.json",
+      "treatment": "event_reward_pose_aux_temporal_dagger_visual_ppo",
+      "control": "event_reward_pose_aux_dagger_visual_ppo"
+    }
+  },
+  "v4": {
+    "primary": {
+      "strict_path": "results/strict_removal_comparison/strict_removal_comparison_v1/aggregate.json",
+      "adaptive_label": "adaptive_visual",
+      "clean_label": "clean_visual",
+      "branch": "first_goal_physically_removed"
+    }
+  },
+  "v5": {
+    "strict_path": "results/strict_removal_comparison/strict_removal_comparison_v1/aggregate.json",
+    "reference_label": "adaptive_state",
+    "primary_label": "adaptive_visual"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "render_distill_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "render_distill_smoke",
+    "method": "v19_rendered_domain_distillation_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static development-only routing record for the preregistered V28 smoke; runnable does not mean performant."
+}

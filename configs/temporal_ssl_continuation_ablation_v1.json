@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "temporal_ssl_continuation_ablation_v1",
+  "treatment": "event_reward_dual_specialist_dagger_visual_ppo",
+  "control": "event_reward_dual_specialist_no_temporal_visual_ppo",
+  "required_training_seeds": [9351, 4796, 1788],
+  "required_episodes_per_condition": 768,
+  "treatment_initial_metrics": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/event_reward_dual_specialist_dagger_visual_ppo/seed_{seed}/metrics.jsonl",
+  "control_initial_metrics": "results/visual_recovery_ppo/visual_recovery_dual_specialist_no_temporal_v26/event_reward_dual_specialist_no_temporal_visual_ppo/seed_{seed}/metrics.jsonl",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_dual_specialist_no_temporal_v15/aggregate.json",
+  "treatment_nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/aggregate_nominal.json",
+  "control_nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_no_temporal_v26/aggregate_nominal.json",
+  "minimum_worst_endpoint_improvement": 0.03,
+  "maximum_treatment_violation_rate": 0.05,
+  "confirmation_rule": "Confirm continuation-stage temporal SSL only if V19 minus V26 worst strict/nominal/branch safe success is at least 0.03 and the paired hierarchical 95% interval for the endpoint attaining the control worst case has positive lower bound. Otherwise report supportive, neutral, or negative evidence without changing V1-V5.",
+  "claim_boundary": "This isolates only V19's continuation-stage temporal loss. Both arms inherit upstream checkpoints trained with disclosed temporal SSL, privileged labels, teachers, and asymmetric critics; it cannot establish a fully self-supervised or fully SSL-free lineage comparison."
+}

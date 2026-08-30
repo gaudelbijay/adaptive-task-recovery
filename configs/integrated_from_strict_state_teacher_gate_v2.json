@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "integrated_from_strict_state_teacher_gate_v2",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_integrated_from_strict_state_gate_v2/aggregate.json",
+  "state_aggregate": "results/learned_recovery/learned_recovery_ppo_v13_integrated_from_strict/aggregate.json",
+  "expected_experiment": "learned_recovery_ppo_v13_integrated_from_strict",
+  "strict_label": "integrated_from_strict_state",
+  "method": "event_reward_integrated_from_strict_state_ppo",
+  "seeds": [9351, 4796, 1788],
+  "episodes_per_condition": 768,
+  "thresholds": {
+    "minimum_strict_safe": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "claim_boundary": "failure-only post-audit state-teacher gate; continuation is evaluated independently under the same six thresholds and cannot alter preregistered V1-V5"
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "learned_recovery_ppo_v12_integrated_mixture",
+  "seeds": [9351, 4796, 1788, 71064, 84293],
+  "experiments": [{
+    "method": "event_reward_integrated_mixture_state_ppo",
+    "env_id": "LearnedRecovery-v3",
+    "registration_module": "atr.envs.learned_recovery_v3",
+    "total_timesteps": 100000000,
+    "num_envs": 2048,
+    "num_steps": 32,
+    "num_eval_steps": 200,
+    "control_mode": "pd_joint_delta_pos",
+    "env_kwargs": {"intervention_probability": 0.8, "onset_step_range": [0, 0], "intervention_force": 6.0, "intervention_steps": 24, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0, "progress_reward_scale": 2.0, "completion_bonus": 5.0, "success_reward": 10.0},
+    "eval_env_kwargs": {"intervention_probability": 0.5, "onset_step_range": [0, 0], "intervention_force": 6.0, "intervention_steps": 24, "terminate_on_violation": true, "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0, "progress_reward_scale": 2.0, "completion_bonus": 5.0, "success_reward": 10.0}
+  }],
+  "num_eval_envs": 256,
+  "update_epochs": 8,
+  "num_minibatches": 8,
+  "eval_freq": 25,
+  "checkpoint_freq": 25,
+  "log_freq": 5,
+  "learning_rate": 0.0003,
+  "anneal_lr": true,
+  "entropy_coefficient": 0.0,
+  "value_coefficient": 0.5,
+  "selection_failure_penalty": 2.0,
+  "gamma": 0.95,
+  "gae_lambda": 0.95,
+  "claim_boundary": "read-only five-seed view; no seed may be discarded"
+}

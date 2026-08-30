@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "name": "shift_action_scaled_stability_smoke_gate_v1",
+  "baseline_config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+  "candidate_config": "configs/visual_recovery_dual_specialist_shift_action_v25_scaled_smoke.json",
+  "extension_config": "configs/visual_recovery_dual_specialist_shift_action_v25_scaled.json",
+  "results_root": "results/visual_recovery_ppo",
+  "seed": 1788,
+  "expected_drac_policy_coefficient": 0.02,
+  "tail_evaluations": 3,
+  "thresholds": {
+    "minimum_best_success_at_end": 0.9,
+    "maximum_best_constraint_violation": 0.05,
+    "minimum_best_score_margin": -0.05,
+    "maximum_tail_mean_constraint_violation": 0.05,
+    "minimum_tail_mean_score_improvement": 0.05
+  },
+  "claim_boundary": "Pre-held-out one-seed matched-budget scaled bounded shift-action allocation gate, frozen before any V25 metric. Passing may allocate the separately frozen three-seed extension but is not a performance or robustness claim."
+}

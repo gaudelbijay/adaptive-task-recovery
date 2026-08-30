@@ -2,6 +2,1139 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-179: Repair V35 reporting infrastructure and serialize colliding baselines
+
+- **Status:** Accepted after fail-closed evaluation/reporting errors; no model,
+  checkpoint, seed, domain, episode budget, threshold, or successful episode
+  outcome changed
+- **Date:** 2026-08-30
+- **Decision:** Teach the generic visual validator to verify V35's explicitly
+  non-PPO supervised-transition accounting; flatten SAPIEN's batched `(1,4)`
+  camera quaternion before the frozen two-degree roll; rerun all 27 D-176 tasks
+  under one repaired evaluator source; aggregate D-176 before rerunning the
+  standard baseline filenames; then rebuild strict, standard, and final reports.
+- **Reason:** Full V35 training/audit and standard/strict evaluation completed,
+  but the generic aggregates assumed `checkpoint_global_step` meant online PPO
+  steps even when V35 correctly reported zero PPO. Three camera-roll tasks then
+  stopped before rollout because SAPIEN returned a singleton-batched quaternion.
+  Concurrent standard and D-176 baselines also target the same legacy filenames,
+  so their aggregates must be serialized to prevent one seed suite overwriting
+  the other's baseline files before aggregation.
+- **Frozen repairs:** aggregate validator `04ba821d...2395`; D-176 evaluator
+  `1ec3c675...ff8b`; evaluator tests `8430e56e...dc28`; non-PPO accounting tests
+  `249f72d3...7b6a`. Jarvis passes 9/9 targeted tests. The validator accepts only
+  the named `supervised_translation_repair_v34` protocol and independently
+  verifies zero PPO/DAgger steps, exact local checkpoint/config budget, and
+  initialization-plus-local simulator-transition arithmetic.
+- **Consequences:** Pre-repair outputs and logs are preserved under
+  `results/archive/v35_d176_pre_repair_1143232/`. Replacement D-176, aggregate,
+  standard, standard aggregate, strict aggregate, and final gate are jobs
+  `1143595`--`1143600`. The already completed strict result is 91.54% safe
+  success across 768 episodes (98.05%, 82.81%, 93.75% by seed), 4.82 points
+  below V19; it passes the frozen pooled, per-seed, and retention checks.
+
+## D-178: Freeze and dependency-submit the complete V35 confirmation chain
+
+- **Status:** Accepted before any full V35 checkpoint or confirmation outcome
+- **Date:** 2026-08-29
+- **Decision:** Evaluate every audited full V35 seed on 256-episode nominal and
+  intervention protocols, the matched strict-removal protocol, and all nine
+  D-176 variants. Aggregate each evidence family independently and apply one
+  frozen ten-check final gate. Run up to eight unseen tasks concurrently.
+- **Frozen artifacts:** routing `d7827db0...e3e`; strict comparison
+  `c714d304...5948`; final gate `d7d2d8f0...5121`; strict adapter
+  `cc2edb3c...4b70`; isolated D-176 evaluator `d9bb4c79...f8ff`; runner
+  `1becb8a0...028e`; tests `3e48ed93...ed7f`.
+- **Validation:** Four targeted Jarvis tests pass. They verify the exact
+  three-seed policy identity and frozen domain set, exact three-centimeter
+  camera displacement, deterministic shape-preserving sensor transforms, and
+  unit roll quaternion. The runner preflight resolves exactly 27 tasks.
+- **Consequences:** Standard array `1143230`, strict array `1143231`, D-176
+  array `1143232`, aggregates `1143233`--`1143235`, and gate `1143236` depend
+  on final checkpoint audit `1143217`. The final thresholds are frozen before
+  full outcomes: >=90% pooled standard nominal/intervention and strict safe
+  success, >=80% corresponding per-seed floors, <=5-point strict regression
+  from V19, >=80% mean unseen safe success, >=60% unseen per-seed floor, and
+  both the D-176 all-domain rule and causal-progress hypothesis.
+
+## D-177: V35 passes the observed gate and advances to full confirmation
+
+- **Status:** Accepted after immutable one-seed smoke evaluation
+- **Date:** 2026-08-29
+- **Decision:** Advance the unchanged V34/V35 composition to seeds 9351, 4796,
+  and 1788. Train the exact V34 foundation first, audit every checkpoint, then
+  train and audit the V35 translation repair. Each stage is connected by an
+  `afterok` dependency so any failed task stops the chain.
+- **Reason:** Smoke job `1143179`, audit, evaluation array `1143192`, and the
+  frozen V35 gate all completed. V35 retains 94.14% nominal and 96.09%
+  intervention safe success, preserves a 27.34-point causal-progress drop
+  [21.48, 33.20], improves mean observed OOD by 53.46 points, has no observed
+  regression beyond five points, and raises worst observed OOD to 55.47%.
+  All seven preregistered allocation checks pass. This is observed-suite
+  development evidence from one seed, not confirmatory robustness evidence.
+- **Frozen full allocation:** V34 config `f0a52e3d...6222`; V35 config
+  `d589cfd6...4144`; full V35 trainer `5c5ac526...ffc7`. The trainer differs
+  from the smoke source only by emitting the auditor's generic `environment`
+  source-hash alias; optimization and checkpoint tensors are unchanged.
+- **Consequences:** Full jobs are V34 array `1143214`, V34 audit `1143215`,
+  V35 array `1143216`, and V35 audit `1143217`. Confirmation still requires
+  three-seed standard and strict tests plus the untouched D-176 suite. V35 is
+  supervised invariance repair on privileged V34/V19 training, not pure SSL,
+  from-scratch RL, a general vision policy, or real-robot evidence.
+
+## D-176: Freeze a V35-specific confirmatory suite before training
+
+- **Status:** Accepted before any V35 training or rollout metric
+- **Date:** 2026-08-29
+- **Decision:** Reserve seed base 103,000,000 and seven V35-unseen domains:
+  subpixel left translation, two-degree rotation, 0.95 image scale, backward
+  camera displacement, camera roll, cool lighting, and back-key lighting.
+  Require each safe-success rate >=70%, each paired drop <=20 points, and the
+  existing positive causal-progress test. Config hash `6b5675b0...0f95`.
+- **Reason:** V35 trains on generic synthetic translations, invalidating D-168
+  as a clean V35 confirmation suite. Freezing distinct geometric and lighting
+  domains before training prevents observed-suite tuning from becoming a
+  held-out claim.
+- **Consequences:** These domains cannot be used for V35 training, smoke
+  tuning, route calibration, or candidate selection. Their evaluator will be
+  implemented only after an observed gate and full checkpoint are frozen.
+
+## D-175: Freeze V35 learned translation repair and submit after tests
+
+- **Status:** Accepted before training metrics
+- **Date:** 2026-08-29
+- **Decision:** Add a learned RGB translation classifier/regressor ahead of the
+  complete frozen V34 policy. Train it on labelled synthetic translations and
+  explicit non-translation negatives (nominal, observed cameras, brightness,
+  and warm color). Apply its predicted differentiable inverse warp only when
+  its learned shift probability is positive. Use 128,000 simulator transitions
+  at seed 1788 and the unchanged seven-check observed gate.
+- **Reason:** V34 passed six of seven checks and improved mean OOD by 45.98
+  points, but its reconstruction-trained dense flow moved only about 0.11 pixel
+  and failed the known four-pixel translation. Direct offset supervision tests
+  the isolated missing mechanism without retraining V34's successful camera,
+  lighting, progress, or control components.
+- **Frozen artifacts:** agent `f37c8c70...32d6`, trainer
+  `ed4abe08...003d`, evaluator `d0c6e61c...0e12`, development runner
+  `865d236e...c4e2`, checker `8764814d...b117`, smoke config
+  `d9b16dd7...c4abb`, development suite `13a19341...bcf7`, gate
+  `9932ee50...bc34`, tests `eaa7e554...feb0`.
+- **Consequences:** Jarvis tests pass 4/4, including exact V34 behavior on the
+  negative route and strict checkpoint round-trip; train/eval preflights pass.
+  The method is supervised invariance tuning, not pure SSL or end-to-end RL.
+
+## D-174: Reject V34 full allocation but retain factorized canonicalization
+
+- **Status:** Accepted after immutable audit and frozen observed-domain gate
+- **Date:** 2026-08-29
+- **Decision:** Reject V34 for multi-seed/confirmatory allocation after training
+  job `1142519`, evaluation array `1142612`, and the frozen gate. Retain its
+  factorized warp/photometric architecture as the strongest robustness base for
+  a narrowly isolated translation repair.
+- **Reason:** The exact 384,000-primary/1,536,000-total checkpoint is finite and
+  passes six of seven smoke checks. It retains 92.97% nominal and 94.53%
+  intervention safe success, preserves causal progress utility with a
+  28.12-point drop [21.88, 34.38], improves mean OOD by 45.98 points, and has
+  no >5-point regression relative to the incumbent OOD suite. Only the
+  worst-domain check fails: the observed four-pixel translation reaches 1.56%
+  nominal and 11.33% intervention safe success versus the 25% smoke floor.
+  Other observed domains reach 56.25%--97.66%; camera-left nominal remains
+  below the eventual 75% confirmatory standard even though it improves sharply.
+- **Consequences:** No V34 multi-seed, strict, or D-168 unseen job is allocated.
+  The next mechanism must explicitly learn global translation rather than rely
+  on reconstruction loss to make dense flow move salient pixels. It must also
+  preserve V34's renderer/color gains and subsequently address camera-left
+  nominal performance before any paper-level robustness claim.
+
+## D-173: Replace independent automatic resets with paired deterministic resets
+
+- **Status:** Accepted after a second fail-closed pre-metric runtime check
+- **Date:** 2026-08-29
+- **Decision:** Archive job `1142516`. During paired lighting rollout, detect a
+  termination or truncation in any nominal/dim/warm instance and immediately
+  reset the complete trio with the same explicit monotonically derived seed.
+  Assert alignment after every such reset and at the existing periodic guard.
+- **Reason:** Identical single-camera instances still select different internal
+  automatic-reset RNG streams. They stayed aligned within an episode but the
+  guard stopped the job at 5,760 primary transitions after an automatic reset.
+  Explicit paired resets preserve stochastic state diversity without assuming
+  cross-instance hidden RNG identity.
+- **Frozen repair:** trainer `3c1f8c09...a76ab`; all task domains, losses,
+  budgets, evaluator, gate, and D-168 boundary remain unchanged.
+- **Consequences:** Both stopped attempts are preserved and ineligible. Reset
+  events are counted in training metrics and final provenance; resets add no
+  simulator transition and do not change the declared 1,536,000 total.
+
+## D-172: Repair V34 paired-light synchronization before outcome evaluation
+
+- **Status:** Accepted after a fail-closed pre-metric runtime check
+- **Date:** 2026-08-29
+- **Decision:** Archive job `1142485` and use no checkpoint or outcome from it.
+  Keep the three-camera control environment independent. Pair the dim/warm
+  single-camera environments with a separate nominal single-camera reference,
+  step those three environments with the same frozen-V19/student mixture, and
+  assert their proprioception, critic state, and task progress remain aligned.
+  Count all four simulators, increasing the declared smoke total from 1,152,000
+  to 1,536,000 transitions without changing the 384,000 primary budget, seven
+  training domains, losses, seed, or gate.
+- **Reason:** The original implementation aligned the lighting environments
+  against the three-camera control environment. They matched at reset but
+  diverged after automatic episode resets, and the frozen assertion stopped the
+  job at 5,760 primary transitions before a checkpoint or evaluation existed.
+  Camera sensor cardinality is now held fixed within the lighting pair.
+- **Frozen repair:** trainer `92807419...984b7`, smoke config
+  `c21ab533...437cd`, test `a66e0e39...26e21`. Targeted Jarvis tests pass 2/2
+  and the repaired preflight passes.
+- **Consequences:** The stopped files remain under
+  `results/archive/v34_failed_sync_1142485/` and are ineligible for performance
+  claims. This repair changes pairing correctness and accounting only; it does
+  not use any rollout metric or D-168 confirmatory information.
+
+## D-171: Freeze V34 factorized spatial/photometric canonicalization
+
+- **Status:** Accepted before training metrics
+- **Date:** 2026-08-29
+- **Decision:** Replace V33's direct residual image synthesis with a bounded
+  learned dense spatial warp followed by a photometric residual. Use an
+  eight-way RGB router trained with balanced class losses so the nominal path
+  remains exact V19 while each of seven observed domains receives an explicit
+  learned routing target. Add foreground-weighted image/edge reconstruction,
+  stronger V19 action/feature preservation, flow smoothness/magnitude, and
+  synchronized same-state renderer-light pairs. Run one seed-1788 smoke with
+  384,000 primary transitions, 1,536,000 total simulator transitions, and no
+  larger allocation before the unchanged seven-check gate passes.
+- **Reason:** V33's forced-route diagnostic shows that routing is not the sole
+  problem: forcing every shifted pixel frame through its canonicalizer raises
+  safe success only to 4.30% nominal and 37.89% intervention. Coordinate
+  alignment therefore needs an explicit learned warp. V33 also routed observed
+  rendered warm lighting 100% but failed it, so V34 trains on synchronized
+  paired dim/warm renderer observations instead of treating those domains as
+  sensor color scaling.
+- **Frozen artifacts:** agent `325749ea...a17e`, original trainer
+  `dbf3859e...a9ba`, evaluator `8b803133...f5e3`, original smoke config
+  `a0be286b...c32a`, development suite `7075713a...be92`, gate config
+  `03c0be54...4d32`, checker `8d62e637...613f`. Jarvis contract/preflight
+  validation passes 10/10 tests. D-172 supersedes only the trainer/config hashes
+  after the fail-closed synchronization repair.
+- **Consequences:** Training-only domain classes, exact paired RGB, observed
+  renderer profiles, and V19 targets are fully disclosed and prohibit pure-SSL
+  claims. Deployment receives no evaluator domain label, target image, pose, or
+  privileged state. D-168 remains untouched and unavailable for V34 tuning.
+
+## D-170: Reject V33 and isolate both routing and synthesis failures
+
+- **Status:** Accepted after the frozen development gate and diagnostic
+- **Date:** 2026-08-29
+- **Decision:** Reject V33 after jobs `1142351`, `1142440`, and the immutable
+  audit/aggregate/gate. Do not allocate multi-seed, standard, strict, or unseen
+  evaluation. Use jobs `1142466_0`/`1142466_1` only as an ineligible forced-route
+  mechanism diagnostic.
+- **Reason:** V33 retains 94.14% safe success in both nominal and intervention
+  conditions, preserves causal progress utility, and improves mean observed OOD
+  by 20.09 points, passing five of seven checks. It nevertheless has 0% worst
+  OOD safe success and a -26.17-point worst domain change. Pixel-shift routing
+  occurs only 23.17%/31.71%; forcing it to 100% improves pixel safe success from
+  0%/11.33% to only 4.30%/37.89%, proving that both routing and synthesis fail.
+- **Consequences:** The forced-route files are suffixed
+  `always_canonical_diagnostic` and excluded from candidate tables and claims.
+  The next candidate must represent spatial correspondence explicitly and must
+  learn the observed renderer-light domains it is expected to retain.
+
+## D-169: Retain V19 after V21 and reject a strong continuation-temporal claim
+
+- **Status:** Accepted after all frozen held-out jobs completed
+- **Date:** 2026-08-29
+- **Decision:** Retain V19 as the integrated visual incumbent. Reject V21 for
+  integrated eligibility and do not claim that V19's continuation-stage
+  temporal objective is necessary for robust control.
+- **Reason:** V21 completed all three exact 99,999,744-transition seeds and the
+  frozen audit/evaluation/selection chain (`1140381`--`1140389`) with exit zero.
+  It reaches 92.19% nominal safe success but only 87.63% strict and 78.34%
+  first-removal safe success, so it fails the predeclared 90%/85% endpoints;
+  selector `1140387` retains V19. The matched V26 control, which removes only
+  V19's continuation temporal coefficient, reaches 90.49% nominal and 93.88%
+  strict safe success. V19's limiting-endpoint gain is only 0.91 points with
+  paired 95% interval [-4.04, 6.51], below the frozen three-point and
+  positive-lower-bound rule.
+- **Consequences:** Added VICReg is not presented as a control improvement even
+  though representation probes may show diagnostic gains. The temporal result
+  is a negative ablation of the continuation stage only: both lineages inherit
+  earlier temporal SSL and privileged teacher/label/critic training, so it is
+  not a fully SSL-free comparison. V19's incumbent status and V1--V5 verdicts
+  are unchanged.
+
+## D-168: Freeze a new V33 confirmatory visual suite before rollout metrics
+
+- **Status:** Accepted during V33 training, before any V33 rollout evaluation
+- **Date:** 2026-08-29
+- **Decision:** Reserve seed base 97,000,000 and seven untrained domains:
+  downward two-pixel displacement, 3x3 Gaussian blur, 1.2x contrast, diagonal
+  right/low camera displacement, left camera yaw, side-key lighting, and
+  desaturated lighting. Evaluate 256 episodes per condition and training seed.
+  Require every OOD safe-success rate >=70%, every paired drop <=20 points, and
+  the existing positive causal-progress test. Hash the immutable specification
+  as `d00878d0...dfa6`.
+- **Reason:** V28's unseen suite remained outcome-unseen but its contents were
+  known during later mechanism design. A new suite frozen before V33 rollout
+  results provides a cleaner confirmatory boundary and covers distinct axes,
+  not merely new magnitudes of the observed right-shift/left-camera domains.
+- **Consequences:** These variants cannot be used for training, hyperparameter
+  selection, routing calibration, or smoke allocation. Their evaluator is
+  implemented only after the specification is frozen and must be source-hashed.
+  Failure of any per-domain criterion rejects the visual-robustness claim.
+
+## D-167: Freeze V33 paired canonical-view synthesis before metrics
+
+- **Status:** Accepted; frozen before training metrics
+- **Date:** 2026-08-29
+- **Decision:** Train a small residual U-Net to synthesize the nominal RGB view
+  from exact same-state left/high camera images and all three observed sensor
+  transforms on every update. A direct-pixel learned router selects exact V19
+  pixels or synthesized canonical pixels; the complete V19 encoder, progress
+  head, and actor remain frozen. Optimize paired image/edge reconstruction,
+  identity reconstruction, V19 action/feature preservation, progress, and
+  routing. Run one seed-1788 smoke of 384,000 simulator transitions and no
+  larger allocation before the unchanged seven-check gate passes.
+- **Reason:** V32 established policy retention but its latent adapter could not
+  remove coordinate error. D-166's mechanism diagnostic restores >93% safe
+  success in both conditions by canonicalizing only the pixel coordinates.
+  V33 turns that oracle correction into a learned RGB-to-RGB same-state view
+  synthesis problem instead of encoding a benchmark shift in deployment code.
+- **Frozen artifacts:** agent `0cb6937a...f5531`, trainer
+  `3e12a8c5...36776`, evaluator `9f8a8e40...bc69`, smoke config
+  `3c29d578...c802`, development suite `3c154ea0...a2611`, gate config
+  `57c65088...aa120`, checker `4198958e...0f4d`.
+- **Consequences:** Deployment receives no domain label, simulator pose, or
+  target image. Paired training images and V19 targets mean the complete method
+  is not pure self-supervision. The observed suite is tuning evidence; passing
+  requires a newly frozen untouched suite before confirmatory training.
+
+## D-166: Pixel canonicalization is a positive mechanism upper bound, not a result
+
+- **Status:** Accepted; diagnostic complete
+- **Date:** 2026-08-29
+- **Decision:** Use jobs `1142333`/`1142334` only to decide whether view
+  canonicalization merits implementation. Exclude their deterministic inverse
+  transform from every candidate, table, aggregate, and allocation gate.
+- **Reason:** Applying the known right-four shift and then its deterministic
+  inverse to the exact V32 checkpoint raises nominal safe success from 6.64%
+  to 94.14% and intervention safe success from 32.81% to 93.75% over the same
+  256 paired episodes per condition. This isolates coordinate alignment as the
+  missing mechanism; it does not demonstrate learned robustness.
+- **Consequences:** The diagnostic files are suffixed
+  `canonicalization_diagnostic` and carry an explicit non-candidate boundary.
+  V33 must learn canonicalization from RGB pairs and pass the original gate.
+
+## D-165: Repair V32's unbounded inherited geometry-head scale before evaluation
+
+- **Status:** Accepted after a stopped pre-metric runtime attempt
+- **Date:** 2026-08-29
+- **Decision:** Archive job `1141353` and rerun no evaluation from it. Normalize
+  the first 12 Cartesian geometry targets back to simulator units, retain the
+  two binary resolution targets, bound the inherited predictor with `tanh`, and
+  use smooth-L1 instead of unbounded MSE. The corrected trainer hash is
+  `6a12f687...a77b65`; every task, domain, seed, budget, loss weight, and gate
+  remains unchanged.
+- **Reason:** By update 170 (~21,760 transitions), the geometry MSE had risen
+  from roughly 440 to 600 while source/domain action losses remained finite.
+  This was an implementation-scale failure, not an outcome measurement. The
+  corrected per-coordinate loss is bounded before reduction and cannot swamp
+  the routing/action objectives.
+- **Consequences:** The stopped directory is preserved on Jarvis under
+  `results/archive/v32_failed_geometry_scaling_1141353/`. It is ineligible for
+  checkpoint audit or evaluation and contributes no V32 performance result.
+
+## D-164: Freeze V32 learned RGB routing and geometry-grounded adaptation
+
+- **Status:** Accepted; frozen before training metrics
+- **Date:** 2026-08-29
+- **Decision:** Run one seed-1788, 384,000-transition smoke. A frozen copy of
+  V19 supplies the complete base encoder, learned progress head, and actor. A
+  pixel-only router selects between the immutable base latent and a separately
+  trained robust latent. Train the robust encoder with V19 action targets,
+  same-state multi-view consistency, progress labels, and a 14-dimensional
+  training-only geometry target over nominal/left/high and the three observed
+  sensor domains. Use the unchanged seven-check allocation thresholds from
+  V31; allocate no full job before all checks pass.
+- **Reason:** The V31 result isolates the remaining retention problem: sharing
+  a single updated encoder changes the incumbent even when nominal action MSE
+  is small. V32 makes exact V19 behavior structurally available at deployment
+  and tests whether a learned RGB-only domain decision plus 3D-grounded visual
+  representation can add robustness without overwriting it. This follows the
+  geometry-aware representation direction suggested by current visual
+  manipulation work; it is not a claim that Dreamer or TD-MPC2 was run.
+- **Frozen artifacts:** trainer `26a8dc0d...e8603`, hybrid agent
+  `9dc3be1a...ef712`, evaluator `44126fe0...f2aa`, smoke config
+  `fe82df7b...a86b8`, development suite `feec9c03...867c`, and gate config
+  `ecd59344...0863`.
+- **Consequences:** The actor receives RGB, qpos/qvel, TCP pose, instruction,
+  and learned progress only. Geometry and domain labels are training-only; the
+  evaluator supplies neither. The known development suite cannot support a
+  held-out claim, and the frozen unseen suite remains untouched.
+
+## D-163: Reject V31 and preserve V19 with a learned RGB-domain adapter
+
+- **Status:** Accepted after the frozen V31 development gate
+- **Date:** 2026-08-29
+- **Decision:** Reject V31 before any three-seed allocation. The next bounded
+  iteration must leave the complete V19 inference path immutable for learned
+  in-domain routing and train a separate robust RGB encoder for detected
+  visual-domain shift. The router must consume pixels only; evaluation may not
+  provide the domain label. Add a training-only geometry target across exact
+  same-state camera and sensor views, while retaining RGB-only deployment.
+- **Reason:** Audited V31 job `1141316` completed exactly 256,000 transitions.
+  Development jobs `1141318`/`1141319` and frozen gate `1141320` show 90.625%
+  nominal safe success, 74.219% intervention safe success, +26.20-point mean
+  matched OOD improvement, 4.688% worst OOD safe success, and no individual
+  regression larger than 2.344 points. Causal progress utility remained
+  positive at 21.094 points with paired interval [12.5, 29.688]. Thus shared
+  multicamera training improves average visual robustness without preserving
+  the incumbent's intervention policy or solving translation sensitivity.
+- **Consequences:** V31 full standard, strict, and unseen jobs remain
+  unallocated. The next adapter is a post-hoc development experiment with
+  privileged geometry supervision, not pure self-supervision, PPO, held-out
+  robustness, or real-robot evidence. Its frozen unseen suite cannot be used
+  for routing or tuning.
+
+## D-162: Freeze same-physics full-episode multicamera DAgger V31
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; frozen before metrics, local syntax/contracts pass
+- **Decision:** Render nominal, camera-left, and camera-high RGB simultaneously
+  from one V3 physics state over complete trajectories. Use only frozen V19's
+  nominal-view action as the target for all three views, cycle the observed
+  sensor transforms, supervise progress on every view, and mix V19/student
+  actions for DAgger state coverage.
+- **Reason:** Unlike V28/V29 this is full-episode; unlike V30 it never
+  substitutes a mismatched state policy for V19; unlike two-simulator pairing,
+  all camera images come from literally one state. The training-only
+  environment subclasses V3 and overrides only `_default_sensor_configs`, so
+  task physics, interventions, reward, termination, and deployment are unchanged.
+- **Consequences:** Smoke/full budgets are 256,000/960,000 transitions. The same
+  seven-check observed-suite gate controls allocation and remains tuning-only.
+  Frozen hashes are trainer `4c26c57d...9839`, multicamera environment
+  `3f6c9eb3...6797`, smoke `f351ecb7...7d99`, development spec
+  `eec5faa4...9c7a`, and gate `8978e768...0e00`. Final claims still require
+  three seeds, standard/strict retention, and the inherited unseen suite. This
+  is privileged DAgger, not PPO, pure SSL, or real-robot evidence.
+
+## D-161: Reject full-episode state-teacher multidomain DAgger V30
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; smoke/audit/11-task development gate complete
+- **Decision:** Reject V30 and do not allocate its full branch.
+- **Reason:** V30 completed 320,000 finite full-episode DAgger transitions, but
+  rendered-domain state-teacher actions catastrophically overwrote V19:
+  nominal/intervention safe success fell to 28.91%/50.78%, mean matched OOD
+  changed by -1.79 points, worst OOD was 0%, and worst individual regression
+  was 25.39 points. Only causal progress utility passed (35.55-point drop,
+  interval [29.30, 41.80]).
+- **Consequences:** Gate `1141286` failed six of seven checks. Aggregate SHA-256
+  is `22f4bcb9...c00b`; no V30 full, strict, standard, or unseen result exists.
+  V31 retains V19 as the sole action teacher and obtains exact alternate views
+  from one physical simulator state.
+
+## D-160: Replace short paired segments with full-episode multidomain DAgger V30
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; frozen before training, focused contract tests pending Jarvis
+- **Decision:** Test V30 over complete automatically resetting trajectories in
+  five independent domains: nominal plus camera-left/high and dim/warm renders.
+  Retain V19 actions on nominal trajectories. On rendered trajectories, use the
+  strong nominal and strict state PPO teachers, routed by the training-only
+  physical-resolution label. Train the same RGB policy additionally on the
+  observed pixel/brightness/color transforms and supervise its progress head.
+- **Reason:** V28/V29 both improved average OOD behavior but failed individual
+  gates, and both saw only 20-step segments. V29's 89.45% nominal versus 72.27%
+  intervention result is direct evidence that preserving early nominal features
+  does not cover the post-intervention state distribution. State teachers can
+  label shifted-view states without requiring an unreliable nominal-image
+  teacher or two numerically identical simulators, allowing full task/recovery
+  trajectories and real DAgger student rollouts.
+- **Consequences:** V30 is a new full-episode imitation/DAgger mechanism, not a
+  relabeling of V28/V29 and not PPO. Smoke/full budgets are exactly 320,000 /
+  1,200,000 environment transitions across five domains; full allocation still
+  requires the unchanged observed-suite Boolean gate. Frozen hashes are trainer
+  `fe36ea2d...7be9`, smoke `8f1d0efb...d7a8`, development spec
+  `97450d3a...370b`, and gate `54b5b078...847e`. Any final evidence must use
+  three seeds, standard/strict retention, and the inherited opposite-direction
+  unseen suite. Privileged teachers/progress labels and post-hoc tuning prohibit
+  pure-SSL, from-scratch RL, or real-robot claims.
+
+## D-159: Reject V29 after it trades intervention retention for nominal retention
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; smoke/audit/11-task development gate complete
+- **Decision:** Reject V29 and do not run its prepared full/final pipeline.
+- **Reason:** Freezing V19's policy heads and anchoring teacher features repaired
+  nominal safe success to 89.45% and improved matched mean OOD by 29.69 points.
+  It simultaneously reduced intervention baseline safe success to 72.27% versus
+  the required 85%, while worst OOD reached only 4.30% versus 25%. Pixel shift
+  improved from V28's 0%/12.89% to 4.30%/26.95%, but camera-left remained only
+  7.81%/34.38%. Causal progress utility remained positive (18.36-point drop,
+  interval [10.55, 26.17]).
+- **Consequences:** Gate `1141251` failed; no V29 three-seed, standard, strict,
+  unseen, or final result exists. Aggregate SHA-256 is `24882084...26d1`.
+  The result rejects encoder-only short-segment anchoring as the next solution
+  and motivates V30's full-episode, state-teacher-labeled multidomain DAgger.
+  Prepared V29 final configs remain an unactioned protocol record, not evidence.
+
+## D-158: Freeze V29 policy-head-frozen multidomain encoder distillation
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; frozen before training metrics, focused tests passed
+- **Decision:** Test one V29 smoke that preserves V19's actor and learned-
+  progress heads exactly and updates only its RGB encoder. Train that encoder
+  against frozen V19 teacher features/actions on nominal input, the four V28
+  rendered domains, and the exact observed 4-pixel/brightness/color transforms.
+  Reuse V28's exact paired 20-step state protocol and V29's already frozen
+  allocation thresholds; preserve the separately frozen V28 unseen suite for
+  any final confirmation.
+- **Reason:** V28's 31.14-point mean OOD improvement shows rendered training is
+  directionally useful, but its 82.81% nominal result shows that a small
+  action-MSE anchor does not prevent closed-loop forgetting. Its remaining 0%
+  pixel-shift result is unsurprising because V28 trained only renderer-native
+  camera/light changes. Freezing every non-encoder parameter and adding exact
+  teacher-feature anchors directly targets both failures without changing V19,
+  the environment, evaluation seeds, or the final unseen thresholds.
+- **Consequences:** V29 is explicitly tuned on an observed development suite;
+  it cannot supply final robustness evidence by itself. Smoke/full configs
+  differ only seed/budget/identity fields, the V28 trainer remains byte-exact at
+  SHA-256 `3d67313a...512c`, and 13 focused V28/V29/audit tests pass on Jarvis.
+  An initial pre-evaluation smoke `1141245` reached update 456 before a newly
+  successful trajectory terminated inside a segment and exposed the same
+  independent-autoreset mechanism; it was archived without a checkpoint.
+  The corrected wrapper disables autoreset and retains explicit synchronized
+  resets plus the unchanged state check. Frozen hashes are trainer
+  `06ecd8e6...b1f0`, smoke config `debe3f48...539b`, development spec
+  `78ae4e86...aa75e`, and allocation gate
+  `1f415986...9e78`. A gate failure suppresses all full/final allocation; a
+  pass would still require three seeds, standard/strict retention, and the
+  untouched opposite-direction unseen suite. This remains privileged, post-hoc
+  distillation—not RL, pure SSL, full-episode training, or real-robot evidence.
+
+## D-157: Reject V28 despite large mean OOD improvement
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; valid smoke, audit, 11/11 development tasks, and gate complete
+- **Decision:** Reject V28 at its frozen allocation gate and suppress its
+  three-seed, strict, standard, unseen, and final-release branches.
+- **Reason:** V28 improved matched seed-1788 mean OOD safe success by 31.14
+  points and preserved intervention retention (90.62%) plus causal progress
+  utility (29.69-point drop, interval [23.05, 36.33]). It nevertheless failed
+  two mandatory checks: nominal safe success was 82.81% versus the 85% floor,
+  and worst OOD safe success was 0% versus the 25% floor. Exact 4-pixel shift
+  remained 0% nominal/12.89% intervention; camera-left reached only
+  16.80%/45.31%. Lighting/color improved substantially, including 89.06%
+  nominal warm-light safe success, but Boolean gates are not averages.
+- **Consequences:** Gate `1141138` failed and dependent `1141139`--`1141148`
+  cannot allocate or support claims. Aggregate SHA-256 is
+  `64ac3063...7bab`; gate artifact records every check. V28 is stronger
+  development evidence than V27 but not a robust policy. Its result motivates
+  V29's frozen-head encoder anchoring plus explicit sensor transforms; V29 is
+  disclosed as tuning on this observed failure and must use the untouched
+  unseen suite for any final claim.
+
+## D-156: Freeze V28 paired rendered-domain distillation and a fully unseen release gate
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; valid smoke complete and audited, development gate running
+- **Decision:** Test V28 as a post-hoc rendered-domain extension of frozen V19.
+  Distill V19's nominal-view actions onto camera-left/high and dim/warm renders
+  while retaining nominal actions, privileged progress supervision, and latent
+  consistency. Use exactly paired 20-step physics segments, a frozen observed-
+  suite allocation gate, then—only after a pass—three fresh seed-matched runs,
+  immutable checkpoint audit, standard/strict retention tests, and a separately
+  frozen unseen right/low-camera, bright/cool-light, opposite pixel/color suite.
+- **Reason:** An initial smoke correctly failed at update 24 when two independent
+  ManiSkill simulators entered termination/autoreset with different RNG state.
+  The repair did not relax the `1e-5` state tolerance: both domains reset from
+  the same deterministic seed every 20 steps, before that boundary. A protocol-
+  debug run then completed with zero state error, but downstream inspection
+  found the shared evaluator would mislabel distillation samples as PPO. The
+  valid rerun adds explicit non-PPO provenance and an isolated evaluation
+  adapter while keeping the V21/V26 evaluator byte-identical. Job `1141113`
+  completed exactly 800 updates / 102,400 student / 204,800 simulator
+  transitions; final paired-state error was zero, source-view action MSE
+  0.00141, and render-view MSE 0.01124. Audit `1141135` passed.
+- **Consequences:** Failed job `1141101` and protocol-debug job `1141103` are
+  archived, not selected. A briefly started legacy-metadata development array
+  `1141116` was cancelled after 37 seconds before writing any evaluation file.
+  Replacement array `1141136` uses explicit distillation accounting; aggregate
+  `1141137` and frozen allocation gate `1141138` control the full branch.
+  Dependent jobs `1141139`--`1141148` cover three-seed training, audit,
+  standard/strict/unseen evaluation, aggregates, and a final gate requiring
+  strong pooled and per-seed retention, all unseen hypotheses, and causal
+  progress utility. Twenty-step segments are not full-episode distillation;
+  any success is simulation-only robustness evidence and cannot be called a
+  new RL, pure-SSL, or real-robot result.
+
+## D-155: Reject generic RGB self-distillation V27 and require rendered-domain training
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; one-seed smoke/evaluation complete, full allocation suppressed
+- **Decision:** Do not allocate the three-seed V27 generic shift/color
+  self-distillation extension. Preserve its development result and redirect any
+  next robustness candidate toward actual rendered camera/lighting diversity.
+- **Reason:** V27 initialized the frozen V19 seed-1788 policy and completed
+  exactly 2,000 updates / 512,000 environment transitions. Augmented-action MSE
+  fell from 0.222 to 0.0617 while original-action MSE remained 0.0028. All 11
+  development tasks and aggregate completed. The frozen gate passed nominal
+  retention (85.94%), intervention retention (87.89%), and progress-head causal
+  drop (50.00%, paired interval [43.36, 57.03]), but mean OOD improvement was
+  only +4.69 points versus +20 required, worst OOD safe success remained 0%,
+  and camera-left intervention regressed 20.70 points.
+- **Consequences:** Full job `1141058` is `DependencyNeverSatisfied`; V27 has no
+  three-seed, strict-removal, unseen-OOD, or paper-eligible robustness result.
+  Initial gate `1141057` correctly rejected the candidate but compared it to
+  V19's pooled three-seed OOD rates. That violated the intended one-seed matched
+  smoke design. Before accepting the verdict, the checker was repaired to read
+  V19 seed 1788 from every record's immutable `per_seed` field; regression test
+  passes, thresholds and artifacts were unchanged, and replacement `1141079`
+  reproduced rejection. Corrected gate artifact SHA-256 is
+  `9036a098...0a76`. Generic sensor augmentation modestly helps color/lighting
+  but does not approximate geometric viewpoint shift; the next candidate must
+  train on rendered camera/lighting variation and still use a new unseen suite
+  for any final claim.
+
+## D-154: Confirm progress-head utility and reject V19 visual-OOD robustness
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; 33/33 evaluations and paired aggregate complete
+- **Decision:** Retain V19 as the in-distribution incumbent, confirm that its
+  learned progress head has causal control utility under the frozen test, and
+  reject the claim that V19 is robust to the frozen camera/lighting/pixel suite.
+- **Reason:** Every task in array `1140989` completed with exit zero and
+  aggregate `1140990` consumed 16,896 paired policy episodes. Cyclically
+  shifting progress bits reduced intervention safe success from 96.22% to
+  81.90%, a 14.32-point paired drop with cluster-bootstrap 95% interval
+  [0.65, 29.69], exceeding the frozen 3-point/positive-lower-bound rule.
+  Visual perturbations were much more damaging: 4-pixel shift yielded 5.08%
+  intervention safe success, camera +5 cm height 2.86%, camera left 28.91%,
+  dim lighting 42.84%, warm lighting 56.77%, brightness 60.16%, and warm color
+  69.66%. Every OOD variant violates at least one 75%-safe / at-most-15-point-
+  drop criterion.
+- **Consequences:** The evidence supports functional use of RGB-predicted task
+  progress rather than an unused auxiliary head. It simultaneously forbids a
+  visual-domain robustness claim for V19: strong nominal/strict results are
+  conditional on the declared camera and appearance distribution. This is a
+  simulation-only post-selection test and does not alter V19's frozen primary
+  rates or the pending V21 selector. Artifact
+  `results/paper/v19_incumbent_causal_ood_v1/aggregate.json` has SHA-256
+  `8491e068...5334`. The failure motivates a separately preregistered robust
+  distillation/augmentation extension; it must retain in-distribution safety
+  and be evaluated on the same paired suite rather than tuning individual
+  perturbations on these held-out records.
+
+## D-153: Run a distinct V19-incumbent causal/OOD suite and repair its missing baseline
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; contract-tested, incumbent array running
+- **Decision:** Evaluate the independently selected V19 incumbent immediately
+  on the already frozen causal-head, pixel, camera, and lighting suite in a
+  distinct result tree. Keep the V21-dependent final-selector suite separate.
+  Add one explicit normal-policy baseline task per training seed to both suites.
+- **Reason:** Two four-L40S nodes were idle while every remaining project GPU
+  job was dependency-held. Dry-run inspection found that the original 30-task
+  suite's aggregate requires `heldout_eval_intervention.json`, but no task
+  generated the normal-progress/no-perturbation intervention baseline. Without
+  a baseline task, the aggregate was guaranteed to fail after spending all
+  evaluation compute.
+- **Consequences:** The correction changes neither perturbations, thresholds,
+  seeds, episodes, nor hypothesis rules; it expands each array from 30 to 33
+  tasks by prepending the missing baseline for all three seeds. Six focused
+  causal/OOD tests pass on Jarvis and endpoint preflights resolve exactly 33
+  tasks. Incumbent config hash is `eb3eacc6...eaf5`; final-selector config hash
+  is `2a425755...1062`. Incumbent jobs `1140989`/`1140990` use a separate
+  symlinked checkpoint/result root and eight-way throttle; all eight initial
+  tasks started without fatal output across five GPU nodes. Corrected
+  final-selector jobs `1140991`/`1140992` retain dependency on V21 selector
+  `1140387`. Malformed originals `1140479`/`1140492` were canceled at exactly
+  zero runtime. V19-incumbent results cannot prejudge which policy the later
+  V21 selector chooses and remain simulation-only robustness evidence.
+
+## D-152: Reject V25 at its frozen scaled-consistency allocation gate
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; exact smoke complete, full and held-out allocation suppressed
+- **Decision:** Do not allocate the three-seed 100M V25 extension. Preserve its
+  exact 19,996,672-transition smoke artifact and report it as a stable but
+  ineligible post-hoc action-consistency result.
+- **Reason:** Job `1140789` completed with finite checkpoints and bounded
+  consistency loss. Gate `1140790` passed best end-success (91.02%), best
+  violation (1.95%), tail violation (3.00%), tail score improvement (+9.24
+  points), and bounded-finiteness checks. It failed the independently frozen
+  best-score margin: V25 scored 0.87124 versus V19's 0.92594, a -5.47-point
+  margin where at least -5 points was required.
+- **Consequences:** V25 is rejected by the complete Boolean rule despite
+  missing the sole failed cutoff by only 0.47 points. Jobs `1140791`--`1140799`
+  remain dependency-suppressed, so there is no V25 held-out, causal, OOD, or
+  robustness result and none may be inferred from the one-seed training stream.
+  The negative result supports the narrower conclusion that mechanically
+  scaling the bounded shift-action coefficient fixed V24's instability and
+  tail behavior but did not recover V19-matched checkpoint quality.
+
+## D-151: Freeze a direct V19 continuation-stage temporal-SSL ablation
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; frozen before metrics, contract suite passed, DAG submitted
+- **Decision:** Train V26 as an exact three-seed V19 control with only the
+  continuation-stage temporal coefficient changed from 0.01 to 0.0. Retain
+  V19's teachers, initializer, DAgger mixing, actor, critic, task distributions,
+  optimizer, seeds, and exact 100M budget. Audit immutable checkpoints before
+  768-episode strict and nominal evaluation.
+- **Reason:** V20 tests adding VICReg, not whether V19's existing temporal loss
+  helps the final dual-specialist policy. Without this control, the strongest
+  method may be called visual but the contribution of its self-supervised term
+  cannot be isolated. Idle Jarvis GPUs make the matched ablation feasible
+  without delaying V21, V25, or five-seed confirmation.
+- **Consequences:** Normalized configuration comparison is byte-identical after
+  removing only name, method, claim boundary, and temporal coefficient. Config
+  hashes are V26 `0b63eaa3...ac7`, strict comparison `21ddb16c...df5`, and
+  frozen hypothesis `9c7bde4c...a95`; 28/28 focused config, dual-teacher, and
+  policy-contract tests pass on Jarvis. Confirmation requires V19-minus-V26
+  worst-endpoint safe success >=3 points and a positive paired hierarchical
+  lower bound at the control's worst endpoint. Both arms inherit upstream
+  temporal training and privileged labels/teachers/critics, so this isolates
+  only the continuation-stage loss and cannot support a fully SSL-free lineage
+  comparison. Jobs `1140929`--`1140935` encode three-seed training, immutable
+  audit, strict/nominal held-out arrays, aggregates, and the frozen report.
+  Dependency inspection confirms evaluation waits on the audit and the report
+  waits on both aggregates; all three training tasks are running. The separate
+  paired-effect comparator passes 3/3 synthetic confirmation and fail-closed
+  reset-seed tests. Before any held-out V26 result existed, the comparator was
+  hardened to require identical step-zero evaluation signatures for every
+  paired seed; the already-written V19/V26 signatures are exactly equal. This
+  adds only a fail-closed fairness invariant and does not alter any endpoint,
+  threshold, seed, checkpoint, or confirmation rule. Job `1140947` waits on
+  both aggregates and will mechanically
+  compute endpoint effects, hierarchical intervals, safety checks, and the
+  frozen Boolean verdict. Frozen trainer/comparator source hashes are
+  `e9feca5d...a166` and `a62cf353...374b`; the hardened hypothesis config hash
+  is `73743b62...391c`, and the eventual artifact must report these current
+  source/config hashes.
+
+## D-150: Report interaction accounting without inventing an efficiency score
+
+- **Date:** 2026-08-29
+- **Status:** Accepted; validated JSON/CSV/Markdown complete
+- **Decision:** Join the seven-method matched outcome table to the immutable
+  method-information contract and report PPO, DAgger, and total new-stage
+  interactions per seed. Do not divide success rates by interactions or imply
+  that upstream teacher/initializer training is free.
+- **Reason:** V19 uses expert-guided initialization and 1.92M routed DAgger
+  transitions in addition to PPO. A paper-ready sample-cost comparison must
+  make this visible while avoiding a nonstandard scalar metric that would hide
+  branch failures and training lineage.
+- **Consequences:** Focused test passes. Initial production job `1140918`
+  correctly failed because scratch state methods mark the upstream-exclusion
+  flag false; the validator was repaired to require explicit exclusion only
+  when an initializer or teacher exists, while retaining strict arithmetic and
+  Boolean-schema checks. Replacement `1140927` passes. V19 records 99,999,744
+  PPO + 1,920,000 DAgger = 101,919,744 new interactions/seed; V13 uses
+  99,999,744 and state baselines 99,942,400. Upstream lineage is disclosed in
+  the source contract and excluded only where applicable. Artifacts are
+  `results/paper/integrated_sample_efficiency_v1.{json,csv,md}`.
+
+## D-149: Use the seven-method matched integrated table as the three-seed paper screen
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; source-validated JSON/CSV/Markdown/PNG/PDF complete
+- **Decision:** Compare V19 in one immutable table against clean V6, integrated
+  V13, full-strength VICReg V20, strict-trained state V11, integrated-mixture
+  state V12, and reverse-curriculum state V13. Require identical 768-episode,
+  three-seed strict-removal and nominal protocols and keep visual/state
+  deployment modality explicit.
+- **Reason:** Single-regime headline rates hide catastrophic retention failure.
+  A paper comparison must expose strict and nominal safety, both physical-
+  removal branches, violations, and the minimum safe endpoint simultaneously.
+- **Consequences:** Aggregate `1140913` and report `1140914` complete with exit
+  zero. V19 is the only cohort whose worst endpoint exceeds 90%: 91.41%, versus
+  83.69% V13, 74.06% V20, 29.14% clean V6, and 0% for all three state cohorts
+  because each has 0/768 nominal safe successes. State methods remain valid
+  strict specialists/upper baselines rather than integrated policies. Artifact
+  `results/paper/integrated_regime_comparison_v2.{json,csv,md,png,pdf}` records
+  exact source hashes and a claim boundary excluding real-robot and
+  cross-benchmark superiority. Three-seed hierarchical intervals remain wide;
+  the active five-seed confirmation is required for the final table.
+
+## D-148: Promote the selector-qualified V19 three-branch montage
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; capture metadata and sampled animation frames inspected
+- **Decision:** Replace the README's clean-V6 recovery GIF with a three-panel
+  V19 montage from frozen seed 4796, while retaining the V19-named candidate and
+  all capture metadata/source videos. Use the same fixed search range and show
+  first-goal removal, second-goal removal, and nominal completion together.
+- **Reason:** V19 is now the frozen-selector winner and seed 4796 is its strongest
+  joint held-out checkpoint (98.44% strict safe and 94.14% nominal safe). The
+  previous V6 montage was valid but no longer represented the best method.
+- **Consequences:** Array `1140898` produced three safe successful recordings
+  from checkpoint step 96,657,408. Both intervention panels record actual goal
+  unavailability; all panels record zero teleport calls, selector eligibility,
+  checkpoint/source hashes, and deterministic rendered replay. First removal
+  uses episode seed 92,000,001; second removal and nominal use 92,000,000.
+  Candidate montage `1140899` was sampled at five animation times and shows
+  legible manipulation and completion in every panel. Promotion job `1140903`
+  wrote `media/demos/learned-recovery-montage.gif` with SHA-256
+  `cacf4589ce8a2d00612be8810b6b3f502d96bd1a09588bbcc53c0f1cdbb26803`.
+
+## D-147: Reject full-strength VICReg V20 and retain its representation/control dissociation
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; exact audit, held-out selector, and repaired reports complete
+- **Decision:** Keep V19 as the selected visual policy and reject V20 under the
+  frozen integrated gate. Continue only the independently preregistered V21
+  coefficient ablation; do not tune V20 after observing its held-out endpoints.
+- **Reason:** All three V20 seeds completed exactly 99,999,744 transitions and
+  audit `1139933` verified finite best/latest models and optimizers, exact
+  counters, restricted actor inputs, and source provenance. Across 768 strict
+  episodes V20 achieves 672 raw and 656 safe successes (87.50%/85.42%) with
+  21 violations (2.73%). Its first-/second-removal safe rates are 277/374
+  (74.06%) and 379/394 (96.19%). Nominal raw/safe success is 706/698
+  (91.93%/90.89%) with 10 violations (1.30%). Frozen selector `1139938` rejects
+  V20 on strict-safe and first-removal-safe thresholds and retains V19.
+- **Consequences:** On exactly matched pixels, V20 increases pose-probe R² over
+  V19 by +0.0106 with paired seed-bootstrap interval [0.0016, 0.0212]. It also
+  increases goal-resolution R² by +0.0146 [0.0010, 0.0377], while balanced
+  accuracy changes by -0.0014 [-0.0100, 0.0029]. Thus the frozen evidence says
+  full-strength VICReg improves selected linear diagnostics but harms robust
+  recovery control; representation decodability is not a proxy for policy
+  quality. Original V19 comparator `1139911` failed because its config pointed
+  to V13's obsolete pre-repair probe aggregate. Repair job `1140887` changes
+  only that path to the existing source-matched, byte-identical-pixel aggregate
+  and passes. V20 task comparator `1139944` was bound to unrelated cancelled
+  job `1140396`; direct frozen-config replacement `1140888` passes. Both failed
+  scheduler records remain disclosed.
+
+## D-146: Release V19 held-out evaluation only after the exact three-seed audit
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; exact audit and frozen held-out selector passed
+- **Decision:** Accept V19 as a held-out candidate only after all three screening
+  seeds reach the exact floor-aligned budget and immutable audit `1139903`
+  verifies model, optimizer, counter, observation-contract, and source
+  provenance. Retain every seed regardless of its selected checkpoint step.
+- **Reason:** The selected checkpoints occur at materially different training
+  steps (26,206,208; 96,657,408; and 25,387,008). Pooling only favorable late
+  trajectories or evaluating before the slow seed completes would understate
+  optimizer uncertainty and violate the fixed three-seed protocol.
+- **Consequences:** Every V19 seed completed exactly 99,999,744 transitions with
+  exit zero. Audit `1139903` reports all three best/latest models and optimizers
+  finite, the expected restricted observation contract, and identical trainer
+  and environment source provenance. Strict array `1139904` and nominal array
+  `1139905` completed all three seeds (256 episodes/seed). V19 achieved 750/768
+  raw and 740/768 safe strict successes (97.66%/96.35%) with 10/768 violations
+  (1.30%); first-/second-goal-removed safe rates are 363/374 (97.06%) and
+  377/394 (95.69%). Nominal evaluation achieved 727/768 raw and 702/768 safe
+  successes (94.66%/91.41%) with 28/768 violations (3.65%). Frozen selector
+  `1139908` passed all six thresholds and selected V19 with 91.41%
+  worst-endpoint safe success; V13 remained ineligible. This released the
+  preregistered new seeds 71064/84293 in confirmation gate `1140359`. These are
+  restricted-RGB actor results with privileged dual teachers, progress labels,
+  and an asymmetric critic during training—not pure self-supervised or
+  state-free training. Training-stream checkpoint scores remain diagnostics,
+  not substitutes for held-out results.
+
+## D-145: Route one mechanically scaled V25 fallback after explicit V24 rejection
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; explicit rejection verified, fail-closed DAG submitted
+- **Decision:** If and only if V24 fails its existing 20M stability gate, test
+  one otherwise matched bounded shift-action smoke with coefficient 0.02.
+  Retain V24 unchanged. Require the same V19-matched best, tail, success, and
+  violation thresholds before any three-seed 100M V25 allocation.
+- **Reason:** V24's first full-DAgger log has absolute PPO policy loss 0.008009,
+  half-weighted value loss 0.011295, and raw bounded consistency 0.209102. A
+  25% auxiliary cap gives coefficient at most
+  `0.25 * (0.008009 + 0.011295) / 0.209102 = 0.02308`; 0.02 rounds down. At
+  partial V24 checkpoints the 0.1 treatment improved initial safety but then
+  lagged V19 in success and safety-weighted score, consistent with an
+  over-weighted rather than non-finite auxiliary term.
+- **Consequences:** Smoke/full configs and the allocation-gate thresholds are
+  fixed before any V25 metric exists. V25 is explicitly post-hoc, uses only one
+  coefficient selected by the disclosed rule, and cannot alter V24's verdict.
+  A separate CPU-only router now requires the exact V24 gate protocol, config
+  hash, 19,996,672-step budget, six Boolean checks, internally consistent
+  eligibility, training-source map, and best-checkpoint hash. It authorizes V25
+  only for an explicit valid rejection; pass, missing evidence, malformed
+  evidence, or checker error suppresses allocation. A separate V25 checker
+  validates the exact completion marker, matched best/tail scores, bounded loss,
+  full training-source map, and checkpoint hash without changing or importing
+  mutable V24 gate state. Because V25 is authorized only when V24 is rejected
+  before full allocation, its strict extension and selector preserve
+  V13/V19/V20/V21 and replace only V24's necessarily nonexistent full-artifact
+  slot; the rejected V24 smoke remains reported separately. Every threshold is
+  unchanged, and all three seeds, strict/nominal endpoints, both removal
+  branches, and both safety limits remain mandatory. The combined config,
+  router, V24-compatibility, bounded-method, synthetic end-to-end gate,
+  held-out extension, causal/OOD preservation, and guarded-DAG suite passes
+  27/27 on Jarvis with JUnit and source hashes retained. The unexecuted DAG
+  routes before its first `sbatch`, rejects duplicate result directories, and
+  chains smoke, gate, three-seed full training, immutable audit, strict and
+  nominal evaluation, aggregates, selection, 30 paired causal/OOD tasks, and
+  their aggregate. No job is submitted until V24's source-sensitive gate
+  completes, and no V24 trainer, config, gate, or running process changed.
+  V24 subsequently completed exactly 19,996,672 steps and gate `1140623`
+  explicitly rejected it. The independent router verified artifact hash
+  `1a8d44cb...6ce3f`, recorded route hash `8d5c66aa...e910`, and authorized
+  V25. Jobs `1140789`--`1140799` now encode the complete smoke-through-causal
+  DAG. Smoke `1140789` is running on `g101`; every larger job remains
+  dependency-held. At the first matched post-training evaluation (811,008
+  steps), V25 records 48.83% end success and 12.11% violations versus V19's
+  49.61% and 13.28%. This +1.6-point safety-weighted difference is an early
+  allocation diagnostic only, not a gate or held-out result.
+
+## D-144: Accept only the corrected exact V9 continuation and release its analyses
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; exact three-seed audit passed
+- **Decision:** Treat corrected resume job `1140493` task 2 as the sole valid
+  continuation of V9 seed 1788. Require the immutable three-seed checkpoint
+  audit `1140494` before interpreting the released held-out evaluation and
+  representation jobs. Preserve the mistaken redundant resume in the ledger
+  rather than silently replacing its history.
+- **Reason:** Seeds 9351 and 4796 had already reached the exact scheduled
+  budget, while seed 1788 stopped at 79,462,400 transitions. The corrected job
+  resumed that seed's saved model, optimizer, RNG, iteration, and global-step
+  state; restarting or dropping the seed would break the matched V8/V9
+  attribution experiment.
+- **Consequences:** Seed 1788 completed with exit zero at exactly 99,999,744
+  transitions. Audit `1140494` verified all three best/latest model tensors,
+  optimizer tensors, observation contracts, scheduled counters, and recorded
+  source hashes as finite and consistent. The repaired seed's training-stream
+  best checkpoint recorded 95.31% end success and 1.56% violations; this is
+  checkpoint-selection evidence, not held-out performance. Held-out array
+  `1139517` and representation array `1139520` are now resource/priority queued,
+  with their aggregates still fail-closed on all three tasks.
+
+## D-143: Make V24 provenance compatible with the generic immutable-checkpoint audit
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; pre-full-allocation metadata repair complete
+- **Decision:** Add canonical source key `trainer` as an exact hash alias of
+  `trainer_wrapper` in the V24 wrapper. Retain `trainer_wrapper`,
+  `base_trainer`, bounded-loss helper, and environment hashes. Do not change
+  model computation, optimizer behavior, config, or the active smoke process.
+- **Reason:** A pre-allocation compatibility audit found that the generic
+  checkpoint verifier requires `source_sha256.trainer` and
+  `source_sha256.environment`. V24 exposed the more precise wrapper/base names
+  but omitted the canonical alias, which would make a valid future full
+  checkpoint fail before held-out evaluation.
+- **Consequences:** Five focused tests pass with explicit alias equality and
+  AST-identical evaluator/trainer agent classes. The provenance-only wrapper
+  repair was synced while the 20M smoke was already resident in memory, so it
+  does not alter that running computation. Any gate-released full V24 process
+  starts from the repaired wrapper hash
+  `77cd6312c6ab9f0515647618963f8b5d2a7f160ea2cbb10fcf419551d6e9434b`;
+  the smoke and full wrapper hashes remain separately visible rather than
+  falsely described as byte-identical source. The exact pre-repair wrapper is
+  archived at hash `037c5403...cd39`; V24's 20M gate now loads the candidate
+  checkpoint, requires its recorded five-source map to equal that archive plus
+  unchanged helper/base/environment hashes, and records the repaired extension
+  source map separately. Nine gate tests pass after this provenance split.
+
+## D-142: Use Dreamer 4 and CP3ER as current algorithm-family references, not percentage baselines
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; primary-source audit complete
+- **Decision:** Retain Dreamer 4 as the newest verified numbered Dreamer and add
+  NeurIPS 2024 CP3ER as the closest published consistency-policy visual-RL
+  reference. Do not call either a head-to-head ATR baseline and do not place
+  their published percentages beside ATR results. Do not promote the current
+  under-review VLA jump-starting submission to a required baseline.
+- **Reason:** Dreamer 4's official project demonstrates offline Minecraft RL
+  and robotics world-model prediction, not a trained manipulation controller.
+  CP3ER directly studies visual actor--critic policy degradation and stabilizes
+  a consistency-model policy, but it uses a different policy class, off-policy
+  Q-learning, and DeepMind Control/Meta-World tasks. V22 is on-policy PPO with
+  an auxiliary augmentation KL, and V24 is a bounded action-consistency pilot;
+  equating them with CP3ER would be technically false. The contemporaneous
+  VLA work is not yet an archival result and uses transient VLA guidance for a
+  state-based controller rather than ATR's restricted RGB deployment contract.
+- **Consequences:** Related work now names CP3ER, states the exact relationship
+  to the disclosed V22 collapse, and preserves the custom-benchmark comparison
+  boundary. Dreamer 4 remains motivation for world-model representation and
+  imagination training, not evidence that ATR ran "DreamerV5" or a robot-
+  manipulation Dreamer 4 baseline.
+
+## D-141: Bound continuous-control shift consistency in action space
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; runtime passed, 20M smoke rejected
+- **Decision:** If V22 fails, test a separate V24 pilot that replaces Gaussian
+  KL with stopped-target Huber consistency between deterministic `tanh` action
+  means under clean and pad-4 shifted images. Keep PPO ratios on clean images,
+  keep the state critic outside the consistency loss, and retain coefficient
+  0.1. Use a separate wrapper, Slurm script, config, method name, and source
+  provenance; do not modify the active V22 trainer or artifacts.
+- **Reason:** Under V22's full 7,500-update DAgger initialization, unweighted
+  continuous-Gaussian KL grew from 114,887,227 at the first logged update to
+  1.86e20 by 1,638,400 steps, while policy/value losses remained order 1e-1.
+  Coefficient scaling sufficient to contain that term would make it effectively
+  zero. The post-tanh action residual is physically meaningful and bounded in
+  [-2, 2] per action dimension; beta-0.1 Smooth L1 is at most 1.95 and avoids
+  this unbounded Gaussian-KL failure mode.
+- **Consequences:** Five focused tests verify bounded finite loss, stopped clean
+  target, live shifted-branch gradients, exact wrapper provenance, 24-hour
+  requeue behavior, and AST-identical training/evaluation agent architectures.
+  Jarvis JUnit and source hashes are retained. Runtime job
+  `1140599` depends on nonzero exit from fallback router `1140598`, so it runs
+  only after V22 is explicitly ineligible or incomplete and consumes no GPU if
+  V22 passes. The runtime completed exactly 262,144 steps: end success changed
+  from 93.75% to 87.50%, violations from 3.13% to 4.69%, and maximum logged
+  bounded-consistency loss was 0.47865. Like V23, this is weak-BC runtime
+  evidence only. Before V24 ran,
+  runtime gate `1140609` was frozen to require exact completion, finite bounded
+  loss no greater than 1.95, at least 80% final end success, at most 5%
+  violations, and no more than a 15-point drop from initialization. Five gate
+  tests pass; job `1140609` passed all checks. The separately frozen one-seed
+  20M smoke `1140610` is running. Before its result, a nine-test matched-
+  protocol gate was frozen as `1140623`; only a pass may release three-seed
+  100M job `1140624`. The smoke completed exactly 19,996,672 transitions with
+  finite loss bounded by 0.21873. Its best end success was 71.48% with 3.13%
+  violations; best-score margin versus matched V19 was -27.35 points. The last
+  three evaluations averaged 17.58% violations and trailed V19's tail score by
+  47.27 points. Gate `1140623` therefore failed best success, best margin, tail
+  safety, and tail improvement while passing bounded finiteness and best-
+  checkpoint safety. Full job `1140624` and held-out chain `1140629`--`1140634`
+  remain unallocated through failed dependencies. This is a disclosed negative
+  optimization result, not held-out performance evidence.
+
+## D-140: Calibrate a failure-only DrAC coefficient from the disclosed runtime collapse
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; failure-only runtime pilot complete
+- **Decision:** Preserve V22 and its 0.1 coefficient unchanged. If and only if
+  V22's frozen allocation gate fails, run one otherwise byte-matched 262,144-
+  step V23 runtime pilot with coefficient 0.00009. Do not preallocate a V23
+  20M smoke or full extension before that pilot is inspected.
+- **Reason:** At V22's first logged update, unweighted KL was 56.4987 while
+  absolute PPO policy loss plus half value loss was 0.021595. The preregistered
+  fallback rule caps weighted KL at 25% of that reference magnitude, giving an
+  upper bound 0.0000955549; 0.00009 rounds downward and satisfies the cap. This
+  is a response to an openly reported failed pilot, not a reinterpretation of
+  V22.
+- **Consequences:** Focused config/provenance tests pass 7/7 on Jarvis with
+  retained JUnit and source hashes. CPU router `1140598` runs after any V22
+  smoke outcome, preserves an explicit gate verdict when available, and emits
+  an ineligible routing artifact if training crashed or completion is missing.
+  Job `1140596` depends on that router's nonzero exit: it consumes zero GPU if
+  V22 passes and otherwise runs after disclosed V22 failure. Its weak-BC
+  runtime completed exactly 262,144 steps with exit zero. End success changed
+  from 93.75% to 92.19%, violations from 3.13% to 1.56%, and the final safety-
+  weighted checkpoint score was 0.9064. Thus coefficient reduction prevents
+  the weak-BC catastrophic collapse. However, raw KL remained roughly
+  1,000--1,400, so the weighted term remained about 0.09--0.13; combined with
+  V22's full-DAgger KL above 1e8, this does not justify a full-DAgger V23 smoke.
+  The pilot cannot support a performance claim or authorize larger training.
+
+## D-139: Test visual-policy stability with a ratio-safe DrAC-style ablation
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; V22 rejected after disclosed numerical collapse
+- **Decision:** Add random-shift policy consistency as a separate V22 trainer,
+  without changing the active V19 source or checkpoints. PPO likelihood ratios
+  are always computed from the original observation. A separate coefficient
+  0.1 loss minimizes exact pre-tanh Gaussian KL from a stopped original-image
+  policy target to the live pad-4 random-shift policy. Do not impose visual
+  invariance on the asymmetric state critic.
+- **Reason:** Applying augmentation inside the current PPO action/value call
+  would compare behavior-policy likelihoods from one observation with current
+  likelihoods from another and invalidate the PPO ratio. The separate stopped-
+  target loss tests the intended stability mechanism without that confound.
+- **Consequences:** The claim boundary is "DrAC-style policy consistency with
+  an asymmetric critic," not full DrAC. Exact KL, stopped-target gradients,
+  live-agent gradients, tensor shapes, original-observation PPO provenance,
+  wrapper provenance, and a real short training path are covered by focused
+  tests. Runtime job `1140573` completed exactly 262,144 transitions and exited
+  zero, proving rollout, update, checkpoint, evaluation, and completion paths.
+  It also exposed a serious pilot-scale warning: end success fell from 93.75%
+  at initialization to 0% at the final evaluation while raw KL loss remained
+  orders of magnitude larger than PPO policy/value losses. The separately
+  configured 20M seed-1788 smoke `1140574` used the full 7,500-update DAgger
+  initialization and reproduced a more severe failure: KL rose from 1.15e8 to
+  1.86e20 and end success was 0% at both 0.81M and 1.63M steps, with effectively
+  zero task reward. It was cancelled at 1.64M rather than spend the remaining
+  GPU budget on a motionless policy. Router `1140598` recorded the missing
+  exact completion as ineligible; frozen gate `1140575` and three-seed/held-out
+  jobs `1140576`--`1140582` remain unallocated. Both negative trajectories and
+  checkpoints are preserved, and neither is performance evidence.
+
+## D-138: Separate causal progress-head tests from renderer-native visual OOD
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; protocol frozen, rendering preflight complete
+- **Decision:** Evaluate the selected visual policy under normal, zero, one,
+  and cyclically shifted progress-head outputs; deterministic pixel shifts and
+  photometric changes; and a separate `LearnedRecovery-v3-OOD` environment
+  with camera-left, camera-high, dim-light, and warm-light profiles. Preserve
+  the original training environment and use three paired training seeds for
+  every condition.
+- **Reason:** A representation probe cannot show that the actor uses the
+  decoded feature, and array-level pixel transforms alone do not establish
+  simulator-domain robustness. Intervening on the learned head tests causal
+  reliance, while renderer-native profiles test closed-loop visual shift with
+  unchanged physical initial state.
+- **Consequences:** Reset preflight job `1140480` verified five distinct RGB
+  hashes, identical shapes, and byte-identical task/robot/object state hashes.
+  This proves the perturbations are real and state-preserving at reset, not
+  robustness. The frozen primary causal threshold is a safety-weighted drop of
+  at least 0.03 with paired hierarchical-bootstrap lower bound above zero. Each
+  OOD condition must retain at least 0.75 safe success with an upper-CI drop no
+  larger than 0.15. Array `1140479` and aggregate `1140492` remain dependency-
+  held on the selected, audited checkpoint.
+
+## D-137: Release V21 from its smoke gate and bound matched-pixel evidence
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; full three-seed extension running
+- **Decision:** Release the independently frozen V21 100M-step, three-seed
+  extension after its exact one-seed 20M allocation smoke passed every frozen
+  threshold. Treat the separately completed V13-versus-V6 matched-pixel pose
+  comparison as relative diagnostic evidence only.
+- **Reason:** V21 seed 9351 completed exactly 19,996,672 scheduled transitions.
+  Its best eligible record at step 18,014,208 reached 90.625% end success,
+  0.391% violations, and 0.8986 safety-weighted score, +0.2383 over matched-
+  budget V20. The gate required at least 85% end success, at most 5%
+  violations, and at least +0.15 safety-weighted improvement. Separately,
+  byte-identical RGB datasets and behavior checkpoints show V13-minus-V6 mean
+  pose R² +0.0330 with paired seed-bootstrap interval [0.0141, 0.0619], but
+  both learned encoders have negative mean R² and neither reliably beats its
+  random control.
+- **Consequences:** The smoke authorizes compute only; it is one seed, uses
+  training-stream evaluation, and has a 20M learning-rate annealing horizon
+  unlike the 100M extension. It cannot support a held-out or final performance
+  claim. The pose result supports a small relative decodability difference,
+  not useful object-pose recovery, self-supervised attribution, or causal
+  control benefit. Full V21 and downstream jobs are `1140381`--`1140395`.
+
+## D-136: Bound D-066 to held-out generalization, not a universal collapse mechanism
+
+- **Date:** 2026-08-28
+- **Status:** Accepted; preserved failure and composite correction gate complete
+- **Decision:** Retain D-066's original 0% leave-one-out measurement as a
+  historical result, but withdraw its broader assertion that the from-scratch
+  reward-only encoder necessarily produces constant logits. A fresh isolated
+  Jarvis run fit all 12 balanced training captures strongly (six logits about
+  +4.18 and six about -4.07) while its independently seeded LOO contract still
+  passed only the chance-or-worse bound. The maintained contract therefore
+  tests weight updates and held-out generalization, not a prescribed optimizer
+  failure mechanism.
+- **Reason:** Full isolated suite `1140374` ran all 70 files and 443 tests with
+  exactly one failure: the in-sample constant-logit assertion. The result
+  contradicts that mechanism without contradicting the held-out comparison.
+  A paper-quality boundary must follow the reproducible endpoint rather than
+  preserve an attractive post-hoc explanation.
+- **Consequences:** The failed manifest and JUnit remain immutable. A composite
+  repair gate may reuse the other 69 results only after verifying their source
+  hashes byte-for-byte, and must rerun the corrected file in a fresh process.
+  H1 may cite poor toy-scale LOO generalization relative to CLIP/DINOv2; it may
+  not cite universal in-sample collapse, inability to perceive, or a literal
+  online-RL comparison. Jarvis repair job `1140446` reused 69 byte-identified
+  file results, reran the corrected file (2/2), and exited zero; source-hash
+  delta job `1140447` then passed 30/30 affected tests.
+
 ## D-135: Promote integrated learned control only on safety-qualified, branch-stratified evidence
 
 - **Date:** 2026-08-27
@@ -2512,7 +3645,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 ## D-066: Built the task-reward-only visual encoder — the baseline H1's own wording actually asks for, and the strongest direct evidence for it in the project so far
 
 - **Date:** 2026-08-06
-- **Status:** Accepted
+- **Status:** Accepted historically; mechanism claim narrowed by D-136
 - **Decision:** H1 (docs/01) claims self-supervised visual representations
   improve feasibility prediction "over pixels trained only through task
   reward and standard supervised features" — a comparison the project's
@@ -2562,7 +3695,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   identical toy-scale data, CLIP (zero-shot, no training data at all)
   and DINOv2 (self-supervised pretraining + a fitted probe) both reach
   100% LOO accuracy; training visual features from scratch on that same
-  data does not learn to discriminate at all. Still toy-scale and still
+  data did not generalize in this run. D-136 later showed that the same
+  architecture can fit fresh in-sample captures while still failing LOO, so
+  this entry's constant-collapse mechanism is historical, not universal. Still toy-scale and still
   a simplification of literal RL-from-pixels — not a claim that no
   amount of task-reward-only training could ever work, only that it
   doesn't at this project's current data scale. Updated

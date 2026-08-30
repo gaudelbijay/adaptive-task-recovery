@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "name": "vicreg_low_variance_smoke_gate_v1",
+  "baseline_config": "configs/visual_recovery_vicreg_dual_specialist_v20.json",
+  "candidate_config": "configs/visual_recovery_vicreg_dual_specialist_v21_low_variance_smoke.json",
+  "extension_config": "configs/visual_recovery_vicreg_dual_specialist_v21_low_variance.json",
+  "results_root": "results/visual_recovery_ppo",
+  "seed": 9351,
+  "thresholds": {
+    "minimum_success_at_end": 0.85,
+    "maximum_constraint_violation": 0.05,
+    "minimum_safety_weighted_improvement": 0.15
+  },
+  "claim_boundary": "one-seed matched-budget training-stream allocation gate only; passing may allocate a separately frozen three-seed extension but supplies no held-out or performance claim"
+}

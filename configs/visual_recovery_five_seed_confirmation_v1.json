@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_five_seed_confirmation_v1",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "screening_seeds": [9351, 4796, 1788],
+  "confirmatory_seeds": [71064, 84293],
+  "visual_method": "event_reward_learned_progress_adaptive_visual_ppo",
+  "state_method": "event_reward_safe_adaptive_state_ppo",
+  "visual_screening": "results/visual_recovery_ppo/visual_recovery_progress_intervention_v7_event_reward/aggregate.json",
+  "visual_confirmatory": "results/visual_recovery_ppo/visual_recovery_progress_intervention_confirm_v11_event_reward/aggregate.json",
+  "state_screening": "results/learned_recovery/learned_recovery_ppo_v8_event_reward/aggregate.json",
+  "state_confirmatory": "results/learned_recovery/learned_recovery_ppo_v10_event_reward_confirm/aggregate.json"
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "name": "v28_unseen_visual_ood_v1",
+  "selection": "configs/v28_full_routing_selection_v1.json",
+  "policy_configs": {
+    "render_distill_full": "configs/visual_recovery_v19_render_distill_v28.json"
+  },
+  "conditions": ["nominal", "intervention"],
+  "episodes": 256,
+  "num_envs": 32,
+  "seed_base": 93000000,
+  "hypothesis_thresholds": {
+    "primary_causal_variant": "progress_cyclic_shift",
+    "primary_causal_condition": "intervention",
+    "minimum_causal_safe_success_drop": 0.03,
+    "minimum_ood_safe_success": 0.75,
+    "maximum_ood_safe_success_drop": 0.15,
+    "bootstrap_repetitions": 20000,
+    "bootstrap_seed": 28411
+  },
+  "variants": [
+    {"name": "baseline", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "progress_cyclic_shift", "progress_head_mode": "cyclic_shift", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "pixel_shift_left_3", "progress_head_mode": "normal", "visual_perturbation": "pixel_shift_left_3", "environment_profile": "nominal"},
+    {"name": "brightness_85", "progress_head_mode": "normal", "visual_perturbation": "brightness_85", "environment_profile": "nominal"},
+    {"name": "cool_color_shift", "progress_head_mode": "normal", "visual_perturbation": "cool_color_shift", "environment_profile": "nominal"},
+    {"name": "camera_right_3cm", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_right_3cm"},
+    {"name": "camera_low_3cm", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_low_3cm"},
+    {"name": "lighting_bright", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_bright"},
+    {"name": "lighting_cool", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_cool"}
+  ],
+  "claim_boundary": "Pre-training unseen V28 confirmation suite. Training uses left/high camera and dim/warm lighting; this suite uses right/low camera, bright/cool lighting, opposite pixel/color changes, new episode seeds, and no real-robot evidence."
+}

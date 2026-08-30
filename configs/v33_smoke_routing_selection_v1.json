@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "canonical_view_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "canonical_view_smoke",
+    "method": "v19_canonical_view_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static V33 development routing identity; this is not performance eligibility."
+}

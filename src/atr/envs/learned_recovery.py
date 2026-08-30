@@ -311,6 +311,12 @@ class LearnedRecoveryEnv(BaseEnv):
                 "critic_red_sweeper_pose": self.red_sweeper.pose.raw_pose,
                 "critic_blue_sweeper_pose": self.blue_sweeper.pose.raw_pose,
                 "critic_protected_pose": self.protected.pose.raw_pose,
+                # Training/evaluation label only. A goal is resolved either by
+                # ordered placement or by the causally valid physical
+                # intervention defined in _recognized_unavailable().
+                "critic_goal_resolved": (
+                    self._completed | self._recognized_unavailable()
+                ).float(),
             })
         if "state" in self.obs_mode:
             obs.update({

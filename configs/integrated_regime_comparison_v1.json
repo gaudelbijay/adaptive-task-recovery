@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "integrated_regime_comparison_v1",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_integrated_state_comparison_v3/aggregate.json",
+  "cohorts": [
+    {"label": "clean_visual", "kind": "visual", "method": "event_reward_learned_progress_dagger_visual_ppo", "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/aggregate.json"},
+    {"label": "late_adaptive_visual", "kind": "visual", "method": "event_reward_learned_progress_adaptive_visual_ppo", "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_progress_intervention_v7_event_reward/aggregate.json"},
+    {"label": "strict_stable_visual", "kind": "visual", "method": "event_reward_strict_removal_stable_visual_ppo", "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/aggregate_nominal.json"},
+    {"label": "strict_trained_state", "kind": "state", "method": "event_reward_strict_removal_state_ppo", "nominal_aggregate": "results/learned_recovery/learned_recovery_ppo_v11_strict_removal/aggregate.json"},
+    {"label": "integrated_mixture_state", "kind": "state", "method": "event_reward_integrated_mixture_state_ppo", "nominal_aggregate": "results/learned_recovery/learned_recovery_ppo_v12_integrated_mixture/aggregate.json"}
+  ],
+  "claim_boundary": "post-audit matched dual-regime comparison; historical mismatched state cohort excluded from integrated ranking"
+}

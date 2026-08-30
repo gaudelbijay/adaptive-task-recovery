@@ -44,14 +44,13 @@ neither CLIP nor DINOv2 qualifies, since both start from a large
 pretrained backbone (language-supervised, self-supervised). A small
 conv encoder, no pretraining at all, trained from scratch on the same
 ~24-example toy dataset CLIP/DINOv2 were evaluated against. Measured
-result, root-caused not just reported: it fails to learn any real
-visual discrimination -- its output is a near-constant regardless of
-image content (confirmed directly), converging to the training fold's
-own majority class instead of anything about the image. The most direct
-piece of evidence for H1's actual comparative claim in this project so
-far: the pretrained representations both succeed at 100% LOO accuracy
-on this data; training from scratch on the identical data does not
-learn to discriminate at all.
+result: it fails to generalize under leave-one-out evaluation. D-066's
+original fold-wise majority-class mechanism did not reproduce on a fresh
+Jarvis capture: the model fit all 12 training examples strongly while still
+remaining chance-or-worse when examples were held out. The supported claim is
+therefore poor toy-scale held-out generalization, not universal in-sample
+collapse. The pretrained representations remain stronger on this narrow LOO
+comparison.
 
 `calibrated_feasibility.py` (D-071) is H5's (calibration) first real
 building block -- a probability of remaining feasible through completion,

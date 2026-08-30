@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_dual_specialist_shift_action_scaled_extension_v13",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "strict_stable_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "vicreg_dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v20.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "low_variance_vicreg_dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v21_low_variance.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "scaled_bounded_shift_action_dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_shift_action_v25_scaled.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Post-hoc matched V19/V20/V21/V25 strict actual-removal comparison, frozen before any V25 metric. This failure-only path exists only when V24 is rejected before full allocation, so it cannot require nonexistent V24 100M/held-out artifacts; the rejected V24 smoke remains separately reported. V25 changes V19 only by stopped-target bounded shift-action consistency at mechanically scaled coefficient 0.02 and must retain nominal success, both removal branches, safety, and all seeds."
+}

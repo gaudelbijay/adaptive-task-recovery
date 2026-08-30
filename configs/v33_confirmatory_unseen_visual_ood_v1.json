@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "name": "v33_confirmatory_unseen_visual_ood_v1",
+  "selection": "configs/v33_full_routing_selection_v1.json",
+  "policy_configs": {
+    "canonical_view_full": "configs/visual_recovery_v19_canonical_view_v33.json"
+  },
+  "conditions": ["nominal", "intervention"],
+  "episodes": 256,
+  "num_envs": 32,
+  "seed_base": 97000000,
+  "hypothesis_thresholds": {
+    "primary_causal_variant": "progress_cyclic_shift",
+    "primary_causal_condition": "intervention",
+    "minimum_causal_safe_success_drop": 0.03,
+    "minimum_ood_safe_success": 0.70,
+    "maximum_ood_safe_success_drop": 0.20,
+    "bootstrap_repetitions": 20000,
+    "bootstrap_seed": 33107
+  },
+  "variants": [
+    {"name": "baseline", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "progress_cyclic_shift", "progress_head_mode": "cyclic_shift", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "pixel_shift_down_2", "progress_head_mode": "normal", "visual_perturbation": "pixel_shift_down_2", "environment_profile": "nominal"},
+    {"name": "gaussian_blur_3", "progress_head_mode": "normal", "visual_perturbation": "gaussian_blur_3", "environment_profile": "nominal"},
+    {"name": "contrast_120", "progress_head_mode": "normal", "visual_perturbation": "contrast_120", "environment_profile": "nominal"},
+    {"name": "camera_diagonal_right_2_low_2", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_diagonal_right_2_low_2"},
+    {"name": "camera_yaw_left_3deg", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_yaw_left_3deg"},
+    {"name": "lighting_side_key", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_side_key"},
+    {"name": "lighting_desaturated", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_desaturated"}
+  ],
+  "claim_boundary": "Frozen during V33 training and before any V33 rollout evaluation. None of these transforms, profiles, seed base, thresholds, or outcomes may be used for V33 training, observed-suite selection, routing calibration, or hyperparameter choice. Simulation-only confirmation; no real-robot claim."
+}

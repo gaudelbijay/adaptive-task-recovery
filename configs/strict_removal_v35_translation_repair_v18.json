@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_v35_translation_repair_v18",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "v19_visual_incumbent",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "v35_translation_repair_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_v34_translation_repair_v35.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Frozen before full V35 outcomes. Matched strict physical-removal comparison of V35 against V19; both methods use privileged training and restricted RGB deployment."
+}

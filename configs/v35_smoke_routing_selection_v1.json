@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "selected": "translation_repair_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{"label": "translation_repair_smoke", "method": "v34_translation_repair_smoke", "eligible": true}],
+  "claim_boundary": "Static V35 development routing identity; this is not performance eligibility."
+}

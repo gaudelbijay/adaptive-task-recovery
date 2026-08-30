@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_dual_specialist_shift_action_extension_v12",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "strict_stable_visual", "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "vicreg_dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v20.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "low_variance_vicreg_dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v21_low_variance.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "bounded_shift_action_dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_shift_action_v24.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Post-hoc matched V19/V20/V21/V24 strict actual-removal comparison. V24 changes V19 only by stopped-target bounded shift-action consistency and must retain nominal success, both removal branches, safety, and all seeds."
+}

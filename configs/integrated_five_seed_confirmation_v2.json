@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "name": "integrated_five_seed_confirmation_v2",
+  "selection_artifact": "results/gates/integrated_visual_selection_v1.json",
+  "expected_selected": "strict_stable_visual",
+  "expected_thresholds": {
+    "minimum_strict_safe": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "expected_checks": [
+    "strict_safe",
+    "nominal_safe",
+    "first_removed_safe",
+    "second_removed_safe",
+    "strict_violation",
+    "nominal_violation"
+  ],
+  "screening_seeds": [9351, 4796, 1788],
+  "confirmatory_seeds": [71064, 84293],
+  "visual_clean_append_config": "configs/visual_recovery_progress_dagger_v6_confirm_append.json",
+  "visual_integrated_append_config": "configs/visual_recovery_strict_adaptive_v13_confirm_append.json",
+  "state_integrated_append_config": "configs/learned_recovery_ppo_v12_integrated_confirm_append.json",
+  "claim_boundary": "new seeds were fixed before the screening aggregate; both are retained regardless of outcome and run only if V13 passes every frozen strict/nominal eligibility threshold"
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "name": "v28_smoke_development_ood_v1",
+  "selection": "configs/v28_smoke_routing_selection_v1.json",
+  "policy_configs": {
+    "render_distill_smoke": "configs/visual_recovery_v19_render_distill_v28_smoke.json"
+  },
+  "conditions": ["nominal", "intervention"],
+  "episodes": 256,
+  "num_envs": 32,
+  "seed_base": 81000000,
+  "hypothesis_thresholds": {
+    "primary_causal_variant": "progress_cyclic_shift",
+    "primary_causal_condition": "intervention",
+    "minimum_causal_safe_success_drop": 0.03,
+    "minimum_ood_safe_success": 0.75,
+    "maximum_ood_safe_success_drop": 0.15,
+    "bootstrap_repetitions": 20000,
+    "bootstrap_seed": 13801
+  },
+  "variants": [
+    {"name": "baseline", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "progress_zero", "progress_head_mode": "zero", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "progress_one", "progress_head_mode": "one", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "progress_cyclic_shift", "progress_head_mode": "cyclic_shift", "visual_perturbation": "none", "environment_profile": "nominal"},
+    {"name": "pixel_shift_right_4", "progress_head_mode": "normal", "visual_perturbation": "pixel_shift_right_4", "environment_profile": "nominal"},
+    {"name": "brightness_70", "progress_head_mode": "normal", "visual_perturbation": "brightness_70", "environment_profile": "nominal"},
+    {"name": "warm_color_shift", "progress_head_mode": "normal", "visual_perturbation": "warm_color_shift", "environment_profile": "nominal"},
+    {"name": "camera_left_5cm", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_left_5cm"},
+    {"name": "camera_high_5cm", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "camera_high_5cm"},
+    {"name": "lighting_dim", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_dim"},
+    {"name": "lighting_warm", "progress_head_mode": "normal", "visual_perturbation": "none", "environment_profile": "lighting_warm"}
+  ],
+  "claim_boundary": "One-seed development reuse of the observed V19 OOD suite for V28 allocation only. It is not held-out evidence; final robustness uses a separately frozen unseen suite."
+}

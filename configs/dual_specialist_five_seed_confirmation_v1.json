@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "dual_specialist_five_seed_confirmation_v1",
+  "selection_artifact": "results/gates/integrated_visual_selection_v6.json",
+  "expected_selected": "dual_specialist_visual",
+  "expected_thresholds": {
+    "minimum_strict_safe": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "expected_checks": [
+    "strict_safe",
+    "nominal_safe",
+    "first_removed_safe",
+    "second_removed_safe",
+    "strict_violation",
+    "nominal_violation"
+  ],
+  "screening_seeds": [9351, 4796, 1788],
+  "confirmatory_seeds": [71064, 84293],
+  "training_configs": [
+    "configs/visual_recovery_progress_dagger_v6_confirm_append.json",
+    "configs/visual_recovery_strict_adaptive_v13_confirm_append.json",
+    "configs/learned_recovery_ppo_v11_strict_removal_confirm_append.json",
+    "configs/visual_recovery_dual_specialist_dagger_v19_confirm_append.json"
+  ],
+  "claim_boundary": "two untouched confirmatory seeds fixed before V19 held-out results; all same-seed initializer and teacher policies must train first and both V19 seeds are retained regardless of outcome"
+}

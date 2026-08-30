@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "robust_distill_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "robust_distill_smoke",
+    "method": "v19_robust_rgb_self_distillation_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static development-only routing record for the preregistered V27 one-seed smoke; eligibility here means runnable, not performant."
+}

@@ -29,34 +29,17 @@ gradient version is a real, larger future step, not attempted here --
 this is the direct, honest comparison point H1 asks for at this
 project's current scale, not a claim to have run full RL-from-pixels.
 
-**Measured result (D-066): the encoder fails to learn any real visual
-discrimination at all.** Leave-one-out accuracy on the same 12-example
-`master_chef_can`/`kitchen_cabinet` set CLIP and DINOv2 were evaluated
-against: 0% -- not noise around chance, a *worse-than-chance*, exactly-
-inverted prediction pattern, root-caused before trusting it (not just
-reported): every held-out example in every fold gets the identical
-logit regardless of which image it is
-(`train_logit_std=0.000` in every fold, confirmed directly), so the 0%
-comes from a specific, understood mechanism -- the model converges to
-predicting the *training fold's own majority class* every time,
-regardless of image content, and each LOO fold's majority class happens
-to be the opposite of the held-out example's true label by construction
-(holding out a "present" example leaves an "absent"-majority fold, and
-vice versa). Confirmed this is a real training pathology, not a bug:
-the conv weights and linear head both change substantially during
-training (real gradient flow, real learned parameters, checked
-directly), and the collapse to a near-constant output persists at 3x
-more epochs and 10x higher learning rate -- more optimization doesn't
-fix it, because the randomly-initialized, never-pretrained conv
-features apparently don't carry a reliably exploitable signal for this
-specific discrimination at n=11 training examples, so gradient descent
-finds the loss-minimizing default (the class prior) instead. This is
-the most direct piece of evidence for H1's actual comparative claim
-found in this project so far: a representation with no self-supervised
-or language-supervised pretraining, given the identical toy-scale data
-CLIP (zero-shot, no training data at all) and DINOv2 (self-supervised
-pretraining + a fitted probe) both handled with 100% LOO accuracy,
-cannot learn to discriminate at all.
+**Measured result and correction (D-066, 2026-08-28): the encoder does
+not generalize from this toy-scale data.** The original captures gave 0%
+leave-one-out (LOO) accuracy and fold-wise majority-class outputs.  A fresh
+Jarvis capture still gave chance-or-worse LOO accuracy, while a fit on all 12
+balanced examples separated its six positive and six negative training images
+strongly (logits about +4.18 and -4.07).  Thus the supported result is failed
+held-out generalization at n=12, not a platform-independent claim that the
+optimizer or representation always collapses to a constant.  Gradient flow
+and weight changes are separately tested.  CLIP and DINOv2 remain stronger on
+this same narrow LOO comparison, but all conclusions remain bounded to one
+object/scene and a reward-derived supervised proxy rather than online RL.
 """
 
 from __future__ import annotations

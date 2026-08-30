@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "visual_representation_vicreg_ablation_v5",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "required_training_seeds": 3,
+  "methods": [
+    {
+      "name": "integrated_teacher_visual_encoder",
+      "method": "event_reward_integrated_teacher_dagger_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_integrated_teacher_dagger_v15/representation_probe_aggregate.json"
+    },
+    {
+      "name": "vicreg_integrated_teacher_visual_encoder",
+      "method": "event_reward_vicreg_integrated_teacher_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_vicreg_integrated_teacher_v16/representation_probe_aggregate.json"
+    }
+  ],
+  "primary_diagnostic": {
+    "treatment": "vicreg_integrated_teacher_visual_encoder",
+    "control": "integrated_teacher_visual_encoder"
+  }
+}

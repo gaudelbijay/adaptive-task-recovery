@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_paper_comparison_v14",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "clean_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_progress_dagger_v6_event_reward.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "strict_stable_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "vicreg_dual_specialist_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v20.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "strict_trained_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v11_strict_removal.json",
+      "output": "results/learned_recovery"
+    },
+    {
+      "label": "integrated_mixture_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v12_integrated_mixture.json",
+      "output": "results/learned_recovery"
+    },
+    {
+      "label": "reverse_curriculum_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v13_integrated_from_strict.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

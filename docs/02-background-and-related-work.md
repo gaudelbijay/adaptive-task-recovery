@@ -1,7 +1,7 @@
 ---
 title: Background and Related Work
 status: verified-core
-last_updated: 2026-08-27
+last_updated: 2026-08-28
 ---
 
 # Background and Related Work
@@ -32,6 +32,53 @@ treated as a common leaderboard.
 - **PPO and ManiSkill** provide the low-level continuous-control algorithm and
   task-specific reference hyperparameters for the non-teleport manipulation
   experiments. They are execution baselines, not recovery policies.
+- **MoPA-PD visual policy distillation** is the closest methodological
+  precedent for ATR's state-teacher-to-visual-controller bootstrap: it combines
+  visual behavioral cloning from a state-dependent planner-augmented policy
+  with subsequent vision-based reinforcement learning. ATR's DAgger variants
+  add on-policy student coverage and test persistent goal removal, but remain
+  privileged-training methods rather than pure pixel-only RL.
+- **Sequential Dexterity** learns transition feasibility for chaining
+  manipulation subpolicies, including switching to recover from failures and
+  bypassing redundant stages. This is especially relevant to ATR's ordered
+  suffix behavior. Its unit of control is a chain of dexterous subpolicies;
+  ATR instead evaluates one continuous language-conditioned policy after an
+  exogenous stage becomes physically impossible.
+- **SPIRE** combines task-and-motion-planning decomposition, imitation, and RL
+  for long-horizon contact-rich manipulation. It is a strong precedent for
+  using structured expert guidance rather than expecting pixel RL to discover
+  long sequences from scratch. Its published task suites do not isolate
+  unannounced irreversible goal loss or protected-object violations.
+- **DEMO³** combines demonstrations, learned stage-wise dense rewards, and a
+  visual latent world model for long-horizon manipulation. It is the closest
+  recent precedent for using a small amount of expert data to make multi-stage
+  pixel control tractable. ATR's intervention changes which requested stage is
+  feasible during execution, whereas DEMO³ assumes the demonstrated stage
+  structure remains achievable; its published percentages are therefore not a
+  shared-benchmark baseline.
+- **MSDP** self-supervises a multimodal representation with masked
+  reconstruction and then uses asymmetric actor--critic training for
+  contact-rich manipulation. It strengthens the motivation for ATR's
+  restricted actor plus privileged training-only critic/auxiliary targets,
+  while differing in modality (vision, force, and proprioception), pretraining
+  protocol, and task suite.
+- **MENTOR** is a recent visual-RL mixture-of-experts method that combines
+  task-oriented perturbations with expert specialization and reports both
+  simulated and real-robot manipulation results. It is an important
+  architectural comparator for ATR's dual-specialist student, but MENTOR does
+  not evaluate an unannounced irreversible goal-removal event or ATR's
+  protected-object constraint. Its published percentages are therefore not a
+  head-to-head baseline.
+- **Maniwhere** combines multi-view representation learning, a spatial
+  transformer, and curriculum randomization for visual generalization across
+  manipulation tasks and robot platforms. It motivates a future camera/domain
+  generalization axis; ATR's present frozen experiment instead isolates
+  persistent task-feasibility change under one declared visual protocol.
+- **Masked-modality training for sensor failure** randomly removes visual or
+  proprioceptive inputs during RL and evaluates robustness to missing sensors.
+  This is a useful perturbation-training comparator, but sensor loss changes
+  observability while ATR's intervention changes which requested world goal is
+  physically achievable. The two failure models should not be conflated.
 - **PaLM-E, RT-2, and Code as Policies** broaden embodied multimodal reasoning,
   end-to-end vision-language-action control, and language-generated robot
   programs respectively. They are important representation/execution
@@ -77,6 +124,32 @@ Compare contrastive, masked-image-modeling, self-distillation, and temporal or
 object-centric objectives. The useful representation must encode object state,
 relations, affordances, and change—not merely image similarity. Frozen,
 fine-tuned, and task-reward-only encoders are necessary baselines.
+
+For online visual control, DrQ-v2 and MENTOR are model-free algorithmic
+references; Maniwhere is a visual-generalization reference; CP3ER is a
+consistency/diffusion-policy stability reference; and DreamerV3, Dreamer 4,
+TD-MPC2, and DEMO³ are world-model references. Dreamer 4 is the newest numbered
+Dreamer found in the primary literature as of 2026-08-28, but its demonstrated
+RL control domain is offline Minecraft rather than robot manipulation. Its
+robotics result is world-model interaction prediction, not a manipulation
+policy result. NE-Dreamer is the repository's implemented decoder-free
+temporal-prediction pilot.
+
+CP3ER is especially relevant to the disclosed V22 failure: it reports visual
+policy degradation under actor--critic training and stabilizes a consistency-
+model policy using sample-based entropy and prioritized proximal experience
+regularization. It is nevertheless not the same intervention as ATR's failed
+Gaussian augmentation KL: CP3ER changes the policy class and is evaluated with
+off-policy Q-learning on DeepMind Control and Meta-World, whereas V22 adds a
+separate invariance loss to on-policy PPO. V24's bounded action-consistency
+pilot addresses V22's numerical failure only and is not described as CP3ER.
+
+None of these systems supplies a directly comparable published score for ATR's
+custom ordered-removal benchmark, so they define algorithm families and
+ablations—not an external numerical leaderboard. The final experiment
+therefore compares restricted RGB PPO, asymmetric training, temporal SSL,
+DAgger, representation regularization, and privileged progress prediction
+under identical V3 dynamics, seeds, budgets, and held-out resets.
 
 ## Goal-conditioned and hierarchical RL
 
@@ -136,11 +209,16 @@ this repository use identical ATR cases, paired seeds, and common evaluators.
 | RecoveryChaining | Learned local policy + nominal options | Nominal-controller failure | Yes | No |
 | Autonomous Interactive Correction | Corrected contact pose | Articulated interaction failure | Pose execution | No |
 | Failure-Aware RL | Safety critic + recovery policy | Intervention-requiring failure | Yes | No (IR-failure metric) |
-| ATR integrated learned recovery | One language-conditioned PPO policy | Persistent exogenous goal loss | Yes | Yes |
+| Sequential Dexterity | Transition feasibility + chained subpolicies | Failed/redundant stage | Yes | No |
+| ATR V19 integrated learned recovery | One restricted-input, language-conditioned PPO policy | Persistent exogenous goal loss | Yes; continuous joint control | Yes; 1.30% strict / 3.65% nominal violations |
 
-The last row describes the frozen experiment contract. Its numerical entry is
-added to the result index only after all three seeds and the independent
-held-out evaluation complete.
+The ATR row now describes the completed three-seed screen: 96.35% strict safe,
+91.41% nominal safe, and 97.06%/95.69% safe success on the two physical-removal
+branches (768 episodes per regime). It uses privileged teachers, labels, and a
+state critic during training and is simulation-only. No cited system evaluates
+the same ordered irreversible-removal protocol, so these values are not placed
+beside published percentages from different embodiments or benchmarks. The
+fixed five-seed confirmation remains in progress.
 
 ## Literature-review protocol
 

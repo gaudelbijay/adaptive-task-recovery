@@ -19,7 +19,13 @@ export __GL_SHADER_DISK_CACHE_PATH="${ATR_NODE_CACHE}/gl"
 export CUDA_CACHE_PATH="${ATR_NODE_CACHE}/cuda"
 export XDG_CACHE_HOME="${ATR_NODE_CACHE}/xdg"
 export PYTHONUNBUFFERED=1
-"${ATR_PYTHON}" scripts/probe_visual_representation.py \
+probe_args=(
   --config "${ATR_VISUAL_CONFIG}" --output "${ATR_VISUAL_OUTPUT}" \
   --task-index "${ATR_TASK_INDEX}" --samples "${ATR_PROBE_SAMPLES:-8192}" \
-  --num-envs "${ATR_PROBE_NUM_ENVS:-32}"
+  --num-envs "${ATR_PROBE_NUM_ENVS:-32}" --ridge "${ATR_PROBE_RIDGE:-1.0}" \
+  --filename "${ATR_REPRESENTATION_PROBE_FILENAME:-representation_probe.json}"
+)
+if [[ -n "${ATR_PROBE_PROTOCOL_CONFIG:-}" ]]; then
+  probe_args+=(--probe-protocol-config "${ATR_PROBE_PROTOCOL_CONFIG}")
+fi
+"${ATR_PYTHON}" scripts/probe_visual_representation.py "${probe_args[@]}"

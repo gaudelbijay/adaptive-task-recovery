@@ -5,20 +5,125 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
-**Latest integrated result (D-135, 2026-08-27):** recovery and continuous motor
-control are now trained together in `LearnedRecovery-v1`, with pose assignment
-restricted to reset and a force/contact-driven irreversible intervention. Nine
-PPO runs (three matched methods by three seeds) each complete exactly
-99,942,400 transitions, followed by 4,608 disjoint held-out episodes. Adaptive
-PPO reaches 51.69% safety-qualified intervention success versus 36.33% for
-no-intervention training, a paired +15.36-point effect (95% CI +10.68--+20.05).
-On the hard first-goal-removed branch the gain is +33.24 points (+28.49--
-+38.27), while the easy branch is unchanged. The result is state-based,
-simulation-only, and not solved: seed SD is 15.24 points and adaptive violation
-rate is 8.59%. D-134's separate Fetch pipeline remains the visual/parsed-
-language result, but its low-level controller is scripted.
+**Latest integrated result (D-146/D-147, 2026-08-28):** V19 is the first policy
+to pass every frozen restricted-input visual-control endpoint in
+`LearnedRecovery-v3`. Across three exact 99,999,744-step seeds and 768 held-out
+episodes per regime it reaches 96.35% strict safe success, 91.41% nominal safe
+success, 97.06%/95.69% safe success on the two physical-removal branches, and
+1.30%/3.65% strict/nominal violations. The actor executes continuous
+`pd_joint_delta_pos` control from RGB, robot proprioception, instruction, and
+learned visual progress; teleportation is restricted to reset. Training uses
+privileged dual teachers, progress labels, and an asymmetric critic, so this is
+not pure pixel RL or pure self-supervision. The strict state upper baseline is
+still stronger at 98.44% safe success with zero violations. Full-strength
+VICReg V20 improves matched-pixel pose/task R² but fails control selection
+(85.42% strict safe; 74.06% first-removal safe), demonstrating that better
+linear decodability is not sufficient for better policy performance. The
+lower-variance V21 extension is also rejected: 92.19% nominal safe success does
+not compensate for 87.63% strict and 78.34% first-removal safe success. V19's
+two fixed new-seed confirmations continue on Jarvis. The post-hoc V25 scaled
+bounded-consistency smoke completed
+exactly 19,996,672 steps and passed five of six allocation checks, but missed
+the frozen V19 best-score margin by 0.47 points; it is rejected and its full,
+held-out, and causal/OOD jobs remain unallocated. V26's exact continuation-stage
+temporal-loss control is complete with identical verified step-zero behavior in
+all three paired seeds. V26 reaches 90.49% nominal and 93.88% strict safe
+success; V19 improves its limiting endpoint by only 0.91 points with a paired
+95% interval crossing zero, so continuation-stage temporal SSL is not confirmed
+as necessary. A distinct frozen V19-incumbent causal/OOD array is now
+complete: cyclically shifting its learned progress bits causes a significant
+14.32-point intervention safe-success drop [0.65, 29.69], confirming causal
+control utility, but every frozen pixel/camera/lighting perturbation fails the
+joint robustness rule (for example, 5.08% safe under 4-pixel shift and 2.86%
+under +5 cm camera height). V19 therefore remains a strong in-distribution
+controller with an explicit visual-domain brittleness limitation. The corrected
+V21-dependent final selector completed and retained V19.
+The first robustness response, V27 generic RGB self-distillation, was also
+rejected at its one-seed development gate: it retained 85.94%/87.89%
+nominal/intervention safe success but improved matched-seed OOD by only 4.69
+points, left worst-case OOD at 0%, and regressed the camera-left intervention
+case by 20.70 points. Its full three-seed allocation is suppressed; any next
+candidate must train on actual rendered viewpoint/lighting diversity rather
+than treating camera shift as ordinary pixel jitter.
+V28 tested that requirement with exactly paired rendered-domain distillation
+and improved matched-seed mean OOD safe success by 31.14 points. It still
+failed its frozen gate: nominal retention was 82.81% versus 85% required and
+worst OOD remained 0% versus 25% required, so full jobs `1141139`--`1141148`
+are suppressed. V29 is frozen before metrics to target those exact mechanisms:
+all V19 policy/progress heads remained fixed while only the RGB encoder learned
+teacher-feature/action invariance. It repaired nominal safe success to 89.45%
+but reduced intervention safe success to 72.27% and left worst OOD at 4.30%, so
+gate `1141251` rejected it. V30 replaced short segments with full episodes but
+failed more severely: state-teacher actions on rendered domains overwrote V19,
+producing 28.91% nominal and 50.78% intervention safe success and no mean OOD
+gain. V31 rendered nominal/left/high cameras simultaneously from one physics
+state and retained frozen V19 as the sole action teacher. It retained 90.63%
+nominal safe success and improved matched mean OOD safe success by 26.20 points,
+but intervention safe success fell to 74.22% and worst OOD remained 4.69%; gate
+`1141320` rejected all full allocation. V32 preserved V19 through a learned
+RGB route and restored 94.14% nominal / 92.97% intervention safe success, but
+its +17.44-point mean OOD gain and 6.64% worst OOD missed the frozen gate.
+A non-candidate coordinate diagnostic restored pixel-shift safe success to
+94.14%/93.75%, isolating canonicalization as the missing mechanism. V33 now
+learned paired RGB canonical-view synthesis while keeping V19 frozen. It
+retained 94.14% nominal/intervention safe success and improved mean observed
+OOD by 20.09 points, but failed the frozen gate with 0% worst-domain success
+and a 26.17-point regression. A forced-route diagnostic shows both router and
+synthesizer failure. V34 is frozen before metrics: it uses a learned dense
+spatial warp, photometric residual, balanced multi-class RGB routing, and
+synchronized paired observed renderer lights while preserving exact V19 on the
+nominal route. Any final claim still requires its smoke gate, multi-seed
+standard/strict evaluation, and the untouched D-168 unseen suite.
+Its first pre-metric runtime job `1142485` stopped at the synchronization guard
+before checkpointing: a three-camera environment and single-camera lighting
+environment did not remain aligned across automatic resets. The failed files
+are archived. D-172 adds a separate nominal single-camera lighting reference,
+counts all 1.536M simulator transitions, and has passed targeted tests and
+preflight; no V34 performance result exists yet.
+The first single-camera-reference run `1142516` then exposed independent
+automatic-reset RNG streams and also stopped at 5,760 primary transitions.
+D-173 now intercepts any paired termination/truncation and resets the whole
+nominal/dim/warm trio with one explicit deterministic seed; both stopped runs
+remain archived and ineligible.
+Repaired job `1142519` is running and has crossed the earlier failure point with
+all synchronization assertions intact. Its early optimization metrics are not
+held-out evidence; no V34 evaluation or gate result exists yet.
+V34 subsequently completed and passed its immutable audit. Frozen evaluation
+array `1142612` shows a large +45.98-point mean OOD improvement with 92.97% /
+94.53% nominal/intervention retention and six of seven gate checks passing.
+It is nevertheless rejected for full allocation because four-pixel translation
+safe success is only 1.56%/11.33%, making worst OOD 1.56% versus the 25% smoke
+floor. No multi-seed, strict, or unseen V34 evaluation is authorized.
+V35's exact 128,000-transition seed-1788 smoke has now passed all seven frozen
+observed-domain allocation checks. It retains 94.14% nominal and 96.09%
+intervention safe success, preserves a 27.34-point causal-progress drop
+[21.48, 33.20], improves mean observed OOD by 53.46 points, and raises worst
+observed OOD to 55.47%. The three-seed full V34 foundation, audit, V35 repair,
+and final-audit chain is submitted as jobs `1143214`--`1143217`, with fail-closed
+dependencies between stages. This is still one-seed observed-suite development
+evidence, not a paper-level robustness result. A distinct seven-domain V35
+confirmatory suite remains frozen and unavailable for training or tuning;
+standard, strict-removal, and untouched-suite evaluation begin only after all
+three full checkpoints pass immutable audit. The complete confirmation chain is
+already dependency-submitted: standard `1143230`, strict `1143231`, untouched
+D-176 `1143232`, three aggregates `1143233`--`1143235`, and frozen final gate
+`1143236`. Four targeted evaluator tests pass and the unseen runner resolves
+exactly 27 tasks (three seeds by nine variants).
+All three full V35 repairs subsequently completed exactly 128,000 supervised
+transitions and passed immutable audit. The first standard/strict rollouts also
+completed. Strict-removal safe success is 91.54% over 768 episodes, with
+98.05%/82.81%/93.75% by seed; this passes the frozen >=90% pooled, >=80%
+per-seed, and <=5-point V19-regression checks, the last by only 0.18 points.
+The initial reports failed closed on infrastructure rather than performance:
+the generic aggregator rejected correct zero-PPO accounting, and SAPIEN exposed
+the camera-roll quaternion as `(1,4)` rather than `(4,)`. D-179 repairs and
+tests those assumptions, archives the pre-repair files, and serializes D-176
+aggregation before a standard-baseline rerun to avoid legacy filename
+collision. Replacement jobs are `1143595`--`1143600`; no checkpoint, seed,
+domain, threshold, or successful episode outcome was changed.
 
-**Phase:** Phase 0 — simulator selected, core schema accepted and promoted to `src/atr/`.
+**Phase:** paper-quality confirmation, ablations, causal/OOD evaluation, and
+qualitative evidence for non-teleport visual recovery.
 
 The project now studies whether a robot can tell when something it was asked
 to do has become impossible — because the world changed in a way that can't

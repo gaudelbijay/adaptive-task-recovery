@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "v31_multicamera_dagger_smoke_gate_v1",
+  "incumbent_aggregate": "results/paper/v19_incumbent_causal_ood_v1/aggregate.json",
+  "candidate_aggregate": "results/paper/v31_smoke_development_ood_v1/aggregate.json",
+  "thresholds": {
+    "minimum_nominal_baseline_safe_success": 0.85,
+    "minimum_intervention_baseline_safe_success": 0.85,
+    "minimum_mean_ood_safe_success_improvement": 0.20,
+    "minimum_worst_ood_safe_success": 0.25,
+    "maximum_individual_ood_regression": 0.05,
+    "minimum_causal_safe_success_drop": 0.03,
+    "require_positive_causal_lower_bound": true
+  },
+  "claim_boundary": "Frozen before V31 training. Passing may allocate three seeds but remains post-hoc observed-suite selection, not held-out robustness, PPO, pure SSL, or real-robot evidence."
+}

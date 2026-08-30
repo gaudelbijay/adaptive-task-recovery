@@ -109,7 +109,7 @@ _OBJECT_VISUAL_CONFIG: dict[str, dict[str, VisualObjectConfig]] = {
         # to build their own labeled examples for an unrelated, already-
         # published DINOv2/from-scratch-encoder comparison -- a *much*
         # tighter crop made that discrimination task trivially easy for any
-        # model (including the from-scratch encoder D-066 found couldn't
+        # model (including the from-scratch encoder D-066 found did not
         # discriminate at all under the original, harder crop), silently
         # invalidating those findings. Keeping `crop` untouched and adding
         # `post_attempt_crop` as an explicit, separate, opt-in field keeps

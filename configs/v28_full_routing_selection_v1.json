@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "render_distill_full",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "render_distill_full",
+    "method": "v19_rendered_domain_distillation",
+    "eligible": true
+  }],
+  "claim_boundary": "Static routing for V28 evaluation after and only after its frozen smoke allocation gate and exact three-seed completion."
+}

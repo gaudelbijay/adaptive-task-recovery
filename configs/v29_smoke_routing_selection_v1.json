@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "multidomain_distill_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "multidomain_distill_smoke",
+    "method": "v19_multidomain_distillation_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static development routing for V29; it records execution identity, not performance or eligibility."
+}

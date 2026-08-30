@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "visual_task_representation_dual_specialist_vicreg_v4",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "required_training_seeds": 3,
+  "methods": [
+    {
+      "name": "dual_specialist_visual_encoder",
+      "method": "event_reward_dual_specialist_dagger_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/task_representation_probe_aggregate.json"
+    },
+    {
+      "name": "vicreg_dual_specialist_visual_encoder",
+      "method": "event_reward_vicreg_dual_specialist_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_vicreg_dual_specialist_v20/task_representation_probe_aggregate.json"
+    }
+  ],
+  "primary_diagnostic": {
+    "treatment": "vicreg_dual_specialist_visual_encoder",
+    "control": "dual_specialist_visual_encoder"
+  }
+}

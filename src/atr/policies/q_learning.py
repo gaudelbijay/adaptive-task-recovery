@@ -182,6 +182,7 @@ def train_q_table(
     checkpoint_every: int = 100,
     resume: bool = True,
     validation_fn: Callable[[dict], float] | None = None,
+    stop_requested: Callable[[], bool] | None = None,
 ) -> dict:
     """Tabular Q-learning over (goal_id, feasible) -> {SKIP: q, ATTEMPT: q}
     (or (goal_id, feasible, intervention_kind) when
@@ -249,10 +250,19 @@ def train_q_table(
             env.close()
 
         completed = ep + 1
+        should_stop = bool(stop_requested is not None and stop_requested())
         if manager is not None and (
-            completed % checkpoint_every == 0 or completed == n_episodes
+            completed % checkpoint_every == 0
+            or completed == n_episodes
+            or should_stop
         ):
-            score = None if validation_fn is None else float(validation_fn(q))
+            # The pre-timeout path prioritizes a bounded atomic resume point;
+            # validation can run after the requeued process resumes.
+            score = (
+                None
+                if validation_fn is None or should_stop
+                else float(validation_fn(q))
+            )
             manager.save(TrainingCheckpoint(
                 schema_version=1,
                 config_fingerprint=fingerprint,
@@ -261,6 +271,8 @@ def train_q_table(
                 rng_state_repr=repr(rng.getstate()),
                 validation_score=score,
             ))
+        if should_stop:
+            break
     return q
 
 

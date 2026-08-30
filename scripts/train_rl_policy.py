@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 from pathlib import Path
 
 import gymnasium as gym
@@ -15,6 +16,14 @@ import task_schema_draft  # noqa: F401  (registers TidyUp-v1)
 from atr.envs.tidy_up_policies import _TRAY_SLOTS, attempt_goal
 from atr.language.goal_graph import canonical_example
 from atr.policies.q_learning import learned_policy, load_q_table_checkpoint, train_q_table
+
+
+STOP_REQUESTED = False
+
+
+def _request_stop(_signum, _frame) -> None:
+    global STOP_REQUESTED
+    STOP_REQUESTED = True
 
 
 def _seed_range(spec: dict) -> list[int]:
@@ -125,6 +134,8 @@ def main() -> None:
             }) + "\n")
         return report["mean_score"]
 
+    signal.signal(signal.SIGUSR1, _request_stop)
+    signal.signal(signal.SIGTERM, _request_stop)
     train_q_table(
         make_env=_make_env,
         graph=graph,
@@ -139,7 +150,12 @@ def main() -> None:
         checkpoint_every=int(config["checkpoint_every"]),
         resume=True,
         validation_fn=validation_fn,
+        stop_requested=lambda: STOP_REQUESTED,
     )
+
+    if STOP_REQUESTED:
+        print("graceful checkpoint boundary reached", flush=True)
+        raise SystemExit(75)
 
     best_q = load_q_table_checkpoint(checkpoint_dir / "best.json")
     test_report = _evaluate(

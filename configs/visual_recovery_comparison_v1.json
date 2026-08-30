@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_comparison_v1",
+  "benchmark_semantics": "intervention_target_only_v2",
+  "reference": {
+    "name": "clean_re_evaluated_state_ppo",
+    "path": "results/learned_recovery_v2_eval/learned_recovery_ppo_v6/aggregate.json",
+    "method": "safe_adaptive_ppo",
+    "format": "state"
+  },
+  "context_baselines": [
+    {
+      "name": "ne_dreamer_pilot",
+      "path": "results/vision_nedreamer/learned_recovery_nedreamer_pilot_v2/pilot_summary.json",
+      "format": "nedreamer_pilot",
+      "claim_use": "negative pixel world-model pilot; lower 250k-step budget, not a matched noninferiority baseline"
+    }
+  ],
+  "candidates": [
+    {
+      "name": "strict_rgb_distilled_ppo",
+      "input_regime": "RGB + qpos/qvel/TCP + instruction",
+      "path": "results/visual_recovery_ppo/visual_recovery_distilled_v1/aggregate.json"
+    },
+    {
+      "name": "pose_aux_adaptive_visual_ppo",
+      "input_regime": "RGB + qpos/qvel/TCP + instruction; training-only pose auxiliary",
+      "path": "results/visual_recovery_ppo/visual_recovery_privileged_aux_intervention_v4/aggregate.json"
+    },
+    {
+      "name": "learned_progress_pose_aux_adaptive_visual_ppo",
+      "input_regime": "RGB + qpos/qvel/TCP + instruction; pixel-predicted progress and training-only pose/progress auxiliaries",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_intervention_v5/aggregate.json"
+    }
+  ]
+}

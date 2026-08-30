@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_integrated_from_strict_state_gate_v2",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "integrated_from_strict_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v13_integrated_from_strict.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

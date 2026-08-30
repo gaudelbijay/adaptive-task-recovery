@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_comparison_v2_event_reward",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "reference": {
+    "name": "v3_adaptive_state_ppo",
+    "path": "results/learned_recovery/learned_recovery_ppo_v8_event_reward/aggregate.json",
+    "method": "event_reward_safe_adaptive_state_ppo",
+    "format": "state"
+  },
+  "context_baselines": [
+    {
+      "name": "ne_dreamer_v2_pilot",
+      "path": "results/vision_nedreamer/learned_recovery_nedreamer_pilot_v2/pilot_summary.json",
+      "format": "nedreamer_pilot",
+      "claim_use": "historical V2 lower-budget negative pilot; context only, never pooled or paired with V3"
+    }
+  ],
+  "candidates": [
+    {
+      "name": "direct_rgb_ppo",
+      "method": "event_reward_rgb_ppo",
+      "input_regime": "RGB + qpos/qvel + instruction",
+      "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json"
+    },
+    {
+      "name": "asymmetric_rgb_ppo",
+      "method": "event_reward_rgb_asymmetric_ppo",
+      "input_regime": "RGB + qpos/qvel + instruction; training-only state critic",
+      "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json"
+    },
+    {
+      "name": "asymmetric_temporal_rgb_ppo",
+      "method": "event_reward_rgb_asymmetric_temporal_ppo",
+      "input_regime": "RGB + qpos/qvel + instruction; training-only state critic; temporal SSL",
+      "path": "results/visual_recovery_ppo/visual_recovery_ppo_gate_v2_event_reward/aggregate.json"
+    },
+    {
+      "name": "pose_aux_dagger_visual_ppo",
+      "method": "event_reward_pose_aux_dagger_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state teacher/critic/pose auxiliary",
+      "path": "results/visual_recovery_ppo/visual_recovery_dagger_ablation_v7_event_reward/aggregate.json"
+    },
+    {
+      "name": "pose_aux_temporal_dagger_visual_ppo",
+      "method": "event_reward_pose_aux_temporal_dagger_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state teacher/critic/pose auxiliary; temporal SSL",
+      "path": "results/visual_recovery_ppo/visual_recovery_dagger_ablation_v7_event_reward/aggregate.json"
+    },
+    {
+      "name": "learned_progress_temporal_dagger_visual_ppo",
+      "method": "event_reward_learned_progress_dagger_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state teacher/critic/pose/progress auxiliaries; temporal SSL",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/aggregate.json"
+    },
+    {
+      "name": "learned_progress_adaptive_visual_ppo",
+      "method": "event_reward_learned_progress_adaptive_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state critic/pose/progress auxiliaries; temporal SSL",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_intervention_v7_event_reward/aggregate.json"
+    },
+    {
+      "name": "pose_aux_dagger_adaptive_visual_ppo",
+      "required": false,
+      "method": "event_reward_pose_aux_dagger_adaptive_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state critic/pose auxiliary",
+      "path": "results/visual_recovery_ppo/visual_recovery_dagger_intervention_v8_event_reward/aggregate.json"
+    },
+    {
+      "name": "pose_aux_temporal_dagger_adaptive_visual_ppo",
+      "required": false,
+      "method": "event_reward_pose_aux_temporal_dagger_adaptive_visual_ppo",
+      "input_regime": "RGB + robot proprioception + instruction; training-only state critic/pose auxiliary; temporal SSL",
+      "path": "results/visual_recovery_ppo/visual_recovery_temporal_dagger_intervention_v9_event_reward/aggregate.json"
+    }
+  ]
+}

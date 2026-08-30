@@ -51,7 +51,8 @@ It uses `LearnedRecovery-v1`, continuous Panda joint control, a force-driven
 mid-episode intervention, a protected-object constraint, three methods, three
 seeds, and 100M requested transitions per seed. Job continuation is automatic:
 `scripts/slurm_learned_recovery_ppo.sh` saves atomically on the scheduler's
-pre-timeout signal and resubmits only incomplete array elements. Independent
+pre-timeout signal and requeues only incomplete array elements under the same
+Slurm identity. Independent
 intervention and nominal evaluation is launched through
 `scripts/slurm_learned_recovery_eval.sh`; the primary aggregate is
 safety-qualified success with branch-specific reporting.

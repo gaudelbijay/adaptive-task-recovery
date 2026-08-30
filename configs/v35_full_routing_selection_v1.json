@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "selected": "translation_repair",
+  "all_candidates_ineligible": false,
+  "candidates": [
+    {
+      "label": "translation_repair",
+      "method": "v34_translation_repair",
+      "eligible": true
+    }
+  ],
+  "claim_boundary": "Static V35 routing identity after the frozen observed gate; final eligibility still requires exact three-seed completion, immutable audit, standard and strict-removal evaluation, and the untouched D-176 suite."
+}

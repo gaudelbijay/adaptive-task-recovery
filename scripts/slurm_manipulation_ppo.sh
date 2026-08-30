@@ -5,7 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --signal=B:USR1@300
+#SBATCH --signal=USR1@300
+#SBATCH --requeue
 #SBATCH --output=results/slurm/manip_%A_%a.out
 #SBATCH --error=results/slurm/manip_%A_%a.err
 
@@ -37,4 +38,12 @@ ATR_TASK_STDERR="results/slurm/manip_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID
 if grep -qi "buffer overflow detected" "${ATR_TASK_STDERR}"; then
   echo "fatal: simulator buffer overflow detected; quarantine this checkpoint" >&2
   exit 42
+fi
+
+if ! "${ATR_PYTHON}" scripts/check_manipulation_training_complete.py \
+  --config "${ATR_MANIP_CONFIG}" \
+  --output "${ATR_MANIP_OUTPUT}" \
+  --task-index "${SLURM_ARRAY_TASK_ID}"; then
+  ATR_REQUEUE_ID="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}_${SLURM_ARRAY_TASK_ID}"
+  scontrol requeue "${ATR_REQUEUE_ID}"
 fi

@@ -12,6 +12,9 @@ from pathlib import Path
 
 import numpy as np
 
+from aggregate_visual_recovery import hierarchical_binary_interval
+from evaluation_seed import validate_record_batch_seeds
+
 
 def _wilson(successes: int, trials: int, z: float = 1.959963984540054) -> list[float]:
     p = successes / trials
@@ -84,8 +87,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/manipulation_ppo_v1.json")
     parser.add_argument("--output", default="results/manipulation_ppo")
+    parser.add_argument("--filename", default="aggregate.json")
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text(encoding="utf-8"))
+    rng = np.random.default_rng(20260828)
     root = Path(args.output) / config["name"]
     records = []
     nominal_records = []
@@ -99,10 +104,18 @@ def main() -> None:
                 path = run_dir / "heldout_eval.json"
             if not path.exists():
                 raise FileNotFoundError(f"missing held-out result: {path}")
-            records.append(json.loads(path.read_text(encoding="utf-8")))
+            record = json.loads(path.read_text(encoding="utf-8"))
+            validate_record_batch_seeds(record, int(record["episodes"]))
+            records.append(record)
             nominal_path = run_dir / "heldout_eval_nominal.json"
             if nominal_path.exists():
-                nominal_records.append(json.loads(nominal_path.read_text(encoding="utf-8")))
+                nominal_record = json.loads(
+                    nominal_path.read_text(encoding="utf-8")
+                )
+                validate_record_batch_seeds(
+                    nominal_record, int(nominal_record["episodes"])
+                )
+                nominal_records.append(nominal_record)
 
     environments = []
     for experiment in config["experiments"]:
@@ -124,6 +137,9 @@ def main() -> None:
                 ])))
         episodes_raw = [
             episode for record in subset for episode in record.get("episode_records", [])
+        ]
+        seed_episode_groups = [
+            record.get("episode_records", []) for record in subset
         ]
         safe_successes = sum(
             _metric_success_record(episode)
@@ -159,7 +175,7 @@ def main() -> None:
                             branch_safe_successes, len(branch)
                         ),
                     }
-        environments.append({
+        environment_result = {
             "env_id": env_id,
             "method": method,
             "seeds": len(subset),
@@ -168,6 +184,11 @@ def main() -> None:
             "successes": successes,
             "pooled_success_rate": successes / success_trials,
             "pooled_success_wilson_95": _wilson(successes, success_trials),
+            "success_hierarchical_bootstrap_95": (
+                hierarchical_binary_interval(
+                    seed_episode_groups, _metric_success_record, rng
+                ) if episodes_raw and all(seed_episode_groups) else None
+            ),
             "seed_success_mean": float(np.mean(seed_rates)),
             "seed_success_std": float(np.std(seed_rates, ddof=1)) if len(seed_rates) > 1 else 0.0,
             "constraint_violation_rate": (
@@ -180,6 +201,14 @@ def main() -> None:
             ),
             "pooled_safe_success_wilson_95": (
                 _wilson(safe_successes, len(episodes_raw)) if episodes_raw else None
+            ),
+            "safe_success_hierarchical_bootstrap_95": (
+                hierarchical_binary_interval(
+                    seed_episode_groups,
+                    lambda episode: _metric_success_record(episode)
+                    and episode.get("constraint_violated", 0.0) < 0.5,
+                    rng,
+                ) if episodes_raw and all(seed_episode_groups) else None
             ),
             "seed_safe_success_mean": (
                 float(np.mean(seed_safe_rates)) if seed_safe_rates else None
@@ -194,7 +223,8 @@ def main() -> None:
             ),
             "branch_success": branch_success,
             "seed_results": subset,
-        })
+        }
+        environments.append(environment_result)
     payload = {
         "schema_version": 1,
         "experiment": config["name"],
@@ -214,18 +244,26 @@ def main() -> None:
             episodes_raw = [
                 episode for record in subset for episode in record.get("episode_records", [])
             ]
+            seed_episode_groups = [
+                record.get("episode_records", []) for record in subset
+            ]
             safe_successes = sum(
                 _metric_success_record(episode)
                 and episode.get("constraint_violated", 0.0) < 0.5
                 for episode in episodes_raw
             )
-            payload["nominal_condition"].append({
+            nominal_result = {
                 "method": method,
                 "seeds": len(subset),
                 "episodes": trials,
                 "successes": successes,
                 "pooled_success_rate": successes / trials,
                 "pooled_success_wilson_95": _wilson(successes, trials),
+                "success_hierarchical_bootstrap_95": (
+                    hierarchical_binary_interval(
+                        seed_episode_groups, _metric_success_record, rng
+                    ) if episodes_raw and all(seed_episode_groups) else None
+                ),
                 "constraint_violation_rate": (
                     float(np.mean([
                         episode.get("constraint_violated", 0.0) for episode in episodes_raw
@@ -238,7 +276,16 @@ def main() -> None:
                 "pooled_safe_success_wilson_95": (
                     _wilson(safe_successes, len(episodes_raw)) if episodes_raw else None
                 ),
-            })
+                "safe_success_hierarchical_bootstrap_95": (
+                    hierarchical_binary_interval(
+                        seed_episode_groups,
+                        lambda episode: _metric_success_record(episode)
+                        and episode.get("constraint_violated", 0.0) < 0.5,
+                        rng,
+                    ) if episodes_raw and all(seed_episode_groups) else None
+                ),
+            }
+            payload["nominal_condition"].append(nominal_result)
     # Recovery configs store per-episode records and use common held-out reset
     # seeds across methods. Report paired adaptive-policy effects in addition
     # to per-method Wilson intervals; stock-task configs remain unchanged.
@@ -316,7 +363,7 @@ def main() -> None:
                 },
             })
         payload["paired_comparisons"] = comparisons
-    _atomic_json(payload, root / "aggregate.json")
+    _atomic_json(payload, root / args.filename)
     csv_path = root / "summary.csv"
     temporary = csv_path.with_name(f".{csv_path.name}.tmp.{os.getpid()}")
     with temporary.open("w", encoding="utf-8", newline="") as handle:

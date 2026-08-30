@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "dual_specialist_teacher_gate_v1",
+  "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/aggregate.json",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_state_training_comparison_v1/aggregate.json",
+  "nominal_method": "event_reward_learned_progress_dagger_visual_ppo",
+  "strict_label": "strict_trained_state",
+  "strict_method": "event_reward_strict_removal_state_ppo",
+  "seeds": [9351, 4796, 1788],
+  "episodes_per_condition": 768,
+  "thresholds": {
+    "minimum_nominal_raw": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_strict_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_nominal_violation": 0.05,
+    "maximum_strict_violation": 0.05
+  },
+  "claim_boundary": "post-hoc allocation gate for dual-specialist DAgger only; verifies each teacher solely in its assigned regime and cannot establish integrated or deployment performance"
+}

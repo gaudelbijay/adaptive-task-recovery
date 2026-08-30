@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "integrated_regime_five_seed_comparison_v2",
+  "required_training_seeds": 5,
+  "required_episodes": 1280,
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_integrated_five_seed_comparison_v4/aggregate.json",
+  "cohorts": [
+    {"label": "strict_stable_visual", "kind": "visual", "method": "event_reward_strict_removal_stable_visual_ppo", "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/aggregate_five_seed.json"},
+    {"label": "integrated_mixture_state", "kind": "state", "method": "event_reward_integrated_mixture_state_ppo", "nominal_aggregate": "results/learned_recovery/learned_recovery_ppo_v12_integrated_mixture/aggregate_five_seed.json"}
+  ],
+  "claim_boundary": "five frozen seeds and 1,280 held-out episodes per condition; both new seeds retained regardless of outcome"
+}

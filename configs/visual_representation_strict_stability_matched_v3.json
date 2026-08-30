@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "visual_representation_strict_stability_matched_v3",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "required_training_seeds": 3,
+  "methods": [
+    {
+      "name": "clean_visual_encoder",
+      "method": "event_reward_learned_progress_dagger_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/representation_probe_strict_matched_v1_aggregate.json"
+    },
+    {
+      "name": "strict_stable_visual_encoder",
+      "method": "event_reward_strict_removal_stable_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/representation_probe_strict_matched_v1_aggregate.json"
+    }
+  ],
+  "primary_diagnostic": {
+    "treatment": "strict_stable_visual_encoder",
+    "control": "clean_visual_encoder"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "name": "visual_representation_probe_strict_matched_v1",
+  "seed_base": 93000000,
+  "env_kwargs": {
+    "required_goals": 2,
+    "intervention_probability": 1.0,
+    "onset_step_range": [0, 0],
+    "intervention_force": 6.0,
+    "intervention_steps": 24,
+    "terminate_on_violation": true,
+    "safety_proximity_weight": 5.0,
+    "constraint_violation_penalty": 20.0,
+    "progress_reward_scale": 2.0,
+    "completion_bonus": 5.0,
+    "success_reward": 10.0
+  },
+  "claim_boundary": "analysis-only frozen strict scene distribution; identical behavior checkpoint, seeds, RGB pixels, and pose labels are required across evaluated encoders"
+}

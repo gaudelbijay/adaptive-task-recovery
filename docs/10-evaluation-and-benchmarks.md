@@ -85,14 +85,12 @@ encoder" built 2026-08-06 (D-066,
 wording actually asks for ("pixels trained only through task reward") —
 a small conv encoder, no pretraining at all, trained from scratch on the
 identical toy-scale data CLIP/DINOv2 were evaluated against. Measured
-result, root-caused not assumed: 0% LOO accuracy, from a confirmed
-majority-class collapse (every held-out example in every fold gets the
-identical output regardless of image content) rather than noisy
-guessing — real gradient flow and real weight changes were checked
-directly, ruling out a training bug. The clearest evidence for H1's
-comparative claim in the project so far: both pretrained representations
-reach 100% LOO accuracy on this data; training from scratch on the same
-data doesn't learn to discriminate at all. See
+result: chance-or-worse LOO accuracy. The original run showed a fold-wise
+majority-class pattern, but a fresh 2026-08-28 Jarvis capture fit the 12
+training images strongly while still failing to generalize under LOO. The
+reproducible claim is therefore poor held-out generalization, not universal
+constant-output collapse. Both pretrained representations remain stronger on
+this narrow comparison. See
 docs/01-problem-statement-and-motivation.md's H1 entry for the full
 writeup. **"Symbolic replanner with learned state" built 2026-08-06
 (D-067, `src/atr/policies/symbolic_replanner.py`):** unlike every other

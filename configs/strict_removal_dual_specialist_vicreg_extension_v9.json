@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_dual_specialist_vicreg_extension_v9",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "strict_stable_visual", "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "vicreg_dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_dual_specialist_v20.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ]
+}

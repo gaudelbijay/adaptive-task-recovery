@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "geometry_router_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "geometry_router_smoke",
+    "method": "v19_geometry_router_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static V32 development routing identity; this is not performance eligibility."
+}

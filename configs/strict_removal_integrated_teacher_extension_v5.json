@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_integrated_teacher_extension_v5",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "strict_stable_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "integrated_teacher_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_integrated_teacher_dagger_v15.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "integrated_mixture_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v12_integrated_mixture.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

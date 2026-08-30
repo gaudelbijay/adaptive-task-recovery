@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "multicamera_dagger_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "multicamera_dagger_smoke",
+    "method": "v19_multicamera_dagger_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static V31 development routing; identity is not performance eligibility."
+}

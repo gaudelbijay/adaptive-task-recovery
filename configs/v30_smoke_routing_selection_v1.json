@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "multidomain_dagger_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "multidomain_dagger_smoke",
+    "method": "v19_multidomain_dagger_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Static V30 development routing; execution identity is not performance eligibility."
+}

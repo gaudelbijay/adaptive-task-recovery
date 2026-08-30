@@ -3,9 +3,10 @@
 #SBATCH --partition=gpu-l40s
 #SBATCH --gres=gpu:l40s:1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=96G
+#SBATCH --mem=40G
 #SBATCH --time=24:00:00
-#SBATCH --signal=B:USR1@300
+#SBATCH --signal=USR1@300
+#SBATCH --requeue
 #SBATCH --output=results/slurm/visual_ppo_%A_%a.out
 #SBATCH --error=results/slurm/visual_ppo_%A_%a.err
 
@@ -29,7 +30,10 @@ export PYTHONUNBUFFERED=1
 
 ATR_COMPLETE=$("${ATR_PYTHON}" -c 'import json,pathlib,sys; c=json.load(open(sys.argv[1])); tasks=[(e,s) for e in c["experiments"] for s in c["seeds"]]; e,s=tasks[int(sys.argv[3])]; p=pathlib.Path(sys.argv[2])/c["name"]/e["method"]/("seed_"+str(s))/"TRAINING_COMPLETE.json"; print(int(p.exists()))' "${ATR_VISUAL_CONFIG}" "${ATR_VISUAL_OUTPUT}" "${ATR_TASK_INDEX}")
 if [[ "${ATR_COMPLETE}" != "1" ]]; then
-  sbatch --array="${ATR_TASK_INDEX}" \
-    --export="ALL,ATR_VISUAL_CONFIG=${ATR_VISUAL_CONFIG},ATR_VISUAL_OUTPUT=${ATR_VISUAL_OUTPUT},ATR_PYTHON=${ATR_PYTHON}" \
-    scripts/slurm_visual_recovery_ppo.sh
+  # Requeue this array element instead of submitting a successor job.  Keeping
+  # the same Slurm identity prevents afterok evaluation jobs from being
+  # released between 24-hour allocations.  The trainer resumes exactly from
+  # latest.pt, including optimizer, counters, and RNG state.
+  ATR_REQUEUE_ID="${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID}}_${ATR_TASK_INDEX}"
+  scontrol requeue "${ATR_REQUEUE_ID}"
 fi

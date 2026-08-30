@@ -6,13 +6,21 @@ isolated per D-022's rendering-desync guard, one reset per capture process),
 not mockups or scripted camera moves. Regenerate with a fresh capture script
 rather than hand-editing a GIF if the underlying behavior changes.
 
-`learned-recovery-montage.gif` is the Linux/CUDA exception to the older YCB
-capture rule above: `capture_learned_recovery_policy.py` searches a declared
-seed range without rendering, deterministically replays only the qualifying
-seed, and validates safe success for each of the two intervention branches and
-the nominal branch. JSON provenance and source MP4s live under
-`results/learned_recovery/videos/`; `build_recovery_montage.py` only resamples
-and labels those recordings.
+`learned-recovery-montage.gif` shows the selector-qualified V19 restricted-RGB
+policy, not the earlier clean V6 or state-policy montage. All panels use the
+frozen seed-4796 checkpoint at 96,657,408 steps. Both intervention panels use
+the locked strict-removal contact parameters and verify actual recognized
+unavailability before safe success. `capture_visual_recovery_policy.py`
+requires the frozen integrated selector to identify an eligible method whose
+six checks all pass; it then searches a declared seed range without rendering
+and, for an intervention panel, accepts only a safe success that actually
+records goal unavailability. Removed-goal labels require explicit montage-
+builder opt-in; the current GIF used that opt-in only after all capture metadata
+passed. Its SHA-256 is
+`cacf4589ce8a2d00612be8810b6b3f502d96bd1a09588bbcc53c0f1cdbb26803`.
+JSON provenance and source MP4s live under
+`results/visual_recovery_ppo/videos_v19/`;
+`build_recovery_montage.py` only resamples and labels those recordings.
 
 `results/learned-recovery-v6-curves.{png,pdf}` is generated from the immutable
 V6 per-seed metrics and held-out aggregate by `plot_manipulation_results.py`.

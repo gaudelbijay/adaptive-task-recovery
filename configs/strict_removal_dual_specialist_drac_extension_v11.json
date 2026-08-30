@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_dual_specialist_drac_extension_v11",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "drac_dual_specialist_visual", "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_drac_v22.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Post-hoc matched V19/V22 strict-actual-removal comparison. V22 changes only random-shift DrAC policy consistency and must be reported with nominal retention, branches, safety, and seed dispersion."
+}

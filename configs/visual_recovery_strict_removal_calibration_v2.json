@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_strict_removal_calibration_v2",
+  "protocol": "calibration-only deterministic actual-removal visual-policy evaluation",
+  "episodes_per_training_seed": 64,
+  "num_envs": 32,
+  "seed_base": 81100000,
+  "intervention_overrides": {
+    "intervention_probability": 1.0,
+    "onset_step_range": [0, 0],
+    "intervention_force": 6.0,
+    "intervention_steps": 24
+  },
+  "require_actual_goal_unavailable_every_episode": true,
+  "required_episode_fields": [
+    "goals_unavailable",
+    "intervention_occurred",
+    "first_goal_removed",
+    "instruction_red_first",
+    "constraint_violated"
+  ],
+  "claim_boundary": "calibration only; never report as held-out performance",
+  "protocol_calibration": {
+    "predecessor_seed_base": 81000000,
+    "predecessor_episodes": 64,
+    "predecessor_intervention_force": 2.0,
+    "predecessor_intervention_steps": 12,
+    "predecessor_actual_unavailable_episodes": 54,
+    "change_rationale": "increase contact impulse after the predecessor failed the all-episode physical-removal invariant"
+  }
+}

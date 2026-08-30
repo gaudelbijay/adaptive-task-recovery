@@ -13,6 +13,28 @@ hypothesis.
 This pilot establishes a working, checkpointed pixel-based model-based RL
 pipeline. It does **not** establish competitive manipulation performance.
 
+## Algorithm audit (updated August 28, 2026)
+
+There is no published **DreamerV5** method to use as a truthful algorithm name.
+[Dreamer 4](https://arxiv.org/abs/2509.24527) is the newest numbered Dreamer
+generation located in the primary literature. Its reported agent is trained
+inside a scalable video world model for offline Minecraft control; the paper
+does not provide an author-maintained drop-in continuous-manipulation training
+pipeline for this benchmark. [DreamerV3](https://arxiv.org/abs/2301.04104)
+remains the broadly validated general online world-model baseline, while
+[TD-MPC2](https://arxiv.org/abs/2310.16828) and
+[DrQ-v2](https://arxiv.org/abs/2107.09645) are relevant latent-model and
+model-free visual-control baselines respectively.
+
+The selected [NE-Dreamer](https://arxiv.org/abs/2603.02765) implementation is
+newer than those online-control baselines and directly targets temporal
+self-supervised representations. Its negative result here therefore remains a
+meaningful world-model baseline, but the 250k-step/ratio-32 pilot is not a fair
+claim that DreamerV3, Dreamer 4, or TD-MPC2 cannot solve the task. A larger
+world-model comparison is justified only after the controller curriculum
+produces visual competence; otherwise it repeats an already diagnosed sparse
+long-horizon control failure at much higher compute cost.
+
 ## Observation and control protocol
 
 The policy receives only:

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "dual_specialist_release_gate_v1",
+  "primary_gate": "results/gates/integrated_state_teacher_v1.json",
+  "fallback_gate": "results/gates/integrated_from_strict_state_teacher_v2.json",
+  "expected_protocol": "predeclared integrated state-teacher allocation gate",
+  "primary_method": "event_reward_integrated_mixture_state_ppo",
+  "fallback_method": "event_reward_integrated_from_strict_state_ppo",
+  "claim_boundary": "scheduler allocation router only; releases dual-specialist RGB fallbacks exactly when both independently evaluated integrated-state teacher routes ran and failed, and contains no performance claim"
+}

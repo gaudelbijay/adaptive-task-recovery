@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_v19_multidomain_distill_v17",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "v19_visual_incumbent",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "v29_multidomain_distilled_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_v19_multidomain_distill_v29.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Pre-training matched strict physical-removal comparison for post-hoc V29. Passing robustness cannot compensate for failure to retain V19 recovery/safety; both methods use privileged training and restricted RGB deployment."
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "paper_method_information_contract_v1",
+  "methods": [
+    {"label": "Direct RGB PPO", "config": "configs/visual_recovery_ppo_gate_v2_event_reward.json", "experiment_index": 0, "modality": "visual"},
+    {"label": "Direct RGB + asymmetric critic", "config": "configs/visual_recovery_ppo_gate_v2_event_reward.json", "experiment_index": 1, "modality": "visual"},
+    {"label": "Direct RGB + asymmetric critic + temporal SSL", "config": "configs/visual_recovery_ppo_gate_v2_event_reward.json", "experiment_index": 2, "modality": "visual"},
+    {"label": "DAgger no-SSL", "config": "configs/visual_recovery_dagger_ablation_v7_event_reward.json", "experiment_index": 0, "modality": "visual", "teacher_label": "clean state expert"},
+    {"label": "DAgger temporal SSL", "config": "configs/visual_recovery_dagger_ablation_v7_event_reward.json", "experiment_index": 1, "modality": "visual", "teacher_label": "clean state expert"},
+    {"label": "Clean learned-progress RGB", "config": "configs/visual_recovery_progress_dagger_v6_event_reward.json", "experiment_index": 0, "modality": "visual", "teacher_label": "clean state expert"},
+    {"label": "Primary adaptive RGB", "config": "configs/visual_recovery_progress_intervention_v7_event_reward.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Clean learned-progress RGB"},
+    {"label": "Adaptive no-SSL RGB", "config": "configs/visual_recovery_dagger_intervention_v8_event_reward.json", "experiment_index": 0, "modality": "visual", "initializer_label": "DAgger no-SSL"},
+    {"label": "Adaptive temporal RGB", "config": "configs/visual_recovery_temporal_dagger_intervention_v9_event_reward.json", "experiment_index": 0, "modality": "visual", "initializer_label": "DAgger temporal SSL"},
+    {"label": "Integrated RGB V13", "config": "configs/visual_recovery_strict_adaptive_v13_stable.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Clean learned-progress RGB"},
+    {"label": "Integrated-teacher RGB V15", "config": "configs/visual_recovery_integrated_teacher_dagger_v15.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Scratch integrated state"},
+    {"label": "VICReg integrated-teacher RGB V16", "config": "configs/visual_recovery_vicreg_integrated_teacher_v16.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Scratch integrated state"},
+    {"label": "Reverse-teacher RGB V17", "config": "configs/visual_recovery_reverse_teacher_dagger_v17.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Reverse-curriculum state"},
+    {"label": "VICReg reverse-teacher RGB V18", "config": "configs/visual_recovery_vicreg_reverse_teacher_v18.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Reverse-curriculum state"},
+    {"label": "Dual-specialist RGB V19", "config": "configs/visual_recovery_dual_specialist_dagger_v19.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Clean learned-progress RGB / Strict-specialist state"},
+    {"label": "VICReg dual-specialist RGB V20", "config": "configs/visual_recovery_vicreg_dual_specialist_v20.json", "experiment_index": 0, "modality": "visual", "initializer_label": "Integrated RGB V13", "teacher_label": "Clean learned-progress RGB / Strict-specialist state"},
+    {"label": "Historical adaptive state", "config": "configs/learned_recovery_ppo_v8_event_reward.json", "experiment_index": 0, "modality": "state"},
+    {"label": "Strict-specialist state", "config": "configs/learned_recovery_ppo_v11_strict_removal.json", "experiment_index": 0, "modality": "state"},
+    {"label": "Scratch integrated state", "config": "configs/learned_recovery_ppo_v12_integrated_mixture.json", "experiment_index": 0, "modality": "state"},
+    {"label": "Reverse-curriculum state", "config": "configs/learned_recovery_ppo_v13_integrated_from_strict.json", "experiment_index": 0, "modality": "state", "initializer_label": "Strict-specialist state"}
+  ],
+  "claim_boundary": "protocol and interaction accounting only; this table contains no outcome metric and cannot establish performance"
+}

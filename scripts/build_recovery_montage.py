@@ -47,12 +47,24 @@ def main() -> None:
     parser.add_argument("--output", default="media/demos/learned-recovery-montage.gif")
     parser.add_argument("--frames", type=int, default=60)
     parser.add_argument("--fps", type=int, default=8)
+    parser.add_argument(
+        "--strict-removal-labels", action="store_true",
+        help="Use removed-goal labels only for captures that verify actual unavailability",
+    )
     args = parser.parse_args()
 
     root = Path(args.videos)
     sources = [
-        ("first_goal_removed", "Recover: first goal removed"),
-        ("second_goal_removed", "Recover: second goal removed"),
+        (
+            "first_goal_removed",
+            "Recover: first goal removed" if args.strict_removal_labels
+            else "Sweeper targets first goal",
+        ),
+        (
+            "second_goal_removed",
+            "Recover: second goal removed" if args.strict_removal_labels
+            else "Sweeper targets second goal",
+        ),
         ("nominal", "Nominal: complete both goals"),
     ]
     videos = [

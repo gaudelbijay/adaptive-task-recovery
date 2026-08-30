@@ -86,21 +86,15 @@ unrequested object, or violate the glass constraint for reward.
   (`src/atr/feasibility/task_reward_encoder.py`): a small conv encoder,
   no pretraining of any kind, trained from scratch on the identical
   toy-scale data (same object, same scene, same 6-present/6-absent LOO
-  setup) CLIP and DINOv2 were both evaluated against. Result, root-caused
-  before trusting it: 0% LOO accuracy, and not from noisy guessing —
-  every held-out example in every fold got the exact same output
-  regardless of image content, confirmed directly (near-zero logit
-  variance across all 12 images, in every fold), meaning the model
-  never learned to look at the image at all; it just predicted whichever
-  class happened to be the majority in that fold's own training split.
-  Real gradient flow and real weight changes were confirmed too, ruling
-  out a training bug rather than assuming the result. This is the
-  clearest, most direct evidence for H1's actual comparative claim in
-  the project so far: given the exact same tiny amount of task data,
-  both pretrained representations (CLIP's zero-shot judgment, needing no
-  training data at all, and DINOv2's self-supervised pretraining plus a
-  fitted probe) reach 100% LOO accuracy, while training visual features
-  from scratch on that same data doesn't learn to discriminate at all.
+  setup) CLIP and DINOv2 were both evaluated against. The original run
+  measured 0% LOO accuracy with fold-wise majority-class outputs. A
+  2026-08-28 fresh Jarvis capture retained chance-or-worse LOO accuracy but
+  strongly separated all 12 images when fit in-sample, so the historical
+  constant-output mechanism does not reproduce. The defensible conclusion is
+  poor held-out generalization from this tiny dataset, not failure to perceive
+  or fit the training images. Both pretrained representations remain stronger
+  on this narrow LOO comparison. Real gradient flow and weight changes are
+  independently tested.
   Still bounded: toy-scale, one object/scene, and a reward-*derived*
   supervised loss standing in for literal online policy-gradient RL
   (disclosed, not hidden) — not a claim that no amount of task-reward

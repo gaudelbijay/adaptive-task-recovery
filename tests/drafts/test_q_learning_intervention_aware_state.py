@@ -19,6 +19,8 @@ same seeds) and a confident, near-exact +1.0 for
 conditional answer once the state key stops averaging it away.
 """
 
+import json
+
 import gymnasium as gym
 import pytest
 
@@ -53,6 +55,26 @@ class TestBackwardCompatibility:
             n_episodes=60, seed=0,
         )
         assert all(len(key) == 2 for key in q)
+
+    def test_stop_request_saves_at_the_next_episode_boundary(self, tmp_path):
+        checkpoint_dir = tmp_path / "checkpoints"
+        train_q_table(
+            _make_env,
+            _GRAPH,
+            _TRAY_SLOTS,
+            attempt_goal,
+            intervention_kinds=("none",),
+            onset_step_bounds=_WIDE_ONSET_RANGE,
+            n_episodes=5,
+            seed=0,
+            checkpoint_dir=checkpoint_dir,
+            checkpoint_every=100,
+            stop_requested=lambda: True,
+        )
+        latest = json.loads(
+            (checkpoint_dir / "latest.json").read_text(encoding="utf-8")
+        )
+        assert latest["completed_episodes"] == 1
 
 
 class TestInterventionAwareStateRecoversTheDecisiveConditionalAnswer:

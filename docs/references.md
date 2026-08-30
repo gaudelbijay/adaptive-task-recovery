@@ -1,7 +1,7 @@
 ---
 title: References and Reading Queue
 status: verified-core
-last_updated: 2026-08-27
+last_updated: 2026-08-28
 ---
 
 # References and Reading Queue
@@ -60,6 +60,53 @@ coverage.
 - Li, H., et al. (2026). *Failure-Aware RL: Reliable Offline-to-Online
   Reinforcement Learning with Self-Recovery for Real-World Manipulation*.
   arXiv:2601.07821. https://arxiv.org/abs/2601.07821
+- Liu, I.-C. A., Uppal, S., Sukhatme, G. S., Lim, J. J., Englert, P., and
+  Lee, Y. (2022). *Distilling Motion Planner Augmented Policies into Visual
+  Control Policies for Robot Manipulation*. CoRL 2021 / PMLR 164.
+  https://proceedings.mlr.press/v164/liu22b.html
+- Chen, Y., Wang, C., Fei-Fei, L., and Liu, K. (2023). *Sequential Dexterity:
+  Chaining Dexterous Policies for Long-Horizon Manipulation*. CoRL 2023 / PMLR
+  229. https://proceedings.mlr.press/v229/chen23e.html
+- Zhou, Z., Garg, A., Fox, D., Garrett, C. R., and Mandlekar, A. (2025).
+  *SPIRE: Synergistic Planning, Imitation, and Reinforcement Learning for
+  Long-Horizon Manipulation*. CoRL 2024 / PMLR 270.
+  https://proceedings.mlr.press/v270/zhou25a.html
+- Yarats, D., Fergus, R., Lazaric, A., and Pinto, L. (2021). *Mastering Visual
+  Continuous Control: Improved Data-Augmented Reinforcement Learning*.
+  arXiv:2107.09645. https://arxiv.org/abs/2107.09645
+- Li, H., Jiang, Z., Chen, Y., and Zhao, D. (2024). *Generalizing Consistency
+  Policy to Visual RL with Prioritized Proximal Experience Regularization*
+  (CP3ER). NeurIPS 2024. arXiv:2410.00051.
+  https://arxiv.org/abs/2410.00051
+- Hafner, D., Pasukonis, J., Ba, J., and Lillicrap, T. (2023). *Mastering
+  Diverse Domains through World Models* (DreamerV3). arXiv:2301.04104.
+  https://arxiv.org/abs/2301.04104
+- Hansen, N., Su, H., and Wang, X. (2024). *TD-MPC2: Scalable, Robust World
+  Models for Continuous Control*. ICLR 2024. arXiv:2310.16828.
+  https://arxiv.org/abs/2310.16828
+- Hafner, D., Yan, W., and Lillicrap, T. (2025). *Training Agents Inside of
+  Scalable World Models* (Dreamer 4). arXiv:2509.24527.
+  https://arxiv.org/abs/2509.24527
+- López Escoriza, A., Hansen, N., Tao, S., Mu, T., and Su, H. (2025).
+  *Multi-Stage Manipulation with Demonstration-Augmented Reward, Policy, and
+  World Model Learning* (DEMO³). ICML 2025 / PMLR 267. arXiv:2503.01837.
+  https://arxiv.org/abs/2503.01837
+- Krohn, R., Prasad, V., Tiboni, G., and Chalvatzaki, G. (2026).
+  *Self-Supervised Multisensory Pretraining for Contact-Rich Robot
+  Reinforcement Learning*. IEEE Robotics and Automation Letters 11(6),
+  6799--6806. arXiv:2511.14427.
+  https://arxiv.org/abs/2511.14427
+- Huang, S., et al. (2025). *MENTOR: Mixture-of-Experts Network with
+  Task-Oriented Perturbation for Visual Reinforcement Learning*. ICML 2025 /
+  PMLR 267. https://proceedings.mlr.press/v267/huang25av.html
+- Yuan, Z., Wei, T., Cheng, S., Zhang, G., Chen, Y., and Xu, H. (2025).
+  *Learning to Manipulate Anywhere: A Visual Generalizable Framework for
+  Reinforcement Learning*. CoRL 2024 / PMLR 270.
+  https://proceedings.mlr.press/v270/yuan25b.html
+- Skand, S., Pandit, B., Kim, C., Li, F., and Lee, S. (2025). *Simple Masked
+  Training Strategies Yield Control Policies That Are Robust to Sensor
+  Failure*. CoRL 2024 / PMLR 270.
+  https://proceedings.mlr.press/v270/skand25a.html
 
 ## Comparison notes
 
@@ -70,7 +117,14 @@ comparison; RecoveryChaining supplies the closest learned local-recovery
 comparison; REFLECT and Autonomous Interactive Correction supply failure-
 explanation and corrective-control comparisons; Failure-Aware RL supplies the
 closest safety-critic/recovery-policy comparison; and PPO/ManiSkill supply the
-real-control learning comparison.
+real-control learning comparison. MoPA-PD supplies the closest privileged
+teacher-to-visual-policy training comparison; Sequential Dexterity and SPIRE
+supply long-horizon transition-feasibility and structured imitation-plus-RL
+comparisons; DrQ-v2, MENTOR, CP3ER, DreamerV3, Dreamer 4, TD-MPC2, and DEMO³
+bound the relevant visual-control algorithm families. Maniwhere supplies a visual-domain
+generalization comparison; masked-modality training separates observation loss
+from ATR's goal-feasibility change. MSDP supplies a recent self-supervised
+pretraining and asymmetric actor--critic comparison.
 Because their embodiments, observations, goals, and success definitions differ,
 published success percentages must not be placed beside ATR numbers as if they
 were measured on a shared test set.

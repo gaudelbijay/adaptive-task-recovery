@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "name": "shift_action_runtime_gate_v1",
+  "reference_runtime_config": "configs/visual_recovery_dual_specialist_drac_v22_runtime_smoke.json",
+  "candidate_runtime_config": "configs/visual_recovery_dual_specialist_shift_action_v24_runtime_smoke.json",
+  "reference_smoke_config": "configs/visual_recovery_dual_specialist_drac_v22_smoke.json",
+  "candidate_smoke_config": "configs/visual_recovery_dual_specialist_shift_action_v24_smoke.json",
+  "results_root": "results/visual_recovery_ppo",
+  "seed": 1788,
+  "thresholds": {
+    "minimum_final_success_at_end": 0.8,
+    "maximum_final_constraint_violation": 0.05,
+    "maximum_success_drop_from_initial": 0.15,
+    "maximum_logged_consistency_loss": 1.95
+  },
+  "claim_boundary": "Non-claimable runtime allocation gate. Passing may launch one separately frozen 20M V24 smoke, not a full or held-out experiment."
+}

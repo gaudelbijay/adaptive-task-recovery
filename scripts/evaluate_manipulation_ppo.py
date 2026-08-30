@@ -26,6 +26,7 @@ from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
 from train_manipulation_ppo import Agent, _environment_kwargs, _metric_success, _select_task
+from evaluation_seed import SEED_DERIVATION, heldout_batch_seed
 
 
 def _wilson(successes: int, trials: int, z: float = 1.959963984540054) -> list[float]:
@@ -99,13 +100,19 @@ def main() -> None:
     agent.eval()
 
     completed = 0
+    batch_seeds = []
+    seen_batch_seeds = set()
     episode_records: list[dict] = []
     max_steps = int(task["num_eval_steps"])
     with torch.no_grad():
         while completed < args.episodes:
             # Methods sharing a training seed receive identical held-out reset
             # seeds (common random numbers), enabling paired comparisons.
-            batch_seed = args.seed_base + seed * 100000 + completed
+            batch_seed = heldout_batch_seed(args.seed_base, seed, completed)
+            if batch_seed in seen_batch_seeds:
+                raise RuntimeError("held-out batch-seed collision")
+            seen_batch_seeds.add(batch_seed)
+            batch_seeds.append(batch_seed)
             observation, _ = envs.reset(seed=batch_seed)
             metrics = defaultdict(list)
             custom_maxima = {
@@ -162,7 +169,11 @@ def main() -> None:
     payload = {
         "schema_version": 1,
         "protocol": "held-out deterministic state-policy evaluation",
-        "benchmark_semantics": "intervention_target_only_v2",
+        "benchmark_semantics": (
+            "event_reward_intervention_target_only_v3"
+            if task["env_id"] == "LearnedRecovery-v3"
+            else "intervention_target_only_v2"
+        ),
         "env_id": task["env_id"],
         "method": experiment_name,
         "condition": args.condition,
@@ -171,6 +182,8 @@ def main() -> None:
         "checkpoint_iteration": int(checkpoint["iteration"]),
         "checkpoint_global_step": int(checkpoint["global_step"]),
         "seed_base": args.seed_base,
+        "seed_derivation": SEED_DERIVATION,
+        "batch_seeds": batch_seeds,
         "episodes": len(episode_records),
         "success_trials": len(success_values),
         "successes": successes,

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_dual_specialist_no_temporal_v15",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "dual_specialist_temporal_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "dual_specialist_no_temporal_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_no_temporal_v26.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ]
+}

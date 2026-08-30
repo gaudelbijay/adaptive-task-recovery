@@ -11,5 +11,13 @@ set -euo pipefail
 ATR_VISUAL_CONFIG="${ATR_VISUAL_CONFIG:-configs/visual_recovery_ppo_gate_v1.json}"
 ATR_VISUAL_OUTPUT="${ATR_VISUAL_OUTPUT:-results/visual_recovery_ppo}"
 ATR_PYTHON="${ATR_PYTHON:-.venv/bin/python}"
-"${ATR_PYTHON}" scripts/aggregate_visual_recovery.py \
-  --config "${ATR_VISUAL_CONFIG}" --output "${ATR_VISUAL_OUTPUT}"
+aggregate_args=(
+  --config "${ATR_VISUAL_CONFIG}"
+  --output "${ATR_VISUAL_OUTPUT}"
+  --filename "${ATR_AGGREGATE_FILENAME:-aggregate.json}"
+)
+if [[ -n "${ATR_AGGREGATE_CONDITIONS:-}" ]]; then
+  read -r -a conditions <<< "${ATR_AGGREGATE_CONDITIONS}"
+  aggregate_args+=(--conditions "${conditions[@]}")
+fi
+"${ATR_PYTHON}" scripts/aggregate_visual_recovery.py "${aggregate_args[@]}"

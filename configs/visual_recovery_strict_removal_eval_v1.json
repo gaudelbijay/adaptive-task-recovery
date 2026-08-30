@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_strict_removal_eval_v1",
+  "protocol": "held-out deterministic strict-actual-removal policy evaluation",
+  "episodes_per_training_seed": 256,
+  "num_envs": 32,
+  "seed_base": 82000000,
+  "intervention_overrides": {
+    "intervention_probability": 1.0,
+    "onset_step_range": [0, 0],
+    "intervention_force": 6.0,
+    "intervention_steps": 24
+  },
+  "require_actual_goal_unavailable_every_episode": true,
+  "required_episode_fields": [
+    "goals_unavailable",
+    "intervention_occurred",
+    "first_goal_removed",
+    "instruction_red_first",
+    "constraint_violated"
+  ],
+  "claim_boundary": "post-audit stress test; never pooled with the original forced-sweeper condition",
+  "protocol_calibration": {
+    "seed_base": 81000000,
+    "episodes": 64,
+    "rejected_intervention_force": 2.0,
+    "rejected_intervention_steps": 12,
+    "actual_unavailable_episodes": 54,
+    "reason": "failed the predeclared requirement that every episode contain recognized physical goal unavailability"
+  }
+}

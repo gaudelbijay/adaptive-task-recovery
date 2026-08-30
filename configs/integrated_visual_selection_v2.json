@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "name": "integrated_visual_selection_v2",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_teacher_extension_comparison_v2/aggregate.json",
+  "candidates": [
+    {
+      "label": "strict_stable_visual",
+      "method": "event_reward_strict_removal_stable_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/aggregate_nominal.json"
+    },
+    {
+      "label": "strict_teacher_dagger_visual",
+      "method": "event_reward_strict_teacher_dagger_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_teacher_dagger_v14/aggregate_nominal.json"
+    }
+  ],
+  "thresholds": {
+    "minimum_strict_safe": 0.90,
+    "minimum_nominal_safe": 0.90,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "claim_boundary": "post-audit integrated-policy extension gate; cannot alter preregistered V1-V5 verdicts"
+}

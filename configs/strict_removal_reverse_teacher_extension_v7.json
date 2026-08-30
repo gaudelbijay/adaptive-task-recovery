@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_reverse_teacher_extension_v7",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "strict_stable_visual", "kind": "visual",
+      "config": "configs/visual_recovery_strict_adaptive_v13_stable.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "reverse_teacher_visual", "kind": "visual",
+      "config": "configs/visual_recovery_reverse_teacher_dagger_v17.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "vicreg_reverse_teacher_visual", "kind": "visual",
+      "config": "configs/visual_recovery_vicreg_reverse_teacher_v18.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "integrated_from_strict_state", "kind": "state",
+      "config": "configs/learned_recovery_ppo_v13_integrated_from_strict.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

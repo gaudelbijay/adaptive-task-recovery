@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "integrated_regime_temporal_ablation_v3",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_dual_specialist_no_temporal_v15/aggregate.json",
+  "required_training_seeds": 3,
+  "required_episodes": 768,
+  "cohorts": [
+    {
+      "label": "dual_specialist_temporal_visual",
+      "kind": "visual",
+      "method": "event_reward_dual_specialist_dagger_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/aggregate_nominal.json"
+    },
+    {
+      "label": "dual_specialist_no_temporal_visual",
+      "kind": "visual",
+      "method": "event_reward_dual_specialist_no_temporal_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_no_temporal_v26/aggregate_nominal.json"
+    }
+  ],
+  "claim_boundary": "Matched three-seed continuation-stage temporal-SSL ablation. Both methods inherit upstream checkpoints trained with temporal SSL and privileged supervision; this is not a fully SSL-free lineage comparison."
+}

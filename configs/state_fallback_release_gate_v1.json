@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "name": "state_fallback_release_gate_v1",
+  "primary_gate": "results/gates/integrated_state_teacher_v1.json",
+  "expected_protocol": "predeclared integrated state-teacher allocation gate",
+  "primary_method": "event_reward_integrated_mixture_state_ppo",
+  "claim_boundary": "scheduler allocation router only; releases the strict-initialized state fallback exactly when the primary integrated-state teacher gate actually ran and failed, and contains no performance claim"
+}

@@ -7,7 +7,7 @@ representations to determine which language-specified goals remain feasible and
 revise its strategy to achieve as much of the original intent as possible.
 
 <p align="center">
-  <img src="media/demos/learned-recovery-montage.gif" width="900" alt="Three frozen-policy ManiSkill recordings of one Panda learned-control policy: recovery when the first requested cube is physically removed, recovery when the second cube is removed, and nominal completion of both ordered goals.">
+  <img src="media/demos/learned-recovery-montage.gif" width="900" alt="Three frozen-policy ManiSkill recordings of one restricted-RGB Panda policy: recovery after the first requested cube is physically removed, recovery after the second cube is physically removed, and nominal completion of both ordered goals.">
 </p>
 
 <p align="center">
@@ -79,7 +79,9 @@ checkpoint. Intervals below are pooled 95% Wilson intervals.
 | PickSingleYCB-v1 | **530/768 — 69.01%** [65.65%, 72.18%] |
 | UnitreeG1PlaceAppleInBowl-v1 | **767/768 — 99.87%** [99.27%, 99.98%] |
 
-The primary integrated experiment learns recovery and continuous control in
+### Historical V2 state-control result and reward audit
+
+The original integrated experiment learned recovery and continuous control in
 one environment. A force-driven sweeper physically removes either the first or
 second requested cube mid-episode; the same Panda PPO policy must infer what
 remains possible, execute the feasible ordered suffix, and avoid moving a
@@ -102,6 +104,128 @@ removal, adaptive achieves **33.24% safe success** versus **0%** for the
 no-intervention policy; on second-goal removal they are matched at 67.80% and
 68.05%. This is learned state control, not a vision-policy result, and all
 three methods retain meaningful seed variance.
+
+> **Important reward-audit boundary.** A later code audit found that
+> `LearnedRecovery-v2` paid for the first completed goal on every remaining
+> step. At `gamma=0.95`, waiting could yield more discounted return than
+> completing the second goal and terminating. A fresh three-seed audit confirms
+> the consequence: state PPO achieved **50.65%** on 768 forced-intervention
+> episodes but only **1.95%** on 768 nominal two-goal episodes. The table above
+> is retained as historical evidence about V2's intervention branches, not as
+> the final visual-recovery result.
+
+The isolated `LearnedRecovery-v3` benchmark keeps the same physics,
+interventions, continuous controls, observations, ordering, and safety rules,
+but uses transition-local progress and one-time completion rewards. Its
+completed three-seed state recovery reference achieved **55.34% raw success**
+(425/768), **55.21% safe success** (424/768), and **1.56% violations** on
+held-out forced interventions. The same recovery-specialized policy scored
+0/768 nominal successes, so it is not presented as a nominal-control result;
+a separately trained nominal-only state control also failed to solve the task
+robustly: **145/768 raw (18.88%)**, **131/768 safe (17.06%)**, and **16/768
+violations (2.08%)**. Its seed-level safe rates are 0%, 4.30%, and 46.88%, so
+the pooled score is not evidence of reliable nominal control. This negative
+result is retained rather than selecting the one favorable seed.
+
+The V3 restricted-RGB screening policy has now completed independent held-out
+evaluation. Its actor uses a 64×64 camera image, robot proprioception/TCP, and
+the factorized instruction—never object, goal, sweeper, or protected-object
+poses. Across three training seeds it achieves **748/768 nominal raw success
+(97.40%)**, **741/768 nominal safe success (96.48%)**, **708/768 forced-sweeper
+raw success (92.19%)**, and **699/768 forced-sweeper safe success (91.02%)**.
+Hierarchical seed/episode intervals are [95.96%, 98.70%] for nominal raw and
+[87.63%, 94.53%] for forced safe success; forced-removal violations are 1.43%.
+Only 125/768 sweeper-condition episodes actually made the selected goal
+unavailable, because the fast controller often completed it before contact;
+118/125 of that conditional subset were safe successes, but only five were
+actual first-goal removals. Thus 92.19% is not presented as a balanced post-
+removal recovery rate. In the separately frozen step-0 strict-removal test,
+all 768/768 episodes contain recognized physical removal. The clean visual
+policy achieves **404/768 raw success (52.60%)** and **402/768 safe success
+(52.34%)**, with **5/768 violations (0.65%)**. The preregistered adaptive-visual
+continuation has also completed: it retains **734/768 nominal raw (95.57%)**
+and **723/768 nominal safe (94.14%)**, but falls to **255/768 strict raw
+(33.20%)** and **249/768 strict safe (32.42%)**, with 13/768 strict violations
+(1.69%). Its strict seed-safe rates are 5.47%, 50.78%, and 41.02%; therefore
+the pooled result is not evidence of robust adaptation and does not confirm an
+adaptive-recovery advantage over the clean policy.
+The historical state recovery reference, trained for later 2 N interventions,
+scores only **23/768 raw (2.99%)** and **22/768 safe (2.86%)** under the same
+early-removal stress test, with 35.42% violations. The paired clean-visual minus
+historical-state effect is +49.61 points [33.98, 61.59] raw and +49.48 points
+[33.98, 61.07] safe. That apparent visual advantage is entirely a training-
+distribution artifact: the matched strict-trained state PPO reaches **756/768
+raw and safe success (98.44%)**, zero violations, 98.66% first-goal-removal
+safe success, and 98.22% second-goal-removal safe success. On identical seeds,
+clean visual trails it by 46.09 safe-success points [−58.33, −36.20]. The
+state result is the current matched-distribution upper baseline. The integrated
+V13 restricted-RGB extension closes most of the gap while retaining nominal
+control: **697/768 nominal safe (90.76%)** and **689/768 strict safe (89.71%)**,
+with 2.47%/1.17% violations. It is close but ineligible under the frozen gate:
+strict safe misses 90% and first-goal-removal safe is 83.69%, below 85%. The
+second-removal branch is 95.43%. No threshold was relaxed and five-seed
+confirmation received zero allocation.
+
+The frozen visual hypothesis report is deliberately less flattering than the
+screening result: primary direct RGB V1, asymmetric-training V2, temporal-loss
+V3, and adaptive-recovery V4 are all rejected. V5 passes only its originally
+locked comparison against a historical 2.86%-safe state reference; it does not
+match the later strict-trained state PPO at 98.44% safe. The strong DAgger RGB
+fallback establishes restricted-input competence but cannot retroactively
+rewrite V1--V4 or support a competitive V5 claim.
+The upper baseline is not an integrated solution: on a separate 768-episode
+nominal evaluation it records **0 successes and 73.57% violations**. Thus its
+98.44% strict score is a distribution-specialized ceiling, not evidence that
+one state policy solves both regimes. A preregistered proposal to use it as a
+DAgger teacher failed its nominal-competence gate and consumed no V14 training
+allocation.
+A new privileged-input state control completed training on the exact V13 distribution:
+80% strict / 20% nominal training with balanced 50/50 checkpoint selection and
+separate final endpoints. This is the fair integrated state upper baseline;
+neither the strict specialist nor the historical state result can substitute
+for it. All three seeds reached 99,942,400 floor-aligned transitions and passed
+the finite checkpoint audit. Frozen held-out evaluation confirms a one-regime
+solution: **748/768 strict safe successes (97.40%)** with 15 violations
+(1.95%), but **0/768 nominal raw or safe successes**. The preregistered teacher
+gate therefore failed only its nominal-safe threshold and allocated no V15/V16
+RGB training. A disclosed failure-only reverse curriculum initialized from the
+strict specialist also failed by catastrophic nominal forgetting: 92.58%
+strict safe, 91.18%/93.91% branch safe, and 0.91% violations, but 0/768 nominal
+successes. Because both independent integrated-state teacher routes failed,
+the fail-closed router released the V19/V20 dual-specialist RGB fallback pair;
+no integrated-state claim is made.
+V19 then completed three exact 100M-step seeds and passed every frozen held-out
+gate: **96.35% strict safe success**, **91.41% nominal safe success**,
+**97.06%/95.69%** safe success on the two physical-removal branches, and
+**1.30%/3.65%** strict/nominal violations (768 episodes per regime). It is the
+first eligible integrated restricted-input visual policy, with continuous
+control and no teleportation. Its two preregistered new-seed confirmation runs
+are now active. Training uses privileged dual teachers, progress labels, and an
+asymmetric critic, so this is not a pure pixel-RL or pure self-supervised claim;
+the strict state policy remains a stronger upper bound at 98.44% safe success
+and zero violations. Full-strength VICReg V20 improves matched-pixel pose and
+goal-resolution R² by +0.0106 and +0.0146 over V19, but fails control selection
+at 85.42% strict safe and 74.06% first-removal safe success. This negative
+ablation shows that improved linear decodability does not guarantee improved
+recovery. In the matched seven-method table, V19 is the only visual or state
+method above 90% at its worst strict/nominal/removal endpoint (91.41%); all
+three state curricula score 0% nominal safe despite strong strict recovery.
+This is an in-benchmark simulation result, not cross-benchmark or real-robot
+superiority. V19 uses 99.999M PPO plus 1.92M DAgger interactions per seed;
+upstream initializer and teacher training is disclosed separately rather than
+hidden in that new-stage count. The preregistered lower-variance V21 test
+remains active. The clean
+policy's identical-pixel linear pose probe is negative—learned-minus-random R²
+is −0.177 [−0.334, −0.037]. The adaptive V7 encoder is positive on its separate
+probe, +0.387 [0.312, 0.488] (learned R² 0.725 versus random 0.339), with all
+three seed differences positive. V7 jointly uses a temporal loss, privileged
+pose auxiliary supervision, and supervised progress labels, so this is only
+linear decodability evidence; it cannot be attributed to self-supervision or
+used as a causal control-performance claim. See
+[`docs/14-results-and-claim-boundaries.md`](docs/14-results-and-claim-boundaries.md),
+[`docs/16-visual-recovery-hypotheses.md`](docs/16-visual-recovery-hypotheses.md),
+[`docs/17-visual-training-ledger.md`](docs/17-visual-training-ledger.md), and
+[`docs/18-paper-blueprint.md`](docs/18-paper-blueprint.md).
 
 The integration gap is now tested directly in one non-teleport Fetch episode.
 One parsed instruction asks for the can and cracker box while protecting the
@@ -181,11 +305,15 @@ found, with the fix or the disclosed gap next to it.
   gain on the first-goal-removed branch. No pose assignment occurs after reset;
   the result uses state observations and remains simulation-only.
 
-**What's still genuinely open:** the learned-control recovery policy uses
-privileged simulator state rather than pixels or a self-supervised visual
-encoder, shows substantial seed variance, and still violates the protected
-object in 8.59% of held-out intervention episodes; collision geometry in the
-high-level safety screen is still spheres and points, not full robot/object meshes; CLIP
+**What's still genuinely open:** the historical V2 learned-control recovery
+policy uses privileged simulator state and has a success-delaying reward
+defect. The corrected V3 RGB policy now has a strong three-seed held-out
+screen, but its matched V7 adaptive continuation is worse under actual removal
+and five-seed confirmation remains gated on V13. The clean frozen encoder does
+not beat a random encoder on the linear pose probe; V7 does, but its objective
+mix prevents attributing that gain specifically to self-supervision.
+Collision geometry in the high-level safety screen is still spheres and points,
+not full robot/object meshes; CLIP
 calibration is scene-specific and does not transfer automatically; the Fetch
 controller has not solved the bowl grasp or a task where both requested Fetch
 objects remain achievable; everything is simulation-only, with no real-robot
@@ -194,13 +322,13 @@ plus a scripted low-level Fetch skill rather than a self-supervised visual
 encoder plus learned continuous motor policy. These are disclosed scope, not
 paper claims.
 
-That final gap has now been tested directly with a pixel-based NE-Dreamer
-pilot, not left hypothetical. The decoder-free world model optimized its
+That gap also has a pixel-based NE-Dreamer V2 pilot. The decoder-free world model optimized its
 self-supervised next-embedding objective (83.2% mean loss reduction), but the
 continuous recovery policy achieved **0/768** final held-out successes after
 250k environment steps per seed. Actions were bounded, all metrics were
 finite, and the exact two-sided 95% upper bound is 0.48%, so this is a real
-negative control-learning result rather than a crashed run. See
+negative control-learning result rather than a crashed run. Because it used V2
+and a smaller 250k-step budget, it is context rather than a matched V3 baseline. See
 [`docs/15-vision-ne-dreamer-pilot.md`](docs/15-vision-ne-dreamer-pilot.md) for
 the protocol, upstream action/replay bug found and fixed, and next experiment.
 
@@ -217,10 +345,18 @@ result and every navigation-safety decision (D-091–D-123) is built on across
 for a demo's visual benefit would risk the whole evidence base for no
 research reason. So concretely:
 
-The hero montage replays the integrated state-policy checkpoint. The other
-three learned-control panels replay frozen PPO checkpoints on standard
-ManiSkill tasks. They use continuous actions and no ATR teleport executor, but
-they do not include ATR's language goals, interventions, or Fetch apartment.
+The hero montage replays the frozen V19 seed-4796 checkpoint selected at
+96,657,408 steps. That seed achieves 98.44% strict and 94.14% nominal safe
+success in the held-out evaluation. Both recovery panels use the locked 6 N,
+24-step intervention and are labeled as removed goals only after capture
+metadata verifies recognized physical unavailability, safe success, the exact
+strict-config and selector hashes, and zero teleport calls. The first-goal
+panel is the first qualifying episode in the declared seed range (seed
+92,000,001); the second-goal and nominal panels use seed 92,000,000. The other
+learned-control montage panels replay
+frozen PPO checkpoints on standard ManiSkill tasks. Those use continuous
+actions and no ATR teleport executor, but do not include ATR's language goals,
+interventions, or Fetch apartment.
 
 - **What's real:** Fetch, the potted meat can, one scene —
   navigate, reach, grasp, lift, carry across the apartment while still

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "name": "visual_recovery_selection_v1",
+  "seeds": [9351, 4796, 1788],
+  "failure_penalty": 2.0,
+  "candidates": [
+    {
+      "name": "direct_v2",
+      "checkpoint": "results/visual_recovery_ppo/visual_recovery_direct_v2/direct_asymmetric_temporal_ppo/seed_{seed}/best.pt"
+    },
+    {
+      "name": "state_teacher_bootstrap",
+      "checkpoint": "results/visual_recovery_ppo/visual_recovery_distilled_v1/state_teacher_bc_asymmetric_temporal_ppo/seed_{seed}/best.pt"
+    },
+    {
+      "name": "state_teacher_dagger",
+      "checkpoint": "results/visual_recovery_ppo/visual_recovery_distilled_dagger_v2/state_teacher_dagger_asymmetric_temporal_ppo/seed_{seed}/best.pt"
+    },
+    {
+      "name": "clean_state_teacher_dagger",
+      "checkpoint": "results/visual_recovery_ppo/visual_recovery_clean_teacher_dagger_v3/clean_state_teacher_dagger_visual_ppo/seed_{seed}/best.pt"
+    }
+  ]
+}

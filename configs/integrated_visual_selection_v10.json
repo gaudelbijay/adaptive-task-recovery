@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "name": "integrated_visual_selection_v10",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_dual_specialist_shift_action_scaled_extension_v13/aggregate.json",
+  "candidates": [
+    {
+      "label": "strict_stable_visual",
+      "method": "event_reward_strict_removal_stable_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_strict_adaptive_v13_stable/aggregate_nominal.json"
+    },
+    {
+      "label": "dual_specialist_visual",
+      "method": "event_reward_dual_specialist_dagger_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/aggregate_nominal.json"
+    },
+    {
+      "label": "vicreg_dual_specialist_visual",
+      "method": "event_reward_vicreg_dual_specialist_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_vicreg_dual_specialist_v20/aggregate_nominal.json"
+    },
+    {
+      "label": "low_variance_vicreg_dual_specialist_visual",
+      "method": "event_reward_vicreg_low_variance_dual_specialist_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_vicreg_dual_specialist_v21_low_variance/aggregate_nominal.json"
+    },
+    {
+      "label": "scaled_bounded_shift_action_dual_specialist_visual",
+      "method": "event_reward_dual_specialist_shift_action_scaled_visual_ppo",
+      "nominal_aggregate": "results/visual_recovery_ppo/visual_recovery_dual_specialist_shift_action_v25_scaled/aggregate_nominal.json"
+    }
+  ],
+  "thresholds": {
+    "minimum_strict_safe": 0.9,
+    "minimum_nominal_safe": 0.9,
+    "minimum_first_removed_safe": 0.85,
+    "minimum_second_removed_safe": 0.85,
+    "maximum_strict_violation": 0.05,
+    "maximum_nominal_violation": 0.05
+  },
+  "claim_boundary": "Post-hoc V25-inclusive selection frozen before any V25 metric. This failure-only path exists only when V24 is rejected before full allocation, so the selector retains V13/V19/V20/V21 and appends V25 without requiring nonexistent V24 full artifacts; the rejected V24 smoke remains separately reported. Every candidate retains all three seeds and must independently pass strict, nominal, branch, and safety thresholds; V25 cannot alter preregistered V1-V5 or any earlier candidate verdict."
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "name": "visual_representation_comparison_v1",
+  "benchmark_semantics": "event_reward_intervention_target_only_v3",
+  "required_training_seeds": 3,
+  "methods": [
+    {
+      "name": "learned_progress_clean",
+      "method": "event_reward_learned_progress_dagger_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/representation_probe_aggregate.json"
+    },
+    {
+      "name": "learned_progress_adaptive",
+      "method": "event_reward_learned_progress_adaptive_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_progress_intervention_v7_event_reward/representation_probe_aggregate.json"
+    },
+    {
+      "name": "no_ssl_adaptive",
+      "method": "event_reward_pose_aux_dagger_adaptive_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_dagger_intervention_v8_event_reward/representation_probe_aggregate.json"
+    },
+    {
+      "name": "temporal_ssl_adaptive",
+      "method": "event_reward_pose_aux_temporal_dagger_adaptive_visual_ppo",
+      "path": "results/visual_recovery_ppo/visual_recovery_temporal_dagger_intervention_v9_event_reward/representation_probe_aggregate.json"
+    }
+  ],
+  "primary_diagnostic": {
+    "treatment": "temporal_ssl_adaptive",
+    "control": "no_ssl_adaptive"
+  }
+}

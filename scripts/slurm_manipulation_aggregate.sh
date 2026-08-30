@@ -13,10 +13,14 @@ ATR_MANIP_CONFIG="${ATR_MANIP_CONFIG:-configs/manipulation_ppo_v1.json}"
 ATR_MANIP_OUTPUT="${ATR_MANIP_OUTPUT:-results/manipulation_ppo}"
 ATR_PYTHON="${ATR_PYTHON:-.venv/bin/python}"
 
+ATR_MANIP_AGGREGATE_FILENAME="${ATR_MANIP_AGGREGATE_FILENAME:-aggregate.json}"
 "${ATR_PYTHON}" scripts/aggregate_manipulation_results.py \
   --config "${ATR_MANIP_CONFIG}" \
-  --output "${ATR_MANIP_OUTPUT}"
+  --output "${ATR_MANIP_OUTPUT}" \
+  --filename "${ATR_MANIP_AGGREGATE_FILENAME}"
 
-"${ATR_PYTHON}" scripts/plot_manipulation_results.py \
-  --config "${ATR_MANIP_CONFIG}" \
-  --output "${ATR_MANIP_OUTPUT}"
+if [[ "${ATR_MANIP_AGGREGATE_FILENAME}" == "aggregate.json" ]]; then
+  "${ATR_PYTHON}" scripts/plot_manipulation_results.py \
+    --config "${ATR_MANIP_CONFIG}" \
+    --output "${ATR_MANIP_OUTPUT}"
+fi

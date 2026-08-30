@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_integrated_state_teacher_gate_v1",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "integrated_mixture_state",
+      "kind": "state",
+      "config": "configs/learned_recovery_ppo_v12_integrated_mixture.json",
+      "output": "results/learned_recovery"
+    }
+  ]
+}

@@ -105,11 +105,15 @@ capacity rather than mixing simulator configurations.
 
 Each task writes atomic `latest.pt` and `best.pt` checkpoints containing model,
 optimizer, iteration/global-step counters, and Python/NumPy/Torch/CUDA RNG
-state. Jarvis sends `SIGUSR1` five minutes before the 24-hour limit; the trainer
-saves at the next iteration boundary. Submit an `afterany` continuation array
-with the identical immutable config. Simulator state itself is not portable
-across jobs, so a continuation re-seeds the environment stream while resuming
-the full optimization state; report that limitation.
+state. Jarvis sends `SIGUSR1` to the Python job process five minutes before the
+24-hour limit; the trainer saves at the next iteration boundary. The wrappers
+deliberately omit Slurm's `B:` prefix, which would signal only the batch shell
+and bypass the trainer's atomic-save handler. An incomplete task then requeues
+the same array element with the identical immutable config, keeping downstream
+`afterok` jobs blocked until true completion. Simulator state itself is not
+portable across allocations, so continuation reconstructs and re-seeds the
+environment stream while resuming model, optimizer, counters, and RNG; report
+that limitation.
 
 Final evidence comes from `evaluate_manipulation_ppo.py`, not the
 checkpoint-selection evaluations embedded in training. It loads `best.pt`,
@@ -142,16 +146,17 @@ space, safety shaping, and checkpoint budget. A protected-object displacement
 terminates an episode. Best checkpoints maximize validation success minus two
 times the validation failure rate, with return used only as a tiny tie-break.
 The Slurm script atomically saves model, optimizer, counters, and RNG state on
-`SIGUSR1` and automatically resubmits an incomplete run before Jarvis's 24-hour
-limit. No simulator state is claimed to survive a job boundary.
+`SIGUSR1` and requeues an incomplete array element under the same job identity
+before Jarvis's 24-hour limit. No simulator state is claimed to survive an
+allocation boundary.
 
 ```bash
 mkdir -p results/slurm
 ATR_PYTHON=.venv/bin/python \
-  sbatch --array=0-8%9 scripts/slurm_manipulation_ppo.sh
+  sbatch --parsable --array=0-8%9 scripts/slurm_manipulation_ppo.sh
 
-# Submit again with --dependency=afterany:<training-job-id> for 24 h resume.
-# Submit evaluation after the continuation succeeds.
-sbatch --array=0-8%9 --dependency=afterok:<continuation-job-id> \
+# Use the returned training job ID. The same ID survives any 24-hour requeue,
+# so evaluation cannot release between continuation allocations.
+sbatch --array=0-8%9 --dependency=afterok:<training-job-id> \
   scripts/slurm_manipulation_eval.sh
 ```

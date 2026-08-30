@@ -1,7 +1,7 @@
 ---
 title: Results and Claim Boundaries
 status: active
-last_updated: 2026-08-27
+last_updated: 2026-08-29
 ---
 
 # Results and claim boundaries
@@ -10,6 +10,18 @@ This is the paper-facing index of results that passed their current validation
 gate. It deliberately separates abstract skill selection from continuous robot
 control. Confidence intervals are 95%; a point interval means the aggregate was
 constant across the evaluated high-level split, not that uncertainty is absent.
+
+## V35 observed-domain allocation result
+
+The seed-1788 V35 translation-repair smoke passes all seven frozen allocation
+checks: 94.14% nominal and 96.09% intervention safe success, a 27.34-point
+causal-progress drop [21.48, 33.20], +53.46-point mean observed-OOD improvement,
+and 55.47% worst observed-OOD safe success. This authorizes the three-seed
+confirmation chain; it does not itself establish multi-seed robustness. The
+observed domains influenced model design, generic translations are supervised
+training data, and V35 inherits privileged V34/V19 supervision. Consequently
+these numbers support only a development-gate claim, not pure self-supervised
+learning, end-to-end RL, unseen-domain generalization, or real-robot transfer.
 
 ## Frozen cross-embodiment adaptation benchmark
 
@@ -112,6 +124,16 @@ uses 256 disjoint held-out episodes per seed under intervention and another 256
 per seed under the nominal condition. Methods share held-out seeds. The primary
 endpoint is safe success: task success and no constraint violation at any time.
 
+**Reward-audit correction (2026-08-28).** This V2/V6 cohort used a persistent
+`3 * completed_goal_count` reward. At `gamma=0.95`, retaining one completed
+goal could be worth more than terminal second-goal completion. A fresh
+three-seed V2 audit subsequently produced 50.65% forced-intervention success
+but only 1.95% nominal two-goal success over 768 episodes per condition. The
+tables below remain immutable historical evidence about matched V2 policy
+differences, but they are ineligible as final ordered-task or visual-recovery
+claims. `LearnedRecovery-v3` corrects only the reward objective and reruns all
+final state and RGB methods; no V2/V3 result is pooled or paired.
+
 ![V6 learning curves across all three seeds, with independent held-out raw and safe success overlays.](../media/results/learned-recovery-v6-curves.png)
 
 The vector version is [available as PDF](../media/results/learned-recovery-v6-curves.pdf).
@@ -148,8 +170,8 @@ prefix remains valid. Nominal safe success is 33.46% for adaptive, 37.24% for
 privileged, and 0% for no-intervention training; none of these policies should
 be presented as a solved two-object controller.
 
-This is the strongest same-task evidence for H2, but it is not the complete
-vision-language hypothesis. Observations are low-dimensional simulator state,
+This is historical matched-policy evidence for H2, not the final corrected
+same-task result. Observations are low-dimensional simulator state,
 language is the factorized order encoding rather than open-vocabulary text,
 the object set and intervention mechanism are narrow, adaptive safe success is
 only 51.69%, and seed dispersion is substantial. The 8.59% adaptive violation
@@ -161,6 +183,214 @@ Jarvis provenance: training array `1139059`, held-out evaluation array
 code zero. Final repository validation array `1139068` completed 353 tests
 across four deterministic disjoint shards with zero failures. The focused
 runtime no-pose-assignment contract also passes 5/5 on the final synced tree.
+
+## V3 restricted-RGB continuous-control screening result
+
+The corrected V3 learned-progress controller completed three independent
+training seeds at 39,993,344 PPO environment steps each, preceded by 1.92M
+DAgger interactions per seed. Its deployed actor receives the 64×64 base-camera
+RGB image, robot joint position/velocity and TCP pose, and the parsed two-token
+instruction. It does not receive cube, goal, sweeper, protected-object, oracle
+unavailability, or simulator goal-progress state. Object poses are used only
+for the training-only asymmetric critic and auxiliary labels. Every executed
+action is bounded continuous `pd_joint_delta_pos`; runtime teleport calls are
+zero by construction and contract test.
+
+Checkpoint selection used only training-stream evaluations. The frozen
+`best.pt` policies were then evaluated on 256 disjoint deterministic episodes
+per training seed and condition (768 each):
+
+| Condition | Raw success | Safe success | Constraint violation | Hierarchical 95% interval (raw / safe) |
+|---|---:|---:|---:|---:|
+| Nominal two-object task | 748/768, 97.40% | 741/768, 96.48% | 0.91% | [95.96%, 98.70%] / [94.27%, 98.31%] |
+| Forced sweeper target | 708/768, 92.19% | 699/768, 91.02% | 1.43% | [89.32%, 95.05%] / [87.63%, 94.53%] |
+
+This is strong evidence that a restricted RGB policy can learn the physical
+two-object controller without object-pose input. It is not yet a clean recovery
+estimate. Only 125/768 intervention-condition episodes recorded recognized
+physical unavailability; 119/125 succeeded and 118/125 were safe, but just
+5/358 first-target episodes actually removed the first requested goal. The
+controller often completed that goal before the step-18--36 sweeper arrived.
+Conditioning on those 125 outcomes is also policy-dependent, so it cannot
+replace a controlled recovery test. The 92.19% number is therefore labeled
+forced-sweeper-condition success, not post-removal recovery. The separately
+frozen step-0 stress test now supplies the recovery endpoint. The original
+2 N, 12-step candidate failed closed because only 54/64 calibration episodes
+contained recognized physical removal. A separate 64-episode calibration range
+verified the selected 6 N, 24-step contact intervention at 64/64; the final seed
+base was then changed to 82,000,000 so no calibration episode entered the
+reported cohort.
+
+All 768/768 final clean-visual episodes contain recognized physical removal.
+The policy records 404 raw successes (52.60%), 402 safe successes (52.34%),
+and five constraint violations (0.65%). These values may be reported as the
+clean policy's strict-removal performance. They do not establish an adaptive
+training benefit or visual/state parity; both matched comparisons remain
+pending and use the same reset seeds.
+
+The historical state recovery reference records 23/768 raw successes (2.99%),
+22/768 safe successes (2.86%), and 272 violations (35.42%) under those same
+strict seeds. Clean visual minus historical state is +49.61 percentage points
+with paired hierarchical 95% interval [33.98, 61.59] raw, and +49.48 points
+[33.98, 61.07] safe. The visual branch rates are sharply asymmetric: 109/374
+(29.14%) when the first requested goal is physically removed and 295/394
+(74.87%) when the second is removed.
+
+The completed matched-distribution state control reverses that comparison.
+Three from-scratch state-PPO seeds trained on the locked step-0, 6 N removal
+distribution produce 756/768 raw and safe successes (98.44%; hierarchical 95%
+interval [97.14%, 99.61%]) and zero violations. Safe success is balanced across
+the first-goal-removed branch (369/374, 98.66%) and second-goal-removed branch
+(387/394, 98.22%). Clean visual minus strict-trained state is −45.83 points raw
+[−58.20, −35.55] and −46.09 points safe [−58.33, −36.20] on the identical 768
+episode seeds. Thus the earlier visual-over-state result diagnoses distribution
+shift, not an information advantage. It also establishes a demanding 98.44%
+matched state baseline that the running V13 visual extension must approach
+while retaining nominal performance. This post-audit extension does not alter
+the preregistered comparison.
+
+That strict-trained state policy catastrophically fails the complementary
+nominal endpoint: 0/768 raw and safe successes with 565/768 violations
+(73.57%). Per-seed violations are 227/256, 82/256, and 256/256. Its 98.44%
+strict result is therefore a condition-specialized ceiling, not an integrated
+policy result. A V14 proposal to DAgger-distill this teacher was frozen before
+the nominal audit, but its allocation gate required at least 70% nominal raw
+and safe success with at most 5% violations. All three checks failed, so V14
+training and every downstream evaluation were cancelled without consuming GPU
+training time. This negative control strengthens the requirement to report
+strict recovery and nominal retention for the same checkpoint.
+
+The complementary nominal-only V3 state control is also not a usable expert.
+After the same 100M requested transitions per seed, it obtains 145/768 nominal
+raw successes (18.88%), 131/768 safe successes (17.06%), and 16/768 violations
+(2.08%). Seed-level safe success is 0%, 4.30%, and 46.88%; all three seeds are
+retained. This rules out presenting its best seed as a nominal upper bound or
+using the pooled result as evidence that nominal state control is solved.
+
+The fair privileged dual-regime comparator is therefore a separate state PPO
+trained from scratch on the same frozen 80% strict-removal / 20% nominal
+distribution and balanced 50/50 checkpoint-selection distribution as V13. It
+uses the same seeds, event reward, safety terms, requested 100M-transition
+budget, and separate 768-episode strict and nominal endpoints. All three tasks
+in training array `1139751` completed at 99,942,400 floor-aligned transitions,
+and checkpoint audit `1139752` verified three exact, finite checkpoint pairs.
+Its frozen endpoints expose catastrophic nominal forgetting rather than an
+integrated solution: strict physical-removal safe success is 748/768 (97.40%)
+with 15/768 violations (1.95%), including 98.66% and 96.19% safe success when
+the first and second goal is removed, but nominal raw and safe success are both
+0/768 with zero violations. The six-check teacher gate therefore failed only
+the >=90% nominal-safe requirement. Original strict array `1139753` failed
+before evaluation because its submitted variable name did not match the batch
+wrapper; no result was emitted. Provenance-preserving replacement `1140056`
+used the same frozen config, checkpoints, seeds, 256 episodes/seed, and
+evaluator, and completed all tasks with exit zero. State-only aggregate
+`1139845` fed gate `1139804`, which failed closed and allocated no V15/V16
+training.
+
+The former V7/V8 five-seed chain was cancelled before allocation because its
+forced-sweeper endpoint rarely produced actual removal. The replacement
+confirmation is gated on V13's separate strict and nominal held-out aggregates
+and both strict removal branches. Only if all frozen eligibility checks pass do
+seeds 71064 and 84293 retrain byte-identical V6, V13, and integrated-state
+tasks. Final aggregation requires all five seeds and 1,280 episodes per
+condition; this post-audit extension cannot revise preregistered V1--V5.
+
+![Matched strict-removal raw/safe success, branch-balanced safe success, and constraint violations for clean visual, historical adaptive state, and strict-trained state policies.](../media/results/strict-removal-state-training.png)
+
+The vector figure is [available as PDF](../media/results/strict-removal-state-training.pdf).
+
+The auxiliary progress head is informative but incomplete: held-out balanced
+accuracy is 74.16% nominal and 74.91% under intervention, driven by roughly 99%
+negative recall but only 49--51% positive recall. A stricter identical-pixel
+linear pose probe is negative. The learned encoder's mean variance-weighted R²
+is 0.161 versus 0.339 for the untrained random encoder; learned minus random is
+−0.177 with seed-bootstrap 95% interval [−0.334, −0.037]. Therefore the result
+supports RGB control without hard-coded object poses, but does **not** support
+a claim that the learned latent is a superior linear pose representation.
+
+The preregistered V7 adaptive continuation completed all three exact
+99,999,744-transition runs and frozen 768-episode endpoints. It retains 95.57%
+nominal raw and 94.14% nominal safe success, but obtains only 33.20% raw and
+32.42% safe success under actual physical removal, with 1.69% violations.
+Strict seed-safe rates are 5.47%, 50.78%, and 41.02%. Clean-minus-V7 strict
+safe success is +19.92 points with paired hierarchical 95% interval [−0.13,
+48.83]; on the first-goal-removed branch V7 is 20.59% safe versus 29.14% clean.
+The adaptive advantage required by V4 is therefore not confirmed.
+
+V7's separate identical-pixel pose probe is positive: learned R² 0.725 versus
+random 0.339, a +0.387 seed-level difference [0.312, 0.488], with all three
+seed differences positive. This is not a pure temporal-SSL ablation: V7 also
+uses privileged pose auxiliary targets and supervised learned-progress labels.
+It supports linear pose decodability for this encoder, not a causal claim that
+self-supervision produced the gain or that decodability improved strict
+control. The matched V8/V9 control and representation endpoints are retained
+for that attribution question.
+
+The frozen direct RGB factorial is also complete. Across 768 nominal episodes,
+symmetric RGB PPO obtains 2 raw/safe successes (0.26%), while asymmetric RGB
+PPO and asymmetric+temporal RGB PPO each obtain 0. Their configured-
+intervention safe rates are 42.71%, 43.23%, and 45.05%, respectively, which
+does not rescue nominal competence. Consequently primary V1, V2, and V3 are
+rejected. Combined with the strict V7 result, primary V4 is rejected as well.
+Primary V5 is confirmed only against its preregistered historical state
+reference (2.86% strict safe); the later distribution-matched strict state PPO
+at 98.44% safe with zero violations is the mandatory competitive baseline and
+prevents using V5 as a paper-level competitiveness claim.
+
+The stabilized V13 integrated RGB continuation completed three exact
+99,999,744-step runs and passed the finite checkpoint/optimizer/provenance
+audit. Its frozen nominal endpoint is 92.97% raw, 90.76% safe, and 2.47%
+violations; strict actual-removal is 90.89% raw, 89.71% safe, and 1.17%
+violations. First-/second-goal-removed safe success is 83.69%/95.43%. It
+therefore fails the immutable integrated gate by 0.29 points on strict safe and
+1.31 points on the first-removal branch; no five-seed allocation occurred.
+This is the strongest single restricted-RGB integrated result so far, but it is
+not labeled eligible or competitive.
+
+V13's matched-pixel pose probe is neutral: learned-minus-random R² −0.003
+[−0.247, 0.203]. Its separate ordered goal-resolution probe is positive on all
+three seeds: balanced-accuracy gain +0.044 [0.040, 0.050], ROC-AUC gain +0.019
+[0.007, 0.029], and R² gain +0.228 [0.131, 0.344]. Because the policy receives
+supervised progress labels during training, this supports task-semantic linear
+decodability, not a pure self-supervised or causal representation claim.
+
+The failure-only strict-initialized state continuation reaches 92.58% strict
+safe success, 91.18%/93.91% branch safe, and 0.91% violations, but again scores
+0/768 nominal. Its frozen gate failed only nominal safety. The router artifact
+then released the post-hoc V19/V20 dual-specialist RGB pair, which uses nominal
+RGB and strict state specialists only as disclosed training-time teachers.
+
+V19 subsequently completed three exact 99,999,744-step seeds and its immutable
+checkpoint audit. On 768 held-out episodes per regime it reaches 97.66% raw and
+96.35% safe strict success with 1.30% violations, and 94.66% raw and 91.41%
+safe nominal success with 3.65% violations. Safe success is 97.06% when the
+first goal is physically removed and 95.69% when the second is removed. It
+passes all six frozen selector checks and improves the integrated worst
+endpoint from V13's 83.69% to 91.41%. This supports a competitive non-teleport
+restricted-input visual-control claim within this benchmark. It does not show
+state-upper-bound parity (strict V11: 98.44% safe, zero violations), pure pixel
+RL, pure self-supervision, real-robot transfer, or cross-paper superiority:
+V19 uses privileged dual teachers, progress labels, and an asymmetric critic
+during training, and its fixed new-seed confirmation remains in progress.
+
+The post-selection V19 causal/OOD suite contains 16,896 paired policy episodes.
+Cyclically shifting only its predicted progress bits reduces intervention safe
+success from 96.22% to 81.90%, a 14.32-point paired drop with cluster-bootstrap
+95% interval [0.65, 29.69]. This passes the frozen causal-utility rule and shows
+that the controller functionally uses the learned head rather than carrying an
+unused auxiliary predictor. Frozen visual-OOD robustness is rejected: 4-pixel
+translation and +5 cm camera height reduce intervention safe success to 5.08%
+and 2.86%, and every tested pixel, color, lighting, or camera variant fails the
+joint 75%-safe / at-most-15-point-drop rule. V19's primary result is therefore
+conditional on the declared camera and appearance distribution; this suite is
+simulation-only and supplies no real-world robustness evidence.
+
+Jarvis provenance: training `1139383` and held-out evaluation `1139384`
+completed with exit code zero. Original aggregate `1139385` rejected the
+correct floor-aligned PPO budget because of a verifier rounding defect;
+corrected aggregate `1139553` consumed the same immutable six evaluation files
+and completed with exit code zero. The 70% competence gate passed at 97.40%
+nominal raw success, releasing the matched adaptive experiment.
 
 ## Continuous non-teleport manipulation
 
