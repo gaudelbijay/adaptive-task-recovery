@@ -132,6 +132,10 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     feature_section = collector.split("def relative_geometry", 1)[0]
     assert "critic_intervention_mechanism" not in feature_section
     assert "critic_physical_unavailable" not in feature_section
+    wrapper = (ROOT / "scripts/slurm_collect_external_peg_router_data.sh").read_text()
+    assert "ATR_PEG_TRAINING_SEEDS" in wrapper
+    assert "ATR_PEG_RUN_ROOT" in wrapper
+    assert "ATR_PEG_ROUTER_DATA_ROOT" in wrapper
 
 
 def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
