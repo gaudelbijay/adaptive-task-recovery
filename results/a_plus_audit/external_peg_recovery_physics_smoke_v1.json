@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "results": [
+    {
+      "condition": "nominal",
+      "episodes": 32,
+      "finite_observation": true,
+      "maximum_peg_y_shift_mean": 0.005619614850729704,
+      "ejection_observed_rate": 0.125,
+      "blocker_engaged_rate": 0.0,
+      "minimum_hole_distance_mean": 0.1286320835351944,
+      "minimum_hole_distance_max": 0.18512481451034546,
+      "minimum_target_distance_mean": 0.041282348334789276,
+      "minimum_target_distance_max": 0.05212148278951645,
+      "temporary_cleared_rate": 0.0,
+      "constraint_violation_rate": 0.0,
+      "native_success_rate_under_zero_action": 0.0
+    },
+    {
+      "condition": "positive_lateral_peg_ejection",
+      "episodes": 32,
+      "finite_observation": true,
+      "maximum_peg_y_shift_mean": 0.2213566154241562,
+      "ejection_observed_rate": 1.0,
+      "blocker_engaged_rate": 0.0,
+      "minimum_hole_distance_mean": 0.11037180572748184,
+      "minimum_hole_distance_max": 0.18764245510101318,
+      "minimum_target_distance_mean": 0.04569772258400917,
+      "minimum_target_distance_max": 0.05212191119790077,
+      "temporary_cleared_rate": 0.0,
+      "constraint_violation_rate": 0.0,
+      "native_success_rate_under_zero_action": 0.0
+    },
+    {
+      "condition": "negative_lateral_peg_ejection",
+      "episodes": 32,
+      "finite_observation": true,
+      "maximum_peg_y_shift_mean": 0.23252831399440765,
+      "ejection_observed_rate": 1.0,
+      "blocker_engaged_rate": 0.0,
+      "minimum_hole_distance_mean": 0.10473917424678802,
+      "minimum_hole_distance_max": 0.19300182163715363,
+      "minimum_target_distance_mean": 0.04170321673154831,
+      "minimum_target_distance_max": 0.05212262645363808,
+      "temporary_cleared_rate": 0.0,
+      "constraint_violation_rate": 0.0625,
+      "native_success_rate_under_zero_action": 0.0
+    },
+    {
+      "condition": "permanent_hole_block",
+      "episodes": 32,
+      "finite_observation": true,
+      "maximum_peg_y_shift_mean": 0.0031315209344029427,
+      "ejection_observed_rate": 0.125,
+      "blocker_engaged_rate": 0.96875,
+      "minimum_hole_distance_mean": 0.07418997585773468,
+      "minimum_hole_distance_max": 0.16165444254875183,
+      "minimum_target_distance_mean": 0.026292581111192703,
+      "minimum_target_distance_max": 0.05212165415287018,
+      "temporary_cleared_rate": 0.0,
+      "constraint_violation_rate": 0.0,
+      "native_success_rate_under_zero_action": 0.0
+    },
+    {
+      "condition": "temporary_hole_block",
+      "episodes": 32,
+      "finite_observation": true,
+      "maximum_peg_y_shift_mean": 0.0018710120348259807,
+      "ejection_observed_rate": 0.03125,
+      "blocker_engaged_rate": 0.96875,
+      "minimum_hole_distance_mean": 0.08768108487129211,
+      "minimum_hole_distance_max": 0.16678622364997864,
+      "minimum_target_distance_mean": 0.02811569720506668,
+      "minimum_target_distance_max": 0.05212056264281273,
+      "temporary_cleared_rate": 0.90625,
+      "constraint_violation_rate": 0.0,
+      "native_success_rate_under_zero_action": 0.0
+    }
+  ]
+}
