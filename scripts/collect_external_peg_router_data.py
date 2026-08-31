@@ -30,7 +30,16 @@ KINDS = (
 SNAPSHOTS = (1, 2, 3, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96)
 
 
-def make_env(num_envs: int, kind: str, include_blocker_state_observation: bool):
+def make_env(
+    num_envs: int,
+    kind: str,
+    include_blocker_state_observation: bool,
+    ejection_force: float,
+    ejection_steps: int,
+    ejection_target_displacement: float,
+    ejection_position_gain: float,
+    ejection_velocity_gain: float,
+):
     kwargs = dict(
         num_envs=num_envs, obs_mode="state", render_mode=None,
         sim_backend="physx_cuda", control_mode="pd_joint_delta_pos",
@@ -41,6 +50,11 @@ def make_env(num_envs: int, kind: str, include_blocker_state_observation: bool):
         ),
         onset_step_range=(18, 42),
         include_blocker_state_observation=include_blocker_state_observation,
+        ejection_force=ejection_force,
+        ejection_steps=ejection_steps,
+        ejection_target_displacement=ejection_target_displacement,
+        ejection_position_gain=ejection_position_gain,
+        ejection_velocity_gain=ejection_velocity_gain,
     )
     env = gym.make("PegInsertionRecovery-v1", **kwargs)
     if isinstance(env.action_space, gym.spaces.Dict):
@@ -89,6 +103,11 @@ def main() -> None:
     parser.add_argument("--num-envs", type=int, default=64)
     parser.add_argument("--horizon", type=int, default=96)
     parser.add_argument("--seed-base", type=int, default=421_100_000)
+    parser.add_argument("--ejection-force", type=float, default=1.7)
+    parser.add_argument("--ejection-steps", type=int, default=5)
+    parser.add_argument("--ejection-target-displacement", type=float, default=0.0)
+    parser.add_argument("--ejection-position-gain", type=float, default=80.0)
+    parser.add_argument("--ejection-velocity-gain", type=float, default=4.0)
     args = parser.parse_args()
     if not torch.cuda.is_available():
         raise RuntimeError("external Peg prefix collection requires CUDA")
@@ -106,7 +125,14 @@ def main() -> None:
     for kind_index, kind in enumerate(KINDS):
         for batch in range(args.batches_per_kind):
             env = make_env(
-                args.num_envs, kind, include_blocker_state_observation,
+                args.num_envs,
+                kind,
+                include_blocker_state_observation,
+                args.ejection_force,
+                args.ejection_steps,
+                args.ejection_target_displacement,
+                args.ejection_position_gain,
+                args.ejection_velocity_gain,
             )
             try:
                 observation, info = env.reset(
@@ -226,6 +252,11 @@ def main() -> None:
         "behavior_checkpoint": str(args.checkpoint),
         "behavior_checkpoint_sha256": hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
         "include_blocker_state_observation": include_blocker_state_observation,
+        "ejection_force": args.ejection_force,
+        "ejection_steps": args.ejection_steps,
+        "ejection_target_displacement": args.ejection_target_displacement,
+        "ejection_position_gain": args.ejection_position_gain,
+        "ejection_velocity_gain": args.ejection_velocity_gain,
     }
     args.metadata_output.parent.mkdir(parents=True, exist_ok=True)
     args.metadata_output.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")

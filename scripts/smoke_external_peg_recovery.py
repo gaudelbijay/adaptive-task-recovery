@@ -24,6 +24,9 @@ def run_condition(
     ejection_force: float,
     ejection_steps: int,
     negative_ejection_force_scale: float,
+    ejection_target_displacement: float,
+    ejection_position_gain: float,
+    ejection_velocity_gain: float,
     blocker_force: float,
     blocker_position_gain: float,
     blocker_velocity_gain: float,
@@ -48,6 +51,9 @@ def run_condition(
         ejection_force=ejection_force,
         ejection_steps=ejection_steps,
         negative_ejection_force_scale=negative_ejection_force_scale,
+        ejection_target_displacement=ejection_target_displacement,
+        ejection_position_gain=ejection_position_gain,
+        ejection_velocity_gain=ejection_velocity_gain,
         blocker_force=blocker_force,
         blocker_position_gain=blocker_position_gain,
         blocker_velocity_gain=blocker_velocity_gain,
@@ -179,6 +185,9 @@ def main():
     parser.add_argument("--ejection-force", type=float, default=1.7)
     parser.add_argument("--ejection-steps", type=int, default=5)
     parser.add_argument("--negative-ejection-force-scale", type=float, default=1.0)
+    parser.add_argument("--ejection-target-displacement", type=float, default=0.0)
+    parser.add_argument("--ejection-position-gain", type=float, default=80.0)
+    parser.add_argument("--ejection-velocity-gain", type=float, default=4.0)
     parser.add_argument("--blocker-force", type=float, default=5.0)
     parser.add_argument("--blocker-position-gain", type=float, default=40.0)
     parser.add_argument("--blocker-velocity-gain", type=float, default=4.0)
@@ -201,6 +210,9 @@ def main():
             args.ejection_force,
             args.ejection_steps,
             args.negative_ejection_force_scale,
+            args.ejection_target_displacement,
+            args.ejection_position_gain,
+            args.ejection_velocity_gain,
             args.blocker_force,
             args.blocker_position_gain,
             args.blocker_velocity_gain,

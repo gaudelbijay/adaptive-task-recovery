@@ -35,6 +35,8 @@ def test_heldout_direction_and_matched_reversible_control_exist():
     assert "negative_ejection_force_scale: float = 1.0" in SOURCE
     assert "blocker_target_peg_length_scale: float = 0.0" in SOURCE
     assert "blocker_return_position_gain: float = 120.0" in SOURCE
+    assert "ejection_target_displacement" in SOURCE
+    assert "_world_vector_to_local" in SOURCE
 
 
 def test_router_geometry_is_physical_and_excludes_mechanism_labels():
@@ -167,6 +169,8 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     assert "from atr.policies.peg_router_features import relative_geometry" in evaluator
     assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
     assert '"split_unit": "entire vectorized simulator reset batch"' in collector
+    assert '"ejection_force": args.ejection_force' in collector
+    assert '"ejection_steps": args.ejection_steps' in collector
     feature_section = (ROOT / "src/atr/policies/peg_router_features.py").read_text()
     assert "critic_intervention_mechanism" not in feature_section
     assert "critic_physical_unavailable" not in feature_section

@@ -52,6 +52,9 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         ejection_force: float = 1.7,
         ejection_steps: int = 5,
         negative_ejection_force_scale: float = 1.0,
+        ejection_target_displacement: float = 0.0,
+        ejection_position_gain: float = 80.0,
+        ejection_velocity_gain: float = 4.0,
         blocker_force: float = 5.0,
         blocker_position_gain: float = 40.0,
         blocker_velocity_gain: float = 4.0,
@@ -77,6 +80,9 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         self.ejection_force = float(ejection_force)
         self.ejection_steps = int(ejection_steps)
         self.negative_ejection_force_scale = float(negative_ejection_force_scale)
+        self.ejection_target_displacement = float(ejection_target_displacement)
+        self.ejection_position_gain = float(ejection_position_gain)
+        self.ejection_velocity_gain = float(ejection_velocity_gain)
         self.blocker_force = float(blocker_force)
         self.blocker_position_gain = float(blocker_position_gain)
         self.blocker_velocity_gain = float(blocker_velocity_gain)
@@ -93,6 +99,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         self._blocker_engaged = None
         self._temporary_cleared = None
         self._constraint_violated = None
+        self._ejection_origin_lateral = None
         self._blocker_home = None
         self._blocker_target = None
         super().__init__(*args, **kwargs)
@@ -117,6 +124,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
                 self._blocker_engaged = torch.zeros(self.num_envs, dtype=torch.bool)
                 self._temporary_cleared = torch.zeros(self.num_envs, dtype=torch.bool)
                 self._constraint_violated = torch.zeros(self.num_envs, dtype=torch.bool)
+                self._ejection_origin_lateral = torch.zeros(self.num_envs)
                 self._blocker_home = torch.zeros((self.num_envs, 3))
                 self._blocker_target = torch.zeros((self.num_envs, 3))
         super()._initialize_episode(env_idx, options)
@@ -136,6 +144,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             self._blocker_engaged[env_idx] = False
             self._temporary_cleared[env_idx] = False
             self._constraint_violated[env_idx] = False
+            self._ejection_origin_lateral[env_idx] = 0.0
             # Stage the blocker directly outside the randomized hole along
             # its local insertion axis. Its subsequent path is therefore
             # force-driven through the opening rather than diagonally into a
@@ -177,6 +186,12 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             quaternion_vector, cross, dim=1,
         )
 
+    @staticmethod
+    def _world_vector_to_local(vector: torch.Tensor, quaternion_wxyz: torch.Tensor):
+        inverse = quaternion_wxyz.clone()
+        inverse[:, 1:] *= -1
+        return PegInsertionRecoveryEnv._local_vector_to_world(vector, inverse)
+
     def _before_simulation_step(self):
         step = self._elapsed_steps
         started = step >= self._onset_step
@@ -186,11 +201,34 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         positive = self._intervention_mechanism == POSITIVE_EJECTION
         negative = self._intervention_mechanism == NEGATIVE_EJECTION
         local_peg_force = torch.zeros((self.num_envs, 3), device=self.device)
-        local_peg_force[:, 1] = self.ejection_force * (
-            (ejection_active & positive).float()
-            - self.negative_ejection_force_scale
-            * (ejection_active & negative).float()
-        )
+        if self.ejection_target_displacement > 0:
+            peg_to_hole = self.peg.pose.p - self.box_hole_pose.p
+            local_position = self._world_vector_to_local(
+                peg_to_hole, self.box_hole_pose.q,
+            )
+            local_velocity = self._world_vector_to_local(
+                self.peg.linear_velocity, self.box_hole_pose.q,
+            )
+            starting = (step == self._onset_step) & (positive | negative)
+            self._ejection_origin_lateral[starting] = local_position[starting, 1]
+            sign = positive.float() - negative.float()
+            desired_lateral = (
+                self._ejection_origin_lateral
+                + sign * self.ejection_target_displacement
+            )
+            raw_lateral_force = (
+                self.ejection_position_gain * (desired_lateral - local_position[:, 1])
+                - self.ejection_velocity_gain * local_velocity[:, 1]
+            )
+            local_peg_force[:, 1] = torch.clamp(
+                raw_lateral_force, -self.ejection_force, self.ejection_force,
+            ) * ejection_active.float()
+        else:
+            local_peg_force[:, 1] = self.ejection_force * (
+                (ejection_active & positive).float()
+                - self.negative_ejection_force_scale
+                * (ejection_active & negative).float()
+            )
         peg_force = self._local_vector_to_world(
             local_peg_force, self.box_hole_pose.q,
         )

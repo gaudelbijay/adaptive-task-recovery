@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "rejected_on_421m_development_snapshot_before_selection_or_confirmation",
+  "purpose": "Determine whether a bounded force-servo can make the held-out hole-frame ejection direction causally identifiable without violating physics safety.",
+  "behavior_checkpoint": {
+    "lineage": "incomplete nominal PPO V1 development snapshot, seed 9351",
+    "sha256": "890d55f1a266f818a27d766d765e7c31a6c0de0a84f2d0c485f11469cecb0d8a",
+    "limitation": "The snapshot has low nominal task success and is not the controller eligible for the frozen external gate."
+  },
+  "fixed_impulse_findings": {
+    "0.6N_x_20_steps": "96.1-98.4% observable and 0% violations, but signed direction remained 49-54%.",
+    "0.8N_x_15_steps": "96.9-97.7% observable and 0.8-2.3% violations, but signed direction remained 48-55%."
+  },
+  "bounded_servo_findings": {
+    "2.5N_target_0.04m_20_steps": "100% observable and 0% violations; signed completion direction 68% positive and 57% real negative.",
+    "8N_target_0.06m_30_steps": "100% observable and 0% violations; dominant historical excursion 79% positive and 75% real negative.",
+    "12N_target_0.06m_30_steps": "100% observable with 0.8% positive and 0% negative violations; dominant historical excursion 84.6% positive and 72% real negative.",
+    "16N_or_24N_target_0.08m_40_steps": "Rejected by the unchanged physics audit at 10-20% cumulative violations."
+  },
+  "actual_router_fit_on_12N_probe": {
+    "physical_heldout_option_accuracy_by_seed": {
+      "causal_gru": [0.0, 0.0327169262, 0.0],
+      "static_mlp": [0.0, 0.0, 0.0],
+      "unstructured_gru": [0.0, 0.0, 0.0]
+    },
+    "conclusion": "A generic factorized GRU cannot transfer the reflected direction on this low-competence behavior distribution. Two development-only equivariant-head diagnostics also remained below 1% option accuracy and were not adopted into the generic confirmed V10 router implementation."
+  },
+  "decision": "Do not open selection or confirmation and do not freeze the servo mechanism from this snapshot. Finish the preregistered official-style nominal PPO training, then repeat a small direction-identifiability probe using the competent frozen controller before choosing between the original impulse and bounded servo.",
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  }
+}
