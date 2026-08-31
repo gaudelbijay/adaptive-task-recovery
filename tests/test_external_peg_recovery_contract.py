@@ -148,11 +148,14 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     assert '"heldout_option_cross_entropy": False' in collector
     assert '"physical_heldout"' in collector
     assert '"counterfactual_reflection"' in collector
-    assert 'reflected["sequence"][:, :, [1, 4, 7, 10]] *= -1' in collector
+    assert 'reflected["sequence"][:, :, list(LATERAL_Y_INDICES)] *= -1' in collector
     assert 'reflected["option"].fill(2)' in collector
+    assert "from atr.policies.peg_router_features import" in collector
+    evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
+    assert "from atr.policies.peg_router_features import relative_geometry" in evaluator
     assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
     assert '"split_unit": "entire vectorized simulator reset batch"' in collector
-    feature_section = collector.split("def relative_geometry", 1)[0]
+    feature_section = (ROOT / "src/atr/policies/peg_router_features.py").read_text()
     assert "critic_intervention_mechanism" not in feature_section
     assert "critic_physical_unavailable" not in feature_section
     wrapper = (ROOT / "scripts/slurm_collect_external_peg_router_data.sh").read_text()
@@ -171,6 +174,7 @@ def test_external_v2_gate_holds_real_negative_physics_out_of_training():
     assert v2["selection_seed_base"] == v1["selection_seed_base"]
     assert v2["confirmation_seed_base"] == v1["confirmation_seed_base"]
     assert "reserved for test" in v2["interventions"]["heldout_real_trajectory_rule"]
+    assert "randomized hole frame" in v2["interventions"]["counterfactual_direction_supervision"]
     trainer = (ROOT / "scripts/train_v4_causal_option_router.py").read_text()
     assert "train &= ~physical_heldout" in trainer
     assert "validation &= ~physical_heldout" in trainer

@@ -15,7 +15,7 @@
     "training_mechanisms": ["positive_lateral_peg_ejection", "permanent_hole_block", "temporary_hole_block"],
     "heldout_physical_mechanism": "negative_lateral_peg_ejection",
     "heldout_real_trajectory_rule": "Every real negative-ejection prefix is excluded from training and validation and reserved for test.",
-    "counterfactual_direction_supervision": "Reflect the relative y coordinates of positive-ejection prefixes. These paired tensors supervise event/readiness/direction factors only; option-2 cross-entropy is masked.",
+    "counterfactual_direction_supervision": "Rotate relative vectors into each episode's randomized hole frame, then reflect local lateral-y coordinates of positive-ejection prefixes. These paired tensors supervise event/readiness/direction factors only; option-2 cross-entropy is masked.",
     "forbidden_runtime_inputs": ["intervention kind", "intervention target", "future observation", "oracle feasibility", "native success flag"]
   },
   "method_contract": {

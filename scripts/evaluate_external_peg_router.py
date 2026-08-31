@@ -18,6 +18,7 @@ from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
     current_centered_sequence,
 )
+from atr.policies.peg_router_features import relative_geometry
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
@@ -32,12 +33,6 @@ CONDITIONS = (
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def relative_geometry(raw: torch.Tensor) -> torch.Tensor:
-    pose = raw.reshape(raw.shape[0], 4, 7)
-    peg, hole, blocker, tcp = (pose[:, index, :3] for index in range(4))
-    return torch.cat((peg - hole, blocker - hole, tcp - peg, tcp - hole), dim=1)
 
 
 def load_agent(path: Path, observation_dim: int, action_dim: int, device):

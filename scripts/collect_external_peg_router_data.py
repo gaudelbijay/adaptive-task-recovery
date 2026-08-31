@@ -14,6 +14,9 @@ import torch
 
 import mani_skill.envs  # noqa: F401
 import atr.envs.peg_insertion_recovery  # noqa: F401
+from atr.policies.peg_router_features import (
+    GEOMETRY_NAMES, LATERAL_Y_INDICES, relative_geometry,
+)
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
@@ -25,11 +28,6 @@ KINDS = (
     "temporary_hole_block", "negative_lateral_peg_ejection",
 )
 SNAPSHOTS = (1, 2, 3, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96)
-GEOMETRY_NAMES = tuple(
-    f"{relation}.{axis}"
-    for relation in ("peg_to_hole", "blocker_to_hole", "tcp_to_peg", "tcp_to_hole")
-    for axis in "xyz"
-)
 
 
 def make_env(num_envs: int, kind: str, include_blocker_state_observation: bool):
@@ -48,12 +46,6 @@ def make_env(num_envs: int, kind: str, include_blocker_state_observation: bool):
     if isinstance(env.action_space, gym.spaces.Dict):
         env = FlattenActionSpaceWrapper(env)
     return ManiSkillVectorEnv(env, num_envs, ignore_terminations=True, record_metrics=False)
-
-
-def relative_geometry(raw: torch.Tensor) -> torch.Tensor:
-    pose = raw.reshape(raw.shape[0], 4, 7)
-    peg, hole, blocker, tcp = (pose[:, index, :3] for index in range(4))
-    return torch.cat((peg - hole, blocker - hole, tcp - peg, tcp - hole), dim=1)
 
 
 def labels(kind_index: int, info: dict, length: int):
@@ -185,7 +177,7 @@ def main() -> None:
     reflected = {name: value[positive].copy() for name, value in packed.items()}
     # Feature layout is four relative xyz vectors plus normalized time. A
     # reflection across the task's lateral y-axis negates indices 1,4,7,10.
-    reflected["sequence"][:, :, [1, 4, 7, 10]] *= -1
+    reflected["sequence"][:, :, list(LATERAL_Y_INDICES)] *= -1
     reflected["option"].fill(2)
     post_event = reflected["direction"] >= 0
     reflected["direction"][post_event] = 1
@@ -218,7 +210,8 @@ def main() -> None:
         "real_negative_ejection_split": "physical_heldout test-only",
         "counterfactual_reflection": {
             "source": "positive_lateral_peg_ejection factual prefixes",
-            "reflected_feature_indices": [1, 4, 7, 10],
+            "reflected_feature_indices": list(LATERAL_Y_INDICES),
+            "frame": "randomized hole-local frame",
             "shared_group_with_factual": True,
             "option_cross_entropy": False,
             "rows": int(packed["counterfactual_reflection"].sum()),

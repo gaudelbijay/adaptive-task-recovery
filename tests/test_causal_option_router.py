@@ -4,6 +4,7 @@ from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
     causal_safe_targets, current_centered_sequence,
 )
+from atr.policies.peg_router_features import relative_geometry, world_to_local
 
 
 def test_delayed_targets_never_encode_a_future_event():
@@ -95,3 +96,18 @@ def test_current_centering_ignores_padded_future_when_length_is_shorter():
         current_centered_sequence(a, lengths, 3)[:, :4],
         current_centered_sequence(b, lengths, 3)[:, :4],
     )
+
+
+def test_peg_router_vectors_are_rotated_into_randomized_hole_frame():
+    root_half = 2 ** -0.5
+    quaternion = torch.tensor([[root_half, 0.0, 0.0, root_half]])
+    local = world_to_local(torch.tensor([[0.0, 1.0, 0.0]]), quaternion)
+    assert torch.allclose(local, torch.tensor([[1.0, 0.0, 0.0]]), atol=1e-6)
+    raw = torch.tensor([[
+        0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, root_half, 0.0, 0.0, root_half,
+        0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 2.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+    ]])
+    geometry = relative_geometry(raw)
+    assert torch.allclose(geometry[0, :3], torch.tensor([1.0, 0.0, 0.0]), atol=1e-6)
