@@ -46,7 +46,7 @@ def load_router(checkpoint_path: Path, metadata_path: Path, device):
 
 
 @torch.inference_mode()
-def router_probability(model, history, geometry_dim=0):
+def router_output(model, history, geometry_dim=0):
     sequence = torch.stack(history, dim=1)
     length = torch.full(
         (sequence.shape[0],), sequence.shape[1], dtype=torch.long,
@@ -55,7 +55,7 @@ def router_probability(model, history, geometry_dim=0):
     sequence = current_centered_sequence(sequence, length, geometry_dim)
     output = model(sequence)
     logp = output.option_log_probability if hasattr(output, "option_log_probability") else output
-    return logp.exp()
+    return output, logp.exp()
 
 
 def retreat_action(observation, initial_qpos, action_shape):
@@ -111,6 +111,18 @@ def main():
         ),
     )
     parser.add_argument(
+        "--safe-hold-start-step", type=int, default=1,
+        help=(
+            "First step of the label-free guard window. Steps before it use "
+            "ordinary nominal execution unless the router observes an event."
+        ),
+    )
+    parser.add_argument(
+        "--defer-action-mode", choices=("retreat_to_reset", "hold_current"),
+        default="retreat_to_reset",
+        help="Physical action used while the router selects defer/guard.",
+    )
+    parser.add_argument(
         "--release-safe-hold-on-confirmed-nominal",
         action="store_true",
         help=(
@@ -125,6 +137,33 @@ def main():
             "End scoring for an environment at its first success or safety "
             "violation, matching natural episodic termination while the "
             "fixed-size vector simulator continues stepping masked actions."
+        ),
+    )
+    parser.add_argument(
+        "--router-query-every-step", action="store_true",
+        help=(
+            "Run the same calibrated causal router on every accumulated "
+            "pre-action prefix, reducing event-to-handoff latency."
+        ),
+    )
+    parser.add_argument(
+        "--router-query-every-step-after", type=int, default=1,
+        help="Keep calibrated snapshot queries before this step.",
+    )
+    parser.add_argument(
+        "--factorized-sweep-dispatch", action="store_true",
+        help=(
+            "For structured routers, use the checkpoint's group-disjoint "
+            "event/direction calibration to dispatch a sweep specialist "
+            "before the joint readiness posterior matures."
+        ),
+    )
+    parser.add_argument(
+        "--factorized-sweep-dispatch-min-step", type=int, default=1,
+        help=(
+            "First prefix eligible for factorized sweep dispatch. This may "
+            "be frozen to training onset_max + 1 so in-envelope events keep "
+            "the checkpoint's standard calibrated handoff."
         ),
     )
     parser.add_argument("--env-id", default="LearnedRecovery-v4")
@@ -227,6 +266,13 @@ def main():
             "class_thresholds_99_precision", [threshold] * 6,
         ), device=device,
     )
+    sweep_dispatch = router_checkpoint.get("calibration", {}).get(
+        "factorized_sweep_dispatch_99_precision"
+    )
+    if args.factorized_sweep_dispatch and sweep_dispatch is None:
+        raise ValueError(
+            "factorized sweep dispatch requested but checkpoint lacks calibration"
+        )
     successes = safe_successes = violations = decisions = correct_decisions = abstentions = 0
     option_histogram = torch.zeros(6, dtype=torch.long, device=device)
     try:
@@ -246,6 +292,9 @@ def main():
             )
             decision_locked = torch.zeros(args.num_envs, dtype=torch.bool, device=device)
             success = torch.zeros(args.num_envs, dtype=torch.bool, device=device); violation = torch.zeros_like(success)
+            last_action = torch.zeros(
+                (args.num_envs,) + env.single_action_space.shape, device=device,
+            )
             for step in range(1, args.steps + 1):
                 if args.fixed_option is None and step <= router_horizon:
                     feature, positions = extract_features(
@@ -254,8 +303,14 @@ def main():
                     )
                     previous_positions = positions
                     history.append(feature)
-                if args.fixed_option is None and step in SNAPSHOTS:
-                    probability = router_probability(
+                if args.fixed_option is None and (
+                    step in SNAPSHOTS
+                    or (
+                        args.router_query_every_step
+                        and step >= args.router_query_every_step_after
+                    )
+                ):
+                    output, probability = router_output(
                         router, history, current_centered_geometry_dim,
                     )
                     confidence, proposed = probability.max(1)
@@ -263,6 +318,22 @@ def main():
                         confidence >= class_thresholds[proposed], proposed,
                         torch.full_like(proposed, 5),
                     )
+                    if args.factorized_sweep_dispatch and hasattr(
+                        output, "event_logits"
+                    ):
+                        event_sweep = output.event_logits.softmax(-1)[:, 1]
+                        direction_confidence, direction = (
+                            output.direction_logits.softmax(-1).max(1)
+                        )
+                        dispatch = (
+                            (step >= args.factorized_sweep_dispatch_min_step)
+                            & (event_sweep >= sweep_dispatch["event_threshold"])
+                            & (
+                                direction_confidence
+                                >= sweep_dispatch["direction_threshold"]
+                            )
+                        )
+                        proposed = torch.where(dispatch, direction + 1, proposed)
                     same = proposed == candidate
                     candidate_count = torch.where(same, candidate_count + 1, torch.ones_like(candidate_count))
                     candidate = proposed
@@ -282,6 +353,7 @@ def main():
                     )
                 effective_option = torch.where(
                     (selected_option == 0)
+                    & (step >= args.safe_hold_start_step)
                     & (step <= args.safe_hold_until_step)
                     & ~(
                         args.release_safe_hold_on_confirmed_nominal
@@ -325,19 +397,35 @@ def main():
                     if args.reverse_ensemble_reduction == "median"
                     else reverse_stack.mean(0)
                 )
+                defer_action = (
+                    torch.zeros(
+                        (args.num_envs,) + env.single_action_space.shape,
+                        device=device,
+                    )
+                    if args.defer_action_mode == "hold_current"
+                    else retreat_action(
+                        obs, initial_qpos, env.single_action_space.shape,
+                    )
+                )
+                if args.defer_action_mode == "hold_current":
+                    # Delta-position arm commands hold at zero, while the
+                    # gripper requires its previous signed target to avoid
+                    # releasing a partially grasped object during the guard.
+                    defer_action[:, -1] = last_action[:, -1]
                 actions = (
                     nominal_action,
                     state_agents["forward"].get_action(v3_state, deterministic=True).clamp(-1, 1),
                     reverse_action,
                     state_agents["permanent"].get_action(v4_state, deterministic=True).clamp(-1, 1),
                     temporary_action,
-                    retreat_action(obs, initial_qpos, env.single_action_space.shape),
+                    defer_action,
                 )
                 stacked = torch.stack(actions, dim=1)
                 action = stacked[torch.arange(args.num_envs, device=device), effective_option]
                 if args.terminate_score_on_first_resolution:
                     resolved = success | violation
                     action = torch.where(resolved[:, None], torch.zeros_like(action), action)
+                last_action = action.clone()
                 option_histogram += torch.bincount(effective_option, minlength=6)
                 obs, _, _, _, info = env.step(action)
                 if args.terminate_score_on_first_resolution:
@@ -363,12 +451,21 @@ def main():
         "abstention_step_rate": abstentions / (args.episodes * args.steps),
         "seed_base": args.seed_base, "force_scale": args.force_scale, "onset_step": args.onset_step,
         "safe_hold_until_step": args.safe_hold_until_step,
+        "safe_hold_start_step": args.safe_hold_start_step,
+        "defer_action_mode": args.defer_action_mode,
         "release_safe_hold_on_confirmed_nominal": (
             args.release_safe_hold_on_confirmed_nominal
         ),
         "terminate_score_on_first_resolution": (
             args.terminate_score_on_first_resolution
         ),
+        "router_query_every_step": args.router_query_every_step,
+        "router_query_every_step_after": args.router_query_every_step_after,
+        "factorized_sweep_dispatch": args.factorized_sweep_dispatch,
+        "factorized_sweep_dispatch_min_step": (
+            args.factorized_sweep_dispatch_min_step
+        ),
+        "factorized_sweep_dispatch_calibration": sweep_dispatch,
         "return_delay": args.return_delay, "control_delay": args.control_delay,
         "environment": args.env_id, "visual_domain_profile": args.visual_domain_profile or "nominal",
         "fixed_option": args.fixed_option,

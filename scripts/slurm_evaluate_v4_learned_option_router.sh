@@ -33,6 +33,20 @@ TERMINAL_SCORING_ARGS=()
 if [[ "${ATR_TERMINATE_SCORE_ON_FIRST_RESOLUTION:-0}" == "1" ]]; then
   TERMINAL_SCORING_ARGS+=(--terminate-score-on-first-resolution)
 fi
+ROUTER_QUERY_ARGS=()
+if [[ "${ATR_ROUTER_QUERY_EVERY_STEP:-0}" == "1" ]]; then
+  ROUTER_QUERY_ARGS+=(
+    --router-query-every-step
+    --router-query-every-step-after "${ATR_ROUTER_QUERY_EVERY_STEP_AFTER:-1}"
+  )
+fi
+FACTORIZED_DISPATCH_ARGS=()
+if [[ "${ATR_FACTORIZED_SWEEP_DISPATCH:-0}" == "1" ]]; then
+  FACTORIZED_DISPATCH_ARGS+=(
+    --factorized-sweep-dispatch
+    --factorized-sweep-dispatch-min-step "${ATR_FACTORIZED_SWEEP_DISPATCH_MIN_STEP:-1}"
+  )
+fi
 REVERSE_CHECKPOINT_ARGS=()
 if [[ -n "${ATR_REVERSE_CHECKPOINTS:-}" ]]; then
   IFS=':' read -r -a REVERSE_CHECKPOINTS <<< "${ATR_REVERSE_CHECKPOINTS}"
@@ -66,9 +80,13 @@ fi
   --return-delay "${ATR_ROUTER_RETURN_DELAY:-30}" \
   --control-delay "${ATR_ROUTER_CONTROL_DELAY:-0}" \
   --safe-hold-until-step "${ATR_ROUTER_SAFE_HOLD_UNTIL_STEP:-0}" \
+  --safe-hold-start-step "${ATR_ROUTER_SAFE_HOLD_START_STEP:-1}" \
+  --defer-action-mode "${ATR_DEFER_ACTION_MODE:-retreat_to_reset}" \
   "${NOMINAL_STATE_ARGS[@]}" \
   "${RELEASE_HOLD_ARGS[@]}" \
   "${TERMINAL_SCORING_ARGS[@]}" \
+  "${ROUTER_QUERY_ARGS[@]}" \
+  "${FACTORIZED_DISPATCH_ARGS[@]}" \
   "${FIXED_OPTION_ARGS[@]}" \
   "${ENSEMBLE_ARGS[@]}" \
   "${POLICY_MEMBER_ARGS[@]}"

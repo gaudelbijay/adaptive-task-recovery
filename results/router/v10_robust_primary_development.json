@@ -1,0 +1,188 @@
+{
+  "checks": {
+    "closed_loop_success": true,
+    "gain_newcombe_lower": true,
+    "gain_over_strongest_non_oracle": true,
+    "heldout_reverse_safe_success": true,
+    "training_seed_count": false,
+    "violation_rate": true,
+    "worst_condition": true
+  },
+  "comparison": {
+    "gain": 0.11354166666666665,
+    "newcombe_95": [
+      0.07278145422353877,
+      0.15339682230207696
+    ],
+    "strongest_non_oracle": "unstructured"
+  },
+  "methods": {
+    "causal": {
+      "conditions": {
+        "ejection": {
+          "episodes": 192,
+          "raw_success_rate": 0.9427083333333334,
+          "safe_success_rate": 0.9427083333333334,
+          "safe_success_wilson_95": [
+            0.9003376167838831,
+            0.9677114726361785
+          ],
+          "safe_successes": 181,
+          "successes": 181,
+          "violation_rate": 0.0,
+          "violations": 0
+        },
+        "nominal": {
+          "episodes": 192,
+          "raw_success_rate": 0.84375,
+          "safe_success_rate": 0.84375,
+          "safe_success_wilson_95": [
+            0.7857096789622484,
+            0.8883049081168581
+          ],
+          "safe_successes": 162,
+          "successes": 162,
+          "violation_rate": 0.026041666666666668,
+          "violations": 5
+        },
+        "permanent_block": {
+          "episodes": 192,
+          "raw_success_rate": 0.9739583333333334,
+          "safe_success_rate": 0.9739583333333334,
+          "safe_success_wilson_95": [
+            0.9404967518070468,
+            0.9888263909838426
+          ],
+          "safe_successes": 187,
+          "successes": 187,
+          "violation_rate": 0.0,
+          "violations": 0
+        },
+        "reverse_ejection": {
+          "episodes": 192,
+          "raw_success_rate": 0.9895833333333334,
+          "safe_success_rate": 0.9895833333333334,
+          "safe_success_wilson_95": [
+            0.9628214588546004,
+            0.997138710621703
+          ],
+          "safe_successes": 190,
+          "successes": 190,
+          "violation_rate": 0.0,
+          "violations": 0
+        },
+        "temporary_block": {
+          "episodes": 192,
+          "raw_success_rate": 0.9114583333333334,
+          "safe_success_rate": 0.9114583333333334,
+          "safe_success_wilson_95": [
+            0.8627904693526963,
+            0.9439845666965373
+          ],
+          "safe_successes": 175,
+          "successes": 175,
+          "violation_rate": 0.010416666666666666,
+          "violations": 2
+        }
+      },
+      "overall": {
+        "episodes": 960,
+        "raw_success_rate": 0.9322916666666666,
+        "safe_success_rate": 0.9322916666666666,
+        "safe_success_wilson_95": [
+          0.9146140093911869,
+          0.9465234654540479
+        ],
+        "safe_successes": 895,
+        "successes": 895,
+        "violation_rate": 0.007291666666666667,
+        "violations": 7
+      }
+    },
+    "unstructured": {
+      "conditions": {
+        "ejection": {
+          "episodes": 192,
+          "raw_success_rate": 0.9791666666666666,
+          "safe_success_rate": 0.9791666666666666,
+          "safe_success_wilson_95": [
+            0.947666268951536,
+            0.9918692160678246
+          ],
+          "safe_successes": 188,
+          "successes": 188,
+          "violation_rate": 0.0,
+          "violations": 0
+        },
+        "nominal": {
+          "episodes": 192,
+          "raw_success_rate": 0.765625,
+          "safe_success_rate": 0.765625,
+          "safe_success_wilson_95": [
+            0.7008584118678447,
+            0.8199710417841921
+          ],
+          "safe_successes": 147,
+          "successes": 147,
+          "violation_rate": 0.15625,
+          "violations": 30
+        },
+        "permanent_block": {
+          "episodes": 192,
+          "raw_success_rate": 0.9791666666666666,
+          "safe_success_rate": 0.9791666666666666,
+          "safe_success_wilson_95": [
+            0.947666268951536,
+            0.9918692160678246
+          ],
+          "safe_successes": 188,
+          "successes": 188,
+          "violation_rate": 0.0,
+          "violations": 0
+        },
+        "reverse_ejection": {
+          "episodes": 192,
+          "raw_success_rate": 0.4583333333333333,
+          "safe_success_rate": 0.4583333333333333,
+          "safe_success_wilson_95": [
+            0.38936237692201736,
+            0.5289388852502123
+          ],
+          "safe_successes": 88,
+          "successes": 88,
+          "violation_rate": 0.08854166666666667,
+          "violations": 17
+        },
+        "temporary_block": {
+          "episodes": 192,
+          "raw_success_rate": 0.9114583333333334,
+          "safe_success_rate": 0.9114583333333334,
+          "safe_success_wilson_95": [
+            0.8627904693526963,
+            0.9439845666965373
+          ],
+          "safe_successes": 175,
+          "successes": 175,
+          "violation_rate": 0.010416666666666666,
+          "violations": 2
+        }
+      },
+      "overall": {
+        "episodes": 960,
+        "raw_success_rate": 0.81875,
+        "safe_success_rate": 0.81875,
+        "safe_success_wilson_95": [
+          0.7931266431519709,
+          0.8418325551676481
+        ],
+        "safe_successes": 786,
+        "successes": 786,
+        "violation_rate": 0.051041666666666666,
+        "violations": 49
+      }
+    }
+  },
+  "primary_endpoint": "first_resolution_success_without_prior_or_simultaneous_constraint_violation",
+  "primary_gate_pass": false,
+  "schema_version": 1
+}

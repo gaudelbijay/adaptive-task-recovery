@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v10_selection_or_evaluation",
+  "supersedes": "configs/a_plus_recovery_gate_v9_reverse_handoff.json",
+  "supersession_reason": "V9 passed its fresh primary selection but failed the unchanged pooled OOD gate at 5348/7680 (69.64%), driven by causally delayed hazards and control delay; confirmation 342000000 remains untouched. Oracle audits on the opened 338000000 family established causal recoverability. V10 freezes a group-disjoint 99%-precision factorized sweep dispatch, a shared robust seed-84293 forward specialist, dense causal queries, and a label-free reset-state guard through step 40. On opened development data it reached 895/960 (93.23%) safe success versus 786/960 (81.88%) for unstructured, a gain of 11.35 points with Newcombe 95% [7.28, 15.34].",
+  "research_question": "Can a calibrated factorized causal belief dispatch held-out physical directions early enough for safe recovery under delayed hazards?",
+  "primary_endpoint": "first_resolution_success_without_prior_or_simultaneous_constraint_violation",
+  "representation": {
+    "name": "complete_current_centered_causal_motion",
+    "geometry_dimensions": 57,
+    "centered_feature_groups": ["actor_goal_relative", "mechanism_cube_relative", "tcp_task_relative"],
+    "definition": "At each decision, subtract the current 57-D task geometry from every geometry frame in the causal prefix; the final geometry is identically zero for every method.",
+    "runtime_causality": "Uses only stored observations at or before the current decision.",
+    "heldout_option_label": "reverse",
+    "heldout_option_index": 2,
+    "forbidden_training_signal": "reverse option cross-entropy",
+    "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"]
+  },
+  "episode_resolution": {
+    "rule": "Score and mask an environment at its first native success or constraint violation; a simultaneous success and violation is unsafe.",
+    "post_resolution_actions_scored": false,
+    "same_rule_for_all_methods": true,
+    "maximum_steps": 240
+  },
+  "guard_and_dispatch": {
+    "guard_start_step": 1,
+    "guard_end_step": 40,
+    "guard_action": "retreat_to_reset",
+    "nominal_release_before_guard_end": false,
+    "query_schedule": "every pre-action prefix through step 96",
+    "causal_factorized_sweep_dispatch": true,
+    "calibration": "joint event-sweep and physical-direction posterior thresholds selected for at most 1% error on group-disjoint validation; no closed-loop outcomes enter calibration",
+    "event_threshold_by_seed": {"0": 0.5, "1": 0.5, "2": 0.5},
+    "direction_threshold_by_seed": {"0": 0.5, "1": 0.5, "2": 0.5},
+    "validation_error_by_seed": {"0": 0.001076194574125111, "1": 0.001710132579319179, "2": 0.0},
+    "baseline_rule": "Every method receives the same query schedule, guard, and shared controllers. Unstructured has no factorized heads; static receives no dispatch because no group-disjoint threshold pair met the 1% error requirement."
+  },
+  "router_checkpoint_sha256": {
+    "causal_seed0": "532b763e8d7df5627df445f6a4bb0fc5394c2951c581d178993a498a26dcf883",
+    "causal_seed1": "e4c87b036591df70ecee878f1c23ecff03e77813093d4e082bf885115c2ec701",
+    "causal_seed2": "88691dd12c16b61709b59ba858cbc63a5a970fe4f40ac7acbfc962cce1a2e2cb",
+    "unstructured_seed0": "6e66ed897b4c17d8922ffe19e2619fb4d4505a5583af03abe100408ae0496a54",
+    "unstructured_seed1": "8c471eae1d1bdcb34638b40789796715bce3ed8fb27786174144480fa6e8a51d",
+    "unstructured_seed2": "29056288b41041bc1fd1cc2861ab56fe2c42335760e986f2b195779f2e0f8abc",
+    "static_seed0": "e8d3d83b22a35aa330efab1007fe760173821ccea47a9f27b9ce82404db3cbf9",
+    "static_seed1": "9b50ccff0e6a3a63b10563241b8535d854f35d91e9aadd5f9e13568a1d77cb5b",
+    "static_seed2": "5140db153ee35af7ed680bd2affedc35af1364a45ff134dd23eed9fc2fb058c2"
+  },
+  "shared_option_controllers": {
+    "nominal_ensemble_reduction": "mean",
+    "nominal_policy_indices": [0, 1, 2],
+    "nominal_checkpoint_sha256_by_seed": {
+      "9351": "b03dea7b9dc958347c09301199308e1e566e3f185b0de56017a48ed3383c1ac3",
+      "4796": "61f72c411dfb5880748a005c3a8987c92c6c18b45402e4b0e805171b9c5691d4",
+      "1788": "7d9c039f43180923843c7061e8aa1f4890ac939f6f0575605fb985b2e7d5e7ec"
+    },
+    "temporary_policy_index": 2,
+    "forward_checkpoint": "results/learned_recovery/learned_recovery_ppo_v11_strict_removal/event_reward_strict_removal_state_ppo/seed_84293/best.pt",
+    "forward_checkpoint_sha256": "2ebdeef71af33132fa1146af22f2d0e5676778f74d2a6ca234fed5dd6701c527",
+    "reverse_checkpoint": "results/manipulation_ppo/learned_recovery_v4_reverse_handoff_continuation_v2/reverse_ejection_state_handoff_continuation_v2/seed_4796/best.pt",
+    "reverse_checkpoint_sha256": "bb98fdebefa30bb9a855557e16fd01f05af2fa4196e4e91ecde455683033606c",
+    "matching_rule": "The exact nominal, forward, reverse, permanent, and temporary controllers are shared by causal, static, unstructured, heuristic, and oracle routers."
+  },
+  "methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_v28_router", "oracle_mechanism_router_upper_bound"],
+  "selection_seed_base": 343000000,
+  "confirmation_seed_base": 347000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": ["nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection"],
+  "ood_axes": {"force": [0.65, 1.35], "onset_steps": [12, 36], "temporary_return_delay_steps": [18, 48], "control_delay_steps": [4, 12]},
+  "pass_criteria": {
+    "closed_loop_safe_success_min": 0.9,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "worst_condition_safe_success_min": 0.82,
+    "heldout_reverse_safe_success_min": 0.85,
+    "static_heldout_reverse_offline_accuracy_max": 0.4,
+    "causal_heldout_reverse_offline_accuracy_min": 0.9,
+    "ood_safe_success_min": 0.75,
+    "external_reboot_macro_auroc_min": 0.82,
+    "external_gain_over_static_min": 0.2,
+    "external_gain_over_moment_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "anti_shortcut_audits": ["all_57_final_geometry_values_are_exactly_zero", "heldout_option_absent_from_option_loss", "group_disjoint_train_validation_test", "pre_action_prefix_alignment", "time_only_probe", "current_frame_probe", "shuffled_history_ablation", "matched_feature_tensor_hash"],
+  "readme_release_rule": "Promote V10 only if every primary, OOD, external, seed-count, calibration, and anti-shortcut criterion passes on untouched 347000000. An A/A+ general-method claim additionally requires the external PegInsertion closed-loop gate."
+}

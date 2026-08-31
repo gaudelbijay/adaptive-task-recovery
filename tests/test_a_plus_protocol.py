@@ -161,6 +161,20 @@ def test_v9_changes_only_shared_reverse_specialist_and_uses_fresh_seeds():
     }
 
 
+def test_v10_freezes_validated_factor_dispatch_and_fresh_seeds():
+    v9 = json.loads((ROOT / "configs/a_plus_recovery_gate_v9_reverse_handoff.json").read_text())
+    v10 = json.loads((ROOT / "configs/a_plus_recovery_gate_v10_guarded_factorized_dispatch.json").read_text())
+    assert v10["status"] == "preregistered_before_v10_selection_or_evaluation"
+    assert v10["representation"] == v9["representation"]
+    assert v10["pass_criteria"] == v9["pass_criteria"]
+    assert v10["ood_axes"] == v9["ood_axes"]
+    assert max(v10["guard_and_dispatch"]["validation_error_by_seed"].values()) <= 0.01
+    assert v10["guard_and_dispatch"]["guard_end_step"] == 40
+    assert len(v10["shared_option_controllers"]["forward_checkpoint_sha256"]) == 64
+    assert v10["selection_seed_base"] == 343_000_000
+    assert v10["confirmation_seed_base"] == 347_000_000
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
@@ -229,6 +243,17 @@ def test_evidence_conditioned_hold_release_uses_only_router_acceptance():
     assert "ATR_RELEASE_SAFE_HOLD_ON_CONFIRMED_NOMINAL" in wrapper
 
 
+def test_guard_window_has_explicit_label_free_start_and_end():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert '"--safe-hold-start-step"' in source
+    assert "step >= args.safe_hold_start_step" in source
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_ROUTER_SAFE_HOLD_START_STEP" in wrapper
+    assert '"--defer-action-mode"' in source
+    assert 'args.defer_action_mode == "hold_current"' in source
+    assert "defer_action[:, -1] = last_action[:, -1]" in source
+
+
 def test_optional_terminal_scoring_masks_post_resolution_actions():
     source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
     assert '"--terminate-score-on-first-resolution"' in source
@@ -250,6 +275,34 @@ def test_reverse_specialist_ensemble_is_matched_and_hashed():
     assert "ATR_REVERSE_ENSEMBLE_REDUCTION" in wrapper
 
 
+def test_dense_router_query_uses_only_accumulated_pre_action_prefix():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert '"--router-query-every-step"' in source
+    assert "step in SNAPSHOTS" in source
+    assert "step >= args.router_query_every_step_after" in source
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_ROUTER_QUERY_EVERY_STEP" in wrapper
+
+
+def test_factorized_sweep_dispatch_is_validation_calibrated():
+    evaluator = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert '"--factorized-sweep-dispatch"' in evaluator
+    assert 'output.event_logits.softmax(-1)[:, 1]' in evaluator
+    assert "output.direction_logits.softmax(-1).max(1)" in evaluator
+    assert '"--factorized-sweep-dispatch-min-step"' in evaluator
+    assert "step >= args.factorized_sweep_dispatch_min_step" in evaluator
+    calibrator = (ROOT / "scripts/calibrate_factorized_sweep_dispatch.py").read_text()
+    assert '_, validation, _ = group_split(raw["group_id"])' in calibrator
+    assert '"maximum_error": args.maximum_error' in calibrator
+
+
 def test_primary_summarizer_uses_gate_endpoint_label():
     source = (ROOT / "scripts/summarize_a_plus_recovery_gate.py").read_text()
     assert 'gate.get(\n            "primary_endpoint"' in source
+
+
+def test_ood_summarizer_retains_each_axis_and_checks_manifest_count():
+    source = (ROOT / "scripts/summarize_a_plus_ood_gate.py").read_text()
+    assert '"axes": axes' in source
+    assert "expected {expected_manifests} manifests" in source
+    assert 'gate["pass_criteria"]["ood_safe_success_min"]' in source

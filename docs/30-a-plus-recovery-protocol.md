@@ -197,3 +197,24 @@ handoff checkpoint (188/192 safe, zero violations). V9 changes only this exact
 option-2 checkpoint, shared by every router, and freezes its SHA-256 in
 `configs/a_plus_recovery_gate_v9_reverse_handoff.json`. Fresh selection is
 `338000000`; `342000000` is reserved for once-only confirmation.
+
+### V9 OOD rejection and V10 guarded factorized dispatch
+
+V9 passed every primary selection check at 2647/2880 (91.91%) safe success,
+31/2880 (1.08%) violations, and a +5.49-point gain over unstructured with a
+95% Newcombe interval of [3.23, 7.73] points. It is nevertheless rejected
+before confirmation because pooled OOD safe success was 5348/7680 (69.64%),
+below 75%. Delayed onset produced only 330/960 and 383/960 safe successes and
+roughly 48% violations. The reserved `342000000` family remains untouched.
+
+On the opened OOD family, a privileged-timing oracle that waited until the
+first causally observable post-event prefix established that the delayed tasks
+were recoverable. The failure decomposed into conservative joint dispatch and
+a forward specialist tied to one handoff distribution. V10 therefore freezes
+three changes: group-disjoint 99%-precision calibration of the existing causal
+event/direction heads, dense pre-action queries under a label-free guard through
+step 40, and an existing seed-84293 forward specialist that achieved 181/192,
+181/192, and 180/192 safe ejection recoveries at onset 0/12/36 with zero
+violations. Every router shares the guard and controllers; only models with a
+validated factorized dispatch may use it. Fresh selection is `343000000`, and
+`347000000` is reserved for untouched confirmation.
