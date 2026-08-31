@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 
 import gymnasium as gym
@@ -28,6 +29,7 @@ def main() -> None:
     parser.add_argument("--minimum-success-rate", type=float, default=0.75)
     args = parser.parse_args()
 
+    print("constructing PegInsertionRecovery-v1", file=sys.stderr, flush=True)
     env = gym.make(
         "PegInsertionRecovery-v1",
         obs_mode="none",
@@ -42,6 +44,7 @@ def main() -> None:
     try:
         for offset in range(args.seed_offset, args.seed_offset + args.episodes):
             seed = args.seed_base + offset
+            print(f"solving seed {seed}", file=sys.stderr, flush=True)
             try:
                 transition = solve(env, seed=seed, debug=False, vis=False)
                 planning_failed = transition == -1

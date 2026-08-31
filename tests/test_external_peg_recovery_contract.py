@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -52,3 +53,14 @@ def test_nominal_competence_uses_official_solver_without_intervention():
     wrapper = (ROOT / "scripts/slurm_audit_external_peg_nominal_controller.sh").read_text()
     assert "#SBATCH --array=0-31" in wrapper
     assert '"${SLURM_ARRAY_TASK_ID}"' in wrapper
+
+
+def test_official_ppo_nominal_config_is_pinned_and_three_seed():
+    config = json.loads((ROOT / "configs/external_peg_nominal_ppo_v1.json").read_text())
+    assert len(config["source_baseline"]["commit"]) == 40
+    assert config["seeds"] == [9351, 4796, 1788]
+    task = config["experiments"][0]
+    assert task["env_id"] == "PegInsertionRecovery-v1"
+    assert task["total_timesteps"] == 250_000_000
+    assert task["num_envs"] == 1024
+    assert task["env_kwargs"]["intervention_probability"] == 0.0

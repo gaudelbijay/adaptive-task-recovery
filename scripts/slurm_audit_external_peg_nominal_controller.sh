@@ -12,7 +12,7 @@
 set -euo pipefail
 mkdir -p results/slurm results/a_plus_audit
 export PYTHONUNBUFFERED=1
-.venv/bin/python scripts/audit_external_peg_nominal_controller.py \
+.venv/bin/python -X faulthandler scripts/audit_external_peg_nominal_controller.py \
   --episodes 1 \
   --seed-base "${ATR_PEG_NOMINAL_SEED_BASE:-421000100}" \
   --seed-offset "${SLURM_ARRAY_TASK_ID}" \

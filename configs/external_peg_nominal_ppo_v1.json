@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_nominal_ppo_training",
+  "name": "external_peg_nominal_ppo_v1",
+  "source_baseline": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "implementation": "examples/baselines/ppo/ppo.py",
+    "official_peg_command": "1024 environments, 8 update epochs, 32 minibatches, 250M transitions, 100 rollout/evaluation steps"
+  },
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "method": "official_state_ppo_nominal",
+      "env_id": "PegInsertionRecovery-v1",
+      "registration_module": "atr.envs.peg_insertion_recovery",
+      "total_timesteps": 250000000,
+      "num_envs": 1024,
+      "num_steps": 100,
+      "num_eval_steps": 160,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"]
+      },
+      "eval_env_kwargs": {
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"]
+      }
+    }
+  ],
+  "num_eval_envs": 64,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 10,
+  "checkpoint_freq": 10,
+  "learning_rate": 0.0003,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "claim_boundary": "This trains only the shared low-level nominal controller with the official PPO recipe. It cannot satisfy the external causal-routing gate by itself."
+}
