@@ -1,0 +1,18 @@
+{
+  "schema_version":1,"name":"v53_confirmatory_unseen_visual_ood_v1","conditions":["nominal","intervention"],"episodes":256,"num_envs":32,"seed_base":133000000,
+  "hypothesis_thresholds":{"primary_causal_variant":"progress_cyclic_shift","primary_causal_condition":"intervention","minimum_causal_safe_success_drop":0.03,"minimum_ood_safe_success":0.70,"maximum_ood_safe_success_drop":0.20,"bootstrap_repetitions":20000,"bootstrap_seed":25153},
+  "variants":[
+    {"name":"baseline","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"progress_cyclic_shift","progress_head_mode":"cyclic_shift","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"subpixel_shift_up_2_75","progress_head_mode":"normal","visual_perturbation":"subpixel_shift_up_2_75","environment_profile":"nominal"},
+    {"name":"rotation_counterclockwise_8deg","progress_head_mode":"normal","visual_perturbation":"rotation_counterclockwise_8deg","environment_profile":"nominal"},
+    {"name":"scale_115","progress_head_mode":"normal","visual_perturbation":"scale_115","environment_profile":"nominal"},
+    {"name":"combined_similarity_v3","progress_head_mode":"normal","visual_perturbation":"combined_similarity_v3","environment_profile":"nominal"},
+    {"name":"camera_right_front_6cm","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_right_front_6cm"},
+    {"name":"camera_pitch_down_4deg","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_pitch_down_4deg"},
+    {"name":"lighting_cyan_ambient","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_cyan_ambient"},
+    {"name":"lighting_rim_low","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_rim_low"}
+  ],
+  "confirmation_rule":"Do not implement, render, train on, calibrate on, or evaluate these seed-133M variants until a successor passes its frozen development and multi-seed gates. Require every unseen cell >=70%, every paired drop <=20 points, and positive causal utility.",
+  "claim_boundary":"Reserved simulation-only untouched suite for a successor after V52; no current result may claim evidence from it."
+}

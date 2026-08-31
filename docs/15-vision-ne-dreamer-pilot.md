@@ -18,7 +18,7 @@ pipeline. It does **not** establish competitive manipulation performance.
 There is no published **DreamerV5** method to use as a truthful algorithm name.
 [Dreamer 4](https://arxiv.org/abs/2509.24527) is the newest numbered Dreamer
 generation located in the primary literature. Its reported agent is trained
-inside a scalable video world model for offline Minecraft control; the paper
+inside a scalable video world model for offline Minecraft control; that work
 does not provide an author-maintained drop-in continuous-manipulation training
 pipeline for this benchmark. [DreamerV3](https://arxiv.org/abs/2301.04104)
 remains the broadly validated general online world-model baseline, while
@@ -105,7 +105,7 @@ mismatch, or small-evaluation ambiguity. The likely limiting factors are:
    ordered suffix recovery, and safety simultaneously. The observed shaped
    return fluctuations without sustained success match this failure mode.
 
-The next paper-quality experiment should retain the same non-teleport
+The next high-confidence experiment should retain the same non-teleport
 environment and blinded observation contract, but use a within-environment
 curriculum (single-object grasp/place, ordered two-object placement, then
 physical intervention), a substantially higher train ratio, and DreamerV3 as

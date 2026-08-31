@@ -1,0 +1,23 @@
+{
+  "schema_version":1,
+  "name":"v39_smoke_development_ood_v1",
+  "selection":"configs/v39_smoke_routing_selection_v1.json",
+  "policy_configs":{"backkey_magnitude_smoke":"configs/visual_recovery_v19_backkey_v39_smoke.json"},
+  "conditions":["nominal","intervention"],
+  "episodes":256,
+  "num_envs":32,
+  "seed_base":109000000,
+  "hypothesis_thresholds":{"primary_causal_variant":"progress_cyclic_shift","primary_causal_condition":"intervention","minimum_causal_safe_success_drop":0.03,"minimum_ood_safe_success":0.50,"maximum_ood_safe_success_drop":0.35,"bootstrap_repetitions":20000,"bootstrap_seed":19411},
+  "variants":[
+    {"name":"baseline","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"progress_cyclic_shift","progress_head_mode":"cyclic_shift","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"subpixel_shift_left_1_5","progress_head_mode":"normal","visual_perturbation":"subpixel_shift_left_1_5","environment_profile":"nominal"},
+    {"name":"rotation_clockwise_2deg","progress_head_mode":"normal","visual_perturbation":"rotation_clockwise_2deg","environment_profile":"nominal"},
+    {"name":"scale_95","progress_head_mode":"normal","visual_perturbation":"scale_95","environment_profile":"nominal"},
+    {"name":"camera_back_3cm","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_back_3cm"},
+    {"name":"camera_roll_right_2deg","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_roll_right_2deg"},
+    {"name":"lighting_cool","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_cool"},
+    {"name":"lighting_back_key","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_back_key"}
+  ],
+  "claim_boundary":"V39 development suite includes the targeted back-key training domain and cannot establish unseen robustness."
+}

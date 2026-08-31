@@ -150,7 +150,7 @@ abstention wins. Execution is pending the full-suite CI's lavapipe runtime.
 
 Predeclare primary metrics and splits. Use paired episode seeds across methods,
 bootstrap confidence intervals, and effect sizes. Correct or clearly label
-multiple exploratory comparisons. Publish per-seed results and failure cases.
+multiple exploratory comparisons. Report per-seed results and failure cases.
 
 ### Integrated learned-recovery protocol
 

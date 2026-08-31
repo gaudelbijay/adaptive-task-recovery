@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "name": "v41_final_evidence_gate_v1",
+  "standard_aggregate": "results/visual_recovery_ppo/visual_recovery_v19_backkey_v40_smoke/aggregate_v41_standard.json",
+  "strict_aggregate": "results/strict_removal_comparison/strict_removal_v41_visual_v19/aggregate.json",
+  "unseen_aggregate": "results/evidence/v41_confirmatory_unseen_visual_ood_v1/aggregate.json",
+  "candidate_method": "v19_backkey_extended_smoke",
+  "candidate_strict_label": "v41_visual",
+  "incumbent_strict_label": "v19_visual_incumbent",
+  "thresholds": {
+    "minimum_standard_nominal_safe_success": 0.90,
+    "minimum_standard_intervention_safe_success": 0.90,
+    "minimum_standard_per_seed_safe_success": 0.80,
+    "minimum_strict_safe_success": 0.90,
+    "minimum_strict_per_seed_safe_success": 0.80,
+    "maximum_strict_safe_success_drop_from_incumbent": 0.05,
+    "minimum_mean_unseen_ood_safe_success": 0.80,
+    "minimum_unseen_ood_per_seed_safe_success": 0.60,
+    "require_all_frozen_unseen_ood_hypotheses": true,
+    "require_causal_progress_utility": true
+  },
+  "claim_boundary": "Frozen before V41 standard, strict-removal, or untouched outcomes. Passing supports simulation-only three-seed retention, strict-removal control, causal progress utility, and robustness on the frozen visual suite; it does not establish real-robot or general visual robustness."
+}

@@ -1,12 +1,12 @@
 ---
-title: Paper Blueprint and Evidence Contract
+title: Evidence Blueprint and Validation Contract
 status: active-experiment
 last_updated: 2026-08-28
 ---
 
 # Recover What Remains: Visual Manipulation after Irreversible Goal Loss
 
-This document is the paper-writing contract for the non-teleport V3 track. It
+This document is the evidence and reporting contract for the non-teleport V3 track. It
 is deliberately incomplete while the preregistered adaptive and confirmation
 cohorts run. A number enters the abstract, contribution list, or conclusion
 only if its named aggregate below exists and passes its fail-closed verifier.
@@ -52,7 +52,7 @@ on Jarvis after the final V3 runtime-test, checkpoint gate, V14 allocation gate,
 integrated-policy selection, dual-regime comparison, and strict five-seed
 allocation changes.
 
-## Paper structure
+## Report structure
 
 1. **Introduction:** persistent changes can invalidate intent rather than merely
    perturb a trajectory; recovery may require abandoning an impossible stage.
@@ -85,10 +85,10 @@ allocation changes.
 | Strict state-training effect | `results/strict_removal_comparison/strict_removal_state_training_comparison_v1/aggregate.json` | Complete |
 | Preregistered V1–V5 | `results/final_visual_comparison/hypotheses.json` | Complete: V1–V4 rejected; V5 confirmed only against the frozen historical state reference and explicitly not competitive with the post-audit 98.44%-safe strict state baseline |
 | Full strict comparison | `results/strict_removal_comparison/strict_removal_extension_comparison_v1/aggregate.json` | Dependency-scheduled |
-| Strict paper table/figure | `results/paper/strict_removal_extension.{md,csv,png,pdf,metadata.json}` | Dependency-scheduled |
-| Matched strict/nominal paper comparison | `results/paper/integrated_regime_comparison_v2.{json,md,csv,png,pdf}` | Complete as `1140913`/`1140914`; seven methods, identical three-seed/768-episode protocols, exact source hashes; V19 only >90% worst endpoint |
-| Matched interaction accounting | `results/paper/integrated_sample_efficiency_v1.{json,csv,md}` | Complete as corrected job `1140927`; PPO/DAgger/new-stage costs per seed, upstream lineage disclosed, no invented normalized score |
-| Five-seed integrated confirmation | `results/paper/integrated_regime_five_seed_comparison_v2.{json,md,csv,png,pdf}` | Strict/nominal V13-gated as chain `1139772`--`1139786` |
+| Strict benchmark table/figure | strict-removal extension artifacts | Dependency-scheduled |
+| Matched strict/nominal benchmark comparison | integrated regime comparison v2 | Complete as `1140913`/`1140914`; seven methods, identical three-seed/768-episode protocols, exact source hashes; V19 only >90% worst endpoint |
+| Matched interaction accounting | integrated sample-efficiency artifacts | Complete as corrected job `1140927`; PPO/DAgger/new-stage costs per seed, upstream lineage disclosed, no invented normalized score |
+| Five-seed integrated confirmation | integrated five-seed comparison v2 | Strict/nominal V13-gated as chain `1139772`--`1139786` |
 | Integrated-teacher RGB extension | state-only gate aggregate `results/strict_removal_comparison/strict_removal_integrated_state_teacher_gate_v1/aggregate.json`; `results/strict_removal_comparison/strict_removal_integrated_teacher_extension_v5/aggregate.json`; `results/gates/integrated_visual_selection_v3.json` | State-only aggregate `1139845`, teacher gate `1139804`, extension `1139805`--`1139815`; privileged training must be disclosed |
 | Failure-only state continuation | `results/gates/state_fallback_release_v1.json`; `results/gates/integrated_from_strict_state_teacher_v2.json` plus its strict/nominal source aggregates | Router `1139959` requires an actual failed artifact from scratch integrated teacher gate `1139804` before `1139850`--`1139857` can allocate; strict-initialized 20% strict / 80% nominal reverse curriculum, post-registration fallback, never mixed with a passing or operationally missing scratch result |
 | Failure-only reverse-teacher RGB pair | `results/strict_removal_comparison/strict_removal_reverse_teacher_extension_v7/aggregate.json`; `results/gates/integrated_visual_selection_v5.json`; matched pose/task-semantic representation reports | `1139860`--`1139883` run only after fallback teacher gate `1139857` passes; V17/V18 privileged-training extension, zero allocation on the primary passing path |
@@ -96,13 +96,13 @@ allocation changes.
 | Failure-only dual-specialist VICReg ablation | `results/gates/dual_specialist_release_v1.json`; `results/strict_removal_comparison/strict_removal_dual_specialist_vicreg_extension_v9/aggregate.json`; `results/gates/integrated_visual_selection_v7.json`; matched V20–V19 pose/task-semantic reports | `1139931`--`1139945` share V19's completed teacher gate and fail-closed router. V20 is an exact V19 ablation except variance/covariance penalties; after both state/RGB fallback edges were made artifact-driven, the 24-hour signal target was corrected, and the strict-eval alias was regression-tested, the expanded 100-test suite passed as `1140069` |
 | Low-variance VICReg stabilization | `results/gates/vicreg_low_variance_smoke_gate_v1.json`; `results/strict_removal_comparison/strict_removal_dual_specialist_low_variance_extension_v10/aggregate.json`; `results/gates/integrated_visual_selection_v8.json` | The one-seed, matched-budget allocation gate passed all three frozen checks at 19,996,672 scheduled steps; this is training-stream allocation evidence only. The independently frozen three-seed 100M V21 array and held-out chain are `1140381`--`1140395` and remain incomplete |
 | Continuation-stage temporal SSL control | V26 config; strict comparison V15; `temporal_ssl_continuation_ablation_v1.json`; `integrated_regime_temporal_ablation_v3.json` | Frozen before V26 metrics. Jobs `1140929`--`1140947` cover exact training/audit, held-out regimes, matched report, and paired Boolean verdict. Both arms inherit upstream temporal/privileged training; only continuation-stage coefficient 0.01→0.0 is isolated |
-| Anti-collapse SSL ablation | `results/strict_removal_comparison/strict_removal_vicreg_extension_v6/aggregate.json`; `results/gates/integrated_visual_selection_v4.json`; `results/paper/visual_representation_vicreg_ablation_v5/representation_comparison.{json,md}` | Smoke- and teacher-gated V15/V16 matched ablation `1139819`--`1139830`; control and encoder claims remain separate |
-| Task-semantic representation ablation | `results/paper/visual_task_representation_vicreg_ablation_v1/task_representation_comparison.{json,md}` | V15/V16 byte-identical-pixel goal-resolution probe `1139833`--`1139837`; supervised progress labels and non-causal claim boundary must be explicit |
-| Method information and interaction accounting | `results/paper/method_information_contract_v1.{json,csv,md}` | Complete as V20-inclusive replacement job `1139946`; 20 methods, exact new-stage PPO/DAgger counts, training privilege, and initializer/teacher lineage; protocol artifact only, not performance evidence |
+| Anti-collapse SSL ablation | strict-removal aggregate, integrated selector, and representation comparison | Smoke- and teacher-gated V15/V16 matched ablation `1139819`--`1139830`; control and encoder claims remain separate |
+| Task-semantic representation ablation | task-representation comparison artifacts | V15/V16 byte-identical-pixel goal-resolution probe `1139833`--`1139837`; supervised progress labels and non-causal claim boundary must be explicit |
+| Method information and interaction accounting | method-information contract artifacts | Complete as V20-inclusive replacement job `1139946`; 20 methods, exact new-stage PPO/DAgger counts, training privilege, and initializer/teacher lineage; protocol artifact only, not performance evidence |
 | Selected V19 qualitative montage | `media/demos/learned-recovery-montage.gif`; candidate `learned-recovery-montage-v19.gif`; three capture JSON files in `results/visual_recovery_ppo/videos_v19/` | Selection-gated capture `1140898`, candidate `1140899`, promoted hero `1140903`; all branches safe, intervention branches verify actual removal, zero teleport calls, sampled frames inspected |
-| Representation diagnostic | `results/paper/visual_representation_strict_stability_matched_v3/representation_comparison.{json,md}` | Complete three-seed, byte-identical-pixel V13-versus-V6 comparison. V13 has +0.0330 mean R² relative to V6, paired seed-bootstrap interval [0.0141, 0.0619], but both learned encoders have negative mean R² and neither reliably beats its random control; relative decodability only |
-| Causal-head and visual-OOD suite | `configs/v19_incumbent_causal_ood_v1.json`; `configs/selected_visual_causal_ood_v1.json`; `results/gates/visual_ood_rendering_preflight_v1.json`; `results/paper/v19_incumbent_causal_ood_v1/aggregate.{json,md}` | V19 incumbent complete as `1140989`/`1140990`: cyclic progress shift causes a +14.32-point baseline-minus-variant intervention safe-success drop [0.65, 29.69], confirming causal utility. Frozen visual-OOD robustness is rejected; all seven pixel/camera/lighting variants fail the joint 75%-safe/15-point-drop rule. Corrected final-selector jobs `1140991`/`1140992` remain held on V21. Simulation-only and no real-robot claim |
-| Generic robust-distillation development | V27 smoke/full configs; `results/paper/v27_smoke_development_ood_v1/aggregate.{json,md}`; `results/gates/v27_robust_distill_smoke_gate_v1.json` | One-seed smoke retained 85.94%/87.89% nominal/intervention safe success but improved mean matched-seed OOD by only 4.69 points, left worst OOD at 0%, and regressed camera-left intervention by 20.70 points. Corrected matched-seed gate rejects it; three-seed allocation suppressed. Development-only negative result, not a paper robustness claim |
+| Representation diagnostic | matched visual-representation comparison artifacts | Complete three-seed, byte-identical-pixel V13-versus-V6 comparison. V13 has +0.0330 mean R² relative to V6, paired seed-bootstrap interval [0.0141, 0.0619], but both learned encoders have negative mean R² and neither reliably beats its random control; relative decodability only |
+| Causal-head and visual-OOD suite | incumbent/selected configs, rendering preflight, and aggregate | V19 incumbent complete as `1140989`/`1140990`: cyclic progress shift causes a +14.32-point baseline-minus-variant intervention safe-success drop [0.65, 29.69], confirming causal utility. Frozen visual-OOD robustness is rejected; all seven pixel/camera/lighting variants fail the joint 75%-safe/15-point-drop rule. Corrected final-selector jobs `1140991`/`1140992` remain held on V21. Simulation-only and no real-robot claim |
+| Generic robust-distillation development | V27 smoke/full configs, development aggregate, and allocation gate | One-seed smoke retained 85.94%/87.89% nominal/intervention safe success but improved mean matched-seed OOD by only 4.69 points, left worst OOD at 0%, and regressed camera-left intervention by 20.70 points. Corrected matched-seed gate rejects it; three-seed allocation suppressed. Development-only negative result, not a general robustness claim |
 | DrAC-style stability ablation | `configs/drac_stability_smoke_gate_v1.json`; frozen V22 source-hash manifest; preserved runtime/smoke logs | Separate policy-consistency implementation preserves PPO likelihood ratios on original observations and applies stopped-target Gaussian KL only to shifted images. Runtime `1140573` collapsed; full-DAgger smoke `1140574` reached KL 1.86e20 and two zero-success evaluations before being stopped at 1.64M. Router `1140598` marked it ineligible, so gate/full/held-out chain `1140575`--`1140582` remains unallocated. V22 is a disclosed negative result |
 
 ## Main quantitative tables
@@ -282,7 +282,7 @@ Its predeclared allocation gate (`1140357`) requires at least 85% success, at
 most 5% violations, and a safety-weighted score at least 0.15 above V20 seed
 9351 using only evaluation records at or below the same 20M-step budget. The
 gate rejects any unmatched configuration field or incomplete budget and passed
-five focused contract tests before submission. The exact three-seed, 100M-step
+five focused contract tests before release. The exact three-seed, 100M-step
 extension config was also frozen before the smoke result; it matches V20 in all
 algorithm and evaluation fields except the variance coefficient and cannot be
 allocated unless the gate passes.
@@ -305,7 +305,7 @@ eligible record, at step 18,014,208, reached 90.625% end success, 0.391%
 violations, and 0.8986 safety-weighted score, +0.2383 over V20 seed 9351 at the
 matched budget. It passed all three preregistered checks and released the
 independently frozen three-seed extension. This is a one-seed training-stream
-allocation decision, not held-out evidence and not a paper performance result;
+allocation decision, not held-out evidence and not a benchmark performance result;
 the full V21 learning-rate schedule also differs from the smoke schedule's
 20M-step annealing horizon.
 
@@ -354,7 +354,7 @@ the runtime passed at 87.50% end success, 4.69% violations, and maximum loss
 0.47865. Before the 20M result, a matched best/tail/safety gate (`1140623`) and
 three-seed 100M/held-out chain (`1140624`, `1140629`--`1140634`) were frozen.
 They allocate only on successive passes and do not convert runtime or smoke
-diagnostics into paper performance evidence.
+diagnostics into validated performance evidence.
 
 Final extension selection is also frozen before held-out evaluation. A policy
 is eligible only with at least 90% strict safe success, 90% nominal safe

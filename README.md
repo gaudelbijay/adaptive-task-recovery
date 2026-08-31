@@ -57,7 +57,7 @@ and constraints, and choose an acceptable partial or alternative completion.
 Five hypotheses, each with real evidence — paired seeds, bootstrap confidence
 intervals, and real ManiSkill3 simulator episodes, not toy numbers. Full
 detail and every underlying number is in
-[`ai-notes/decisions.md`](ai-notes/decisions.md); the paper-facing result index
+[`ai-notes/decisions.md`](ai-notes/decisions.md); the validated result index
 and claim boundaries are in
 [`docs/14-results-and-claim-boundaries.md`](docs/14-results-and-claim-boundaries.md).
 
@@ -78,6 +78,124 @@ checkpoint. Intervals below are pooled 95% Wilson intervals.
 | PickCube-v1 | **755/768 — 98.31%** [97.13%, 99.01%] |
 | PickSingleYCB-v1 | **530/768 — 69.01%** [65.65%, 72.18%] |
 | UnitreeG1PlaceAppleInBowl-v1 | **767/768 — 99.87%** [99.27%, 99.98%] |
+
+### Mechanism-diverse V4 recovery: frozen confirmatory result
+
+The new `LearnedRecovery-v4` benchmark prevents the earlier result from being
+explained by one familiar removal animation. At step 0, one of four
+force-driven mechanisms occurs: forward ejection, reverse ejection, permanent
+goal blockage, or visually identical temporary blockage. Nominal episodes are
+included in the same evaluation. A 1,024-episode physics audit observed the
+intended intervention in **1,024/1,024 episodes with zero collateral target
+loss**.
+
+The final hybrid controller detects motion from explicit object poses, waits
+for causal evidence before treating a blockage as permanent, and hands control
+to mechanism-specific continuous-control policies. The permanent specialist
+is adapted under the exact 36-step handoff it receives at deployment; the
+temporary branch resumes only after the blocker is physically clear. No hidden
+mechanism ID or intervention-target label is read by the controller.
+
+After all controller development was frozen, an untouched `280000000` seed
+family was run for both methods (3 paired seed lineages × 5 conditions × 64
+episodes = 960 episodes per method):
+
+| V4 condition | Frozen hybrid success | V19 baseline success | Hybrid violations | V19 violations |
+|---|---:|---:|---:|---:|
+| Nominal | 160/192 — 83.33% | **172/192 — 89.58%** | 6.77% | 6.77% |
+| Forward ejection | 167/192 — 86.98% | **186/192 — 96.88%** | **0%** | 2.60% |
+| Permanent blockage | **187/192 — 97.40%** | 161/192 — 83.85% | **0%** | 14.06% |
+| Temporary blockage | **168/192 — 87.50%** | 111/192 — 57.81% | **3.65%** | 11.46% |
+| Reverse ejection | **186/192 — 96.88%** | 154/192 — 80.21% | **3.13%** | 8.85% |
+| **Pooled** | **868/960 — 90.42%** [88.39%, 92.12%] | 784/960 — 81.67% [79.09%, 83.99%] | **26/960 — 2.71%** [1.85%, 3.94%] | 84/960 — 8.75% [7.12%, 10.71%] |
+
+The confirmatory success gain is **+8.75 points** (Newcombe 95% CI **+4.40
+to +13.03**), while violations fall by **6.04 points** (**3.18 to 8.85**).
+The tradeoff is visible rather than averaged away: the hybrid gives up 6.25
+nominal points and 9.90 forward-ejection points, but gains 13.54 on permanent
+blockage, 29.69 on the reversible hard negative, and 16.67 on reverse
+ejection. Independent permanent-specialist evaluation across three training
+seeds reaches **1,477/1,536 — 96.16%**, with 3/1,536 violations.
+Reverse-specialist training is less stable: after continuing each weak seed
+from its own selected checkpoint for 15M additional transitions, three-seed
+held-out performance is **1,321/1,536 — 86.00%**, with seed rates 94.34%,
+83.59%, and 80.08% and 16/1,536 violations. The integrated table therefore
+supports the frozen-controller result, not a claim that reverse-policy
+training is seed-insensitive.
+
+Renderer-only OOD evaluation was also frozen before execution (4 profiles ×
+the same 960 episodes per method):
+
+| Unseen renderer profile | Frozen hybrid success | V19 baseline success | Hybrid violations | V19 violations |
+|---|---:|---:|---:|---:|
+| Camera left 5 cm | **583/960 — 60.73%** | 202/960 — 21.04% | **10.21%** | 22.71% |
+| Camera high 5 cm | **542/960 — 56.46%** | 23/960 — 2.40% | **9.90%** | 23.54% |
+| Dim lighting | **622/960 — 64.79%** | 310/960 — 32.29% | **10.31%** | 21.25% |
+| Warm lighting | **680/960 — 70.83%** | 435/960 — 45.31% | **8.02%** | 20.73% |
+| **Pooled OOD** | **2,427/3,840 — 63.20%** [61.67%, 64.71%] | 970/3,840 — 25.26% [23.91%, 26.66%] | **9.61%** | 22.06% |
+
+The OOD success difference is **+37.94 points** [35.01, 40.80], but this is
+not a general visual-robustness claim: camera shifts still damage the nominal
+and post-clearance RGB branches. This controller is also **not restricted
+RGB**. Its router and specialists receive named object-state observations;
+RGB, proprioception, instruction, and learned progress are retained for the
+V19 branch. The reverse classifier was tested on a held-out mechanism, but the
+reverse control specialist was trained for reverse ejection.
+
+The machine-readable aggregation is produced by
+[`scripts/aggregate_v4_publishable_results.py`](scripts/aggregate_v4_publishable_results.py)
+from `results/v4_temporal_controller_v28_confirmatory`,
+`results/v19_on_v4_v28_confirmatory`, and the two V4 OOD result trees. The
+frozen classifier hash begins `28940882`; forward, permanent, and reverse
+specialist hashes begin `7ca3ec24`, `b4a42a55`, and `c7bb71ad`. Environment,
+controller, and contract checks live in
+[`src/atr/envs/learned_recovery_v4.py`](src/atr/envs/learned_recovery_v4.py),
+[`scripts/evaluate_v4_temporal_controller.py`](scripts/evaluate_v4_temporal_controller.py),
+and [`tests/drafts/test_v4_temporal_controller.py`](tests/drafts/test_v4_temporal_controller.py).
+The canonical confirmation and aggregation can be reproduced on Slurm with:
+
+```bash
+sbatch --export=ALL,ATR_V4_SEED_BASE=280000000,ATR_V4_CONTROLLER_OUTPUT=results/v4_temporal_controller_v28_confirmatory scripts/slurm_evaluate_v4_temporal_controller.sh
+sbatch --array=0-44:3 --export=ALL,ATR_V4_SEED_BASE=280000000,ATR_V4_OUTPUT_DIR=results/v19_on_v4_v28_confirmatory scripts/slurm_evaluate_v19_on_v4.sh
+python scripts/aggregate_v4_publishable_results.py
+```
+
+### Latest non-teleport visual-recovery result
+
+V19 remains the established integrated restricted-input controller: across
+three seeds and 768 held-out episodes per regime it reaches **96.35% strict**
+and **91.41% nominal safe success**, with **97.06%/95.69%** on the two actual
+physical-removal branches. The actor executes continuous joint control from
+RGB, robot proprioception/TCP, the instruction, and learned visual progress;
+object poses and evaluator domain labels are unavailable at deployment.
+
+V41 preserves V19's controller and adds learned continuous/dense RGB
+canonicalization behind a fixed magnitude gate. Its three-seed lineage passed
+every checkpoint audit. On standard evaluation it reaches **687/768 — 89.45%
+nominal** and **734/768 — 95.57% intervention safe success**, with an **83.20%**
+minimum seed. On matched strict removal it exactly matches V19 at **740/768 —
+96.35%**, with seed rates **98.05%, 96.88%, and 94.14%**.
+
+The frozen untouched suite shows a real but incomplete robustness gain. V41's
+mean across 14 new domain/condition cells is **44.47%**, up from V35's
+**18.34%**. Synthetic geometry transfers best: intervention safe success is
+**82.03%** for a 2.25-pixel shift, **78.13%** for a four-degree rotation,
+**73.96%** for 1.08 scale, and **72.92%** for their combined transform. Learned
+progress is causally useful across all three seeds: cyclic shifting its bits
+reduces safe success by **11.07 points nominal** [4.43, 19.79] and **13.15
+points under intervention** [0.39, 23.18].
+
+This is still not a general-robustness success. The new combined camera shift
+falls to **0.26% nominal / 10.81% intervention**, and opposite-side lighting
+falls to **0% / 5.08%**. The frozen final gate passes **6/10** checks: standard
+intervention, the standard seed floor, all three strict checks, and causal
+utility. Standard nominal misses its 90% threshold by **0.55 point**, while
+mean/minimum untouched robustness and the all-domain rule fail. The supported
+finding is narrower and useful: **canonicalization materially improves unseen
+geometric transfer without sacrificing strict recovery, but viewpoint and
+directional-light generalization remain unresolved.** Training uses privileged
+same-state supervision, so this is neither pure self-supervision nor
+end-to-end pixel RL.
 
 ### Historical V2 state-control result and reward audit
 
@@ -199,9 +317,9 @@ gate: **96.35% strict safe success**, **91.41% nominal safe success**,
 **97.06%/95.69%** safe success on the two physical-removal branches, and
 **1.30%/3.65%** strict/nominal violations (768 episodes per regime). It is the
 first eligible integrated restricted-input visual policy, with continuous
-control and no teleportation. Its two preregistered new-seed confirmation runs
-are now active. Training uses privileged dual teachers, progress labels, and an
-asymmetric critic, so this is not a pure pixel-RL or pure self-supervised claim;
+control and no teleportation. Training uses privileged dual teachers, progress
+labels, and an asymmetric critic, so this is not a pure pixel-RL or pure
+self-supervised claim;
 the strict state policy remains a stronger upper bound at 98.44% safe success
 and zero violations. Full-strength VICReg V20 improves matched-pixel pose and
 goal-resolution R² by +0.0106 and +0.0146 over V19, but fails control selection
@@ -213,8 +331,9 @@ three state curricula score 0% nominal safe despite strong strict recovery.
 This is an in-benchmark simulation result, not cross-benchmark or real-robot
 superiority. V19 uses 99.999M PPO plus 1.92M DAgger interactions per seed;
 upstream initializer and teacher training is disclosed separately rather than
-hidden in that new-stage count. The preregistered lower-variance V21 test
-remains active. The clean
+hidden in that new-stage count. The preregistered lower-variance V21 extension
+is rejected: it reaches 92.19% nominal safe success but only 87.63% strict and
+78.34% first-removal safe success. The clean
 policy's identical-pixel linear pose probe is negative—learned-minus-random R²
 is −0.177 [−0.334, −0.037]. The adaptive V7 encoder is positive on its separate
 probe, +0.387 [0.312, 0.488] (learned R² 0.725 versus random 0.339), with all
@@ -225,7 +344,7 @@ used as a causal control-performance claim. See
 [`docs/14-results-and-claim-boundaries.md`](docs/14-results-and-claim-boundaries.md),
 [`docs/16-visual-recovery-hypotheses.md`](docs/16-visual-recovery-hypotheses.md),
 [`docs/17-visual-training-ledger.md`](docs/17-visual-training-ledger.md), and
-[`docs/18-paper-blueprint.md`](docs/18-paper-blueprint.md).
+[`docs/18-evidence-blueprint.md`](docs/18-evidence-blueprint.md).
 
 The integration gap is now tested directly in one non-teleport Fetch episode.
 One parsed instruction asks for the can and cracker box while protecting the
@@ -320,7 +439,7 @@ objects remain achievable; everything is simulation-only, with no real-robot
 result; and the integrated pipeline uses a calibrated frame-difference signal
 plus a scripted low-level Fetch skill rather than a self-supervised visual
 encoder plus learned continuous motor policy. These are disclosed scope, not
-paper claims.
+benchmark claims.
 
 That gap also has a pixel-based NE-Dreamer V2 pilot. The decoder-free world model optimized its
 self-supervised next-embedding objective (83.2% mean loss reduction), but the

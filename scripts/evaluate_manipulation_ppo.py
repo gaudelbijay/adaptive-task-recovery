@@ -10,6 +10,7 @@ replaying the checkpoint-selection episodes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import math
@@ -54,6 +55,7 @@ def main() -> None:
         "--checkpoint-output", default=None,
         help="Optional separate result root containing immutable training checkpoints",
     )
+    parser.add_argument("--checkpoint-name", default="best.pt")
     parser.add_argument("--task-index", type=int, default=int(os.environ.get("SLURM_ARRAY_TASK_ID", "0")))
     parser.add_argument("--episodes", type=int, default=256)
     parser.add_argument("--num-envs", type=int, default=32)
@@ -61,6 +63,12 @@ def main() -> None:
     parser.add_argument(
         "--condition", choices=("configured", "intervention", "nominal"),
         default="configured",
+    )
+    parser.add_argument(
+        "--intervention-type",
+        choices=("ejection", "permanent_block", "temporary_block", "reverse_ejection"),
+        default=None,
+        help="Evaluate one intervention mechanism at probability one.",
     )
     args = parser.parse_args()
 
@@ -74,13 +82,19 @@ def main() -> None:
     experiment_name = task.get("method", task["env_id"])
     run_dir = Path(args.output) / config["name"] / experiment_name / f"seed_{seed}"
     checkpoint_root = Path(args.checkpoint_output or args.output)
-    checkpoint_path = checkpoint_root / config["name"] / experiment_name / f"seed_{seed}" / "best.pt"
+    checkpoint_path = (
+        checkpoint_root / config["name"] / experiment_name / f"seed_{seed}"
+        / args.checkpoint_name
+    )
     if not checkpoint_path.exists():
         raise FileNotFoundError(f"best checkpoint is not available: {checkpoint_path}")
 
     device = torch.device("cuda")
     env_kwargs = _environment_kwargs(task, evaluation=True)
-    if args.condition == "intervention":
+    if args.intervention_type is not None:
+        env_kwargs["intervention_probability"] = 1.0
+        env_kwargs["intervention_types"] = (args.intervention_type,)
+    elif args.condition == "intervention":
         env_kwargs["intervention_probability"] = 1.0
     elif args.condition == "nominal":
         env_kwargs["intervention_probability"] = 0.0
@@ -177,8 +191,10 @@ def main() -> None:
         "env_id": task["env_id"],
         "method": experiment_name,
         "condition": args.condition,
+        "intervention_type": args.intervention_type,
         "training_seed": seed,
-        "checkpoint": "best.pt",
+        "checkpoint": args.checkpoint_name,
+        "checkpoint_sha256": hashlib.sha256(checkpoint_path.read_bytes()).hexdigest(),
         "checkpoint_iteration": int(checkpoint["iteration"]),
         "checkpoint_global_step": int(checkpoint["global_step"]),
         "seed_base": args.seed_base,
@@ -192,7 +208,10 @@ def main() -> None:
         "metric_means": metric_means,
         "episode_records": episode_records,
     }
-    filename = "heldout_eval.json" if args.condition == "configured" else f"heldout_eval_{args.condition}.json"
+    if args.intervention_type is not None:
+        filename = f"heldout_eval_{args.intervention_type}.json"
+    else:
+        filename = "heldout_eval.json" if args.condition == "configured" else f"heldout_eval_{args.condition}.json"
     _atomic_json(payload, run_dir / filename)
     print(json.dumps(payload, indent=2, sort_keys=True))
     envs.close()

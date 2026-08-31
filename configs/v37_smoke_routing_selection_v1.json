@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "selected": "dense_canonical_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{
+    "label": "dense_canonical_smoke",
+    "method": "v19_dense_canonical_smoke",
+    "eligible": true
+  }],
+  "claim_boundary": "Development selection only."
+}

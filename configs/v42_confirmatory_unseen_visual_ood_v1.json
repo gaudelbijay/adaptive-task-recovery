@@ -1,0 +1,18 @@
+{
+  "schema_version":1,"name":"v42_confirmatory_unseen_visual_ood_v1","conditions":["nominal","intervention"],"episodes":256,"num_envs":32,"seed_base":127000000,
+  "hypothesis_thresholds":{"primary_causal_variant":"progress_cyclic_shift","primary_causal_condition":"intervention","minimum_causal_safe_success_drop":0.03,"minimum_ood_safe_success":0.70,"maximum_ood_safe_success_drop":0.20,"bootstrap_repetitions":20000,"bootstrap_seed":24151},
+  "variants":[
+    {"name":"baseline","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"progress_cyclic_shift","progress_head_mode":"cyclic_shift","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"subpixel_shift_left_3_5","progress_head_mode":"normal","visual_perturbation":"subpixel_shift_left_3_5","environment_profile":"nominal"},
+    {"name":"rotation_clockwise_6deg","progress_head_mode":"normal","visual_perturbation":"rotation_clockwise_6deg","environment_profile":"nominal"},
+    {"name":"scale_90","progress_head_mode":"normal","visual_perturbation":"scale_90","environment_profile":"nominal"},
+    {"name":"combined_similarity_v2","progress_head_mode":"normal","visual_perturbation":"combined_similarity_v2","environment_profile":"nominal"},
+    {"name":"camera_left_front_5cm","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_left_front_5cm"},
+    {"name":"camera_yaw_left_3deg","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_yaw_left_3deg"},
+    {"name":"lighting_magenta_ambient","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_magenta_ambient"},
+    {"name":"lighting_low_side","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_low_side"}
+  ],
+  "confirmation_rule":"After a development gate and immutable multi-seed training, require every new-domain safe-success rate >=70%, every paired drop <=20 points, and positive causal-progress utility. No domain or seed in this file may be used for V42 training, tuning, routing calibration, or model selection.",
+  "claim_boundary":"Frozen before V42 training or rollout metrics. Simulation-only evidence; no real-robot, pure-SSL, or from-scratch-RL claim."
+}

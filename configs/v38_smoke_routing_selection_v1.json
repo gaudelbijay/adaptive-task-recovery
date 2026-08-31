@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "selected": "cardinality_aligned_smoke",
+  "all_candidates_ineligible": false,
+  "candidates": [{"label":"cardinality_aligned_smoke","method":"v19_cardinality_aligned_smoke","eligible":true}],
+  "claim_boundary": "Static V38 development identity; not performance eligibility."
+}

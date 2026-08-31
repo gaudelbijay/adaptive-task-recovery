@@ -6,7 +6,7 @@ last_updated: 2026-08-28
 
 # References and Reading Queue
 
-Core entries below were checked against the paper or official project source.
+Core entries below were checked against the original source material or official project source.
 The remaining sections are a reading queue and must not be cited as completed
 coverage.
 

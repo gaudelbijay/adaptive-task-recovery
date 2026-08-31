@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "name": "strict_removal_v41_visual_v19",
+  "strict_config": "configs/visual_recovery_strict_removal_eval_v1.json",
+  "cohorts": [
+    {
+      "label": "v19_visual_incumbent",
+      "kind": "visual",
+      "config": "configs/visual_recovery_dual_specialist_dagger_v19.json",
+      "output": "results/visual_recovery_ppo"
+    },
+    {
+      "label": "v41_visual",
+      "kind": "visual",
+      "config": "configs/visual_recovery_v19_continuous_canonical_v36.json",
+      "output": "results/visual_recovery_ppo"
+    }
+  ],
+  "claim_boundary": "Matched three-seed strict physical-removal comparison frozen before V41 standard, strict, or untouched outcomes. Both visual systems use privileged training and restricted RGB deployment."
+}

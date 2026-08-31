@@ -24,7 +24,7 @@ JSON provenance and source MP4s live under
 
 `results/learned-recovery-v6-curves.{png,pdf}` is generated from the immutable
 V6 per-seed metrics and held-out aggregate by `plot_manipulation_results.py`.
-Both raster and vector exports are versioned for README/paper reuse.
+Both raster and vector exports are versioned for README and report reuse.
 
 The rest of this directory predates that and is unrelated:
 

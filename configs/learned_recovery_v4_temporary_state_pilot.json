@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "name": "learned_recovery_v4_temporary_state_pilot",
+  "seeds": [9351],
+  "experiments": [{
+    "method": "temporary_block_state_specialist",
+    "env_id": "LearnedRecovery-v4",
+    "registration_module": "atr.envs.learned_recovery_v4",
+    "total_timesteps": 25000000,
+    "num_envs": 1024,
+    "num_steps": 32,
+    "num_eval_steps": 240,
+    "control_mode": "pd_joint_delta_pos",
+    "env_kwargs": {
+      "required_goals": 2, "intervention_probability": 1.0,
+      "intervention_types": ["temporary_block"], "onset_step_range": [0, 0],
+      "blocker_force": 4.0, "blocker_return_force": 5.0,
+      "blocker_return_delay_steps": 30, "terminate_on_violation": true,
+      "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0,
+      "progress_reward_scale": 2.0, "completion_bonus": 5.0, "success_reward": 10.0
+    },
+    "eval_env_kwargs": {
+      "required_goals": 2, "intervention_probability": 1.0,
+      "intervention_types": ["temporary_block"], "onset_step_range": [0, 0],
+      "blocker_force": 4.0, "blocker_return_force": 5.0,
+      "blocker_return_delay_steps": 30, "terminate_on_violation": true,
+      "safety_proximity_weight": 5.0, "constraint_violation_penalty": 20.0,
+      "progress_reward_scale": 2.0, "completion_bonus": 5.0, "success_reward": 10.0
+    }
+  }],
+  "num_eval_envs": 256,
+  "update_epochs": 8,
+  "num_minibatches": 8,
+  "eval_freq": 25,
+  "checkpoint_freq": 25,
+  "log_freq": 5,
+  "learning_rate": 0.0003,
+  "anneal_lr": true,
+  "entropy_coefficient": 0.0,
+  "value_coefficient": 0.5,
+  "selection_failure_penalty": 2.0,
+  "gamma": 0.95,
+  "gae_lambda": 0.95,
+  "claim_boundary": "One-seed object-centric temporary-block specialist allocation gate; not a deployable result."
+}

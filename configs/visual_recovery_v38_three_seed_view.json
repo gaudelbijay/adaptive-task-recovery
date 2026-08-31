@@ -1,0 +1,17 @@
+{
+  "schema_version":1,
+  "name":"visual_recovery_v19_cardinality_aligned_v38_smoke",
+  "seeds":[9351,4796,1788],
+  "experiments":[{
+    "method":"v19_cardinality_aligned_smoke","env_id":"LearnedRecovery-v3","training_env_id":"LearnedRecovery-v3-MultiCamera","reference_env_id":"LearnedRecovery-v3","registration_module":"atr.envs.learned_recovery_v3_multicamera",
+    "source_visual_checkpoint":"results/visual_recovery_ppo/visual_recovery_v19_continuous_canonical_v36_smoke/v19_continuous_canonical_smoke/seed_{seed}/best.pt",
+    "canonical_updates":2000,"total_timesteps":384000,"max_translation_pixels":8.0,"max_rotation_degrees":8.0,"minimum_scale":0.88,"maximum_scale":1.12,"minimum_color_gain":0.65,"maximum_color_gain":1.35,"maximum_color_bias":0.12,
+    "geometry_weight":10.0,"color_weight":5.0,"image_weight":15.0,"identity_weight":20.0,"action_weight":15.0,"feature_weight":2.0,
+    "paired_environment_profiles":["camera_back_3cm","camera_roll_right_2deg","lighting_cool","lighting_back_key"],"synchronization_check_frequency":20,
+    "num_envs":32,"num_steps":1,"num_eval_steps":200,"control_mode":"pd_joint_delta_pos","image_size":64,"actor_tcp_pose":true,"actor_learned_goal_progress":true,"asymmetric_critic":true,"augmentation_pad":0,"privileged_auxiliary_head":true,
+    "env_kwargs":{"required_goals":2,"intervention_probability":0.8,"onset_step_range":[0,0],"intervention_force":6.0,"intervention_steps":24,"terminate_on_violation":true,"safety_proximity_weight":5.0,"constraint_violation_penalty":20.0,"progress_reward_scale":2.0,"completion_bonus":5.0,"success_reward":10.0},
+    "eval_env_kwargs":{"required_goals":2,"intervention_probability":0.5,"onset_step_range":[0,0],"intervention_force":6.0,"intervention_steps":24,"terminate_on_violation":true,"safety_proximity_weight":5.0,"constraint_violation_penalty":20.0,"progress_reward_scale":2.0,"completion_bonus":5.0,"success_reward":10.0}
+  }],
+  "learning_rate":0.00005,"weight_decay":0.000001,"log_freq":20,
+  "claim_boundary":"Three-seed exact V38 lineage view; seed 1788 is reused byte-exact and only missing seeds are allocated."
+}

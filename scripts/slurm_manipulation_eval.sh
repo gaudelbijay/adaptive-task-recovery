@@ -10,7 +10,8 @@
 
 set -euo pipefail
 
-ATR_NODE_CACHE="${SLURM_TMPDIR:-/tmp}/atr-eval-${SLURM_JOB_ID}-${SLURM_ARRAY_TASK_ID}"
+ATR_TASK_INDEX="${SLURM_ARRAY_TASK_ID:-0}"
+ATR_NODE_CACHE="${SLURM_TMPDIR:-/tmp}/atr-eval-${SLURM_JOB_ID}-${ATR_TASK_INDEX}"
 mkdir -p "${ATR_NODE_CACHE}/gl" "${ATR_NODE_CACHE}/cuda" "${ATR_NODE_CACHE}/xdg"
 export __GL_SHADER_DISK_CACHE_PATH="${ATR_NODE_CACHE}/gl"
 export CUDA_CACHE_PATH="${ATR_NODE_CACHE}/cuda"
@@ -20,10 +21,16 @@ export PYTHONUNBUFFERED=1
 ATR_MANIP_CONFIG="${ATR_MANIP_CONFIG:-configs/manipulation_ppo_v1.json}"
 ATR_MANIP_OUTPUT="${ATR_MANIP_OUTPUT:-results/manipulation_ppo}"
 ATR_PYTHON="${ATR_PYTHON:-.venv/bin/python}"
+ATR_EVAL_ARGS=()
+if [[ -n "${ATR_EVAL_EXTRA_ARGS:-}" ]]; then
+  read -r -a ATR_EVAL_ARGS <<< "${ATR_EVAL_EXTRA_ARGS}"
+fi
 
 "${ATR_PYTHON}" scripts/evaluate_manipulation_ppo.py \
   --config "${ATR_MANIP_CONFIG}" \
   --output "${ATR_MANIP_OUTPUT}" \
-  --task-index "${SLURM_ARRAY_TASK_ID}" \
+  --checkpoint-name "${ATR_CHECKPOINT_NAME:-best.pt}" \
+  --task-index "${ATR_TASK_INDEX}" \
   --episodes "${ATR_EVAL_EPISODES:-256}" \
-  --num-envs "${ATR_EVAL_NUM_ENVS:-32}"
+  --num-envs "${ATR_EVAL_NUM_ENVS:-32}" \
+  "${ATR_EVAL_ARGS[@]}"

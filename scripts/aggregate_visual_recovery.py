@@ -58,6 +58,21 @@ def transition_accounting_view(record, experiment):
         return record
     protocol_fields = {
         "supervised_translation_repair_v34": "translation_training_transitions",
+        "continuous_similarity_photometric_repair_v19": "canonical_training_transitions",
+        "dense_paired_domain_repair_v19": "dense_canonical_training_transitions",
+        "cardinality_aligned_dense_repair_v19": "dense_canonical_training_transitions",
+        "backkey_targeted_dense_repair_v19": "dense_finetune_transitions",
+        "broad_render_dense_repair_v19": "dense_finetune_transitions",
+        "routed_multiview_feature_adapter_v19": "feature_adapter_transitions",
+        "hybrid_calibrated_feature_adapter_v19": "feature_adapter_transitions",
+        "renderer_expert_adapter_v19": "feature_adapter_transitions",
+        "hierarchical_geometry_expert_v19": "feature_adapter_transitions",
+        "onpolicy_geometry_expert_v19": "feature_adapter_transitions",
+        "dedicated_renderer_experts_v19": "feature_adapter_transitions",
+        "hierarchical_renderer_experts_v19": "feature_adapter_transitions",
+        "subpixel_specialist_router_v19": "feature_adapter_transitions",
+        "opened_renderer_experts_v19": "feature_adapter_transitions",
+        "continuous_geometry_composition_v19": "geometry_training_transitions",
     }
     protocol = record.get("training_protocol")
     if protocol not in protocol_fields:

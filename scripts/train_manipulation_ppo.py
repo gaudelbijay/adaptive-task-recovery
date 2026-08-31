@@ -16,6 +16,7 @@ or called.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
 import os
@@ -233,6 +234,37 @@ def main():
         best_score = float(checkpoint.get("best_score", best_success))
         best_metrics = dict(checkpoint.get("best_metrics", {}))
         _restore_rng(checkpoint["rng"])
+    elif task.get("init_checkpoint"):
+        initialization_path = Path(str(task["init_checkpoint"]).format(seed=seed))
+        if not initialization_path.exists():
+            raise FileNotFoundError(
+                f"initialization checkpoint unavailable: {initialization_path}"
+            )
+        initialization = torch.load(
+            initialization_path, map_location=device, weights_only=False,
+        )
+        agent.load_state_dict(initialization["agent"], strict=True)
+        (run_dir / "initialization.json").write_text(json.dumps({
+            "checkpoint": str(initialization_path),
+            "sha256": hashlib.sha256(initialization_path.read_bytes()).hexdigest(),
+            "source_task": initialization.get("task"),
+            "source_iteration": initialization.get("iteration"),
+            "source_global_step": initialization.get("global_step"),
+            "optimizer_reinitialized": True,
+        }, indent=2) + "\n", encoding="utf-8")
+
+    anchor_agent = None
+    anchor_coefficient = float(config.get("anchor_actor_coefficient", 0.0))
+    if anchor_coefficient > 0:
+        if not task.get("init_checkpoint"):
+            raise ValueError("anchor_actor_coefficient requires init_checkpoint")
+        anchor_path = Path(str(task["init_checkpoint"]).format(seed=seed))
+        anchor_checkpoint = torch.load(anchor_path, map_location=device, weights_only=False)
+        anchor_agent = Agent(observation_dim, action_dim).to(device)
+        anchor_agent.load_state_dict(anchor_checkpoint["agent"], strict=True)
+        anchor_agent.eval()
+        for parameter in anchor_agent.parameters():
+            parameter.requires_grad_(False)
 
     num_envs, num_steps = int(task["num_envs"]), int(task["num_steps"])
     batch_size = num_envs * num_steps
@@ -364,6 +396,11 @@ def main():
                     - float(config.get("entropy_coefficient", 0.0)) * entropy.mean()
                     + float(config.get("value_coefficient", 0.5)) * value_loss
                 )
+                if anchor_agent is not None:
+                    loss = loss + anchor_coefficient * torch.nn.functional.mse_loss(
+                        agent.actor_mean(b_obs[mb]),
+                        anchor_agent.actor_mean(b_obs[mb]),
+                    )
                 optimizer.zero_grad()
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), 0.5)

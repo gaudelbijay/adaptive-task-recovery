@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "name": "v36_confirmatory_unseen_visual_ood_v1",
+  "selection": "configs/v36_full_routing_selection_v1.json",
+  "policy_configs": {
+    "continuous_canonical": "configs/visual_recovery_v19_continuous_canonical_v36.json"
+  },
+  "conditions": ["nominal", "intervention"],
+  "episodes": 256,
+  "num_envs": 32,
+  "seed_base": 117000000,
+  "hypothesis_thresholds": {
+    "primary_causal_variant": "progress_cyclic_shift",
+    "primary_causal_condition": "intervention",
+    "minimum_causal_safe_success_drop": 0.03,
+    "minimum_ood_safe_success": 0.70,
+    "maximum_ood_safe_success_drop": 0.20,
+    "bootstrap_repetitions": 20000,
+    "bootstrap_seed": 22153
+  },
+  "variants": [
+    {"name":"baseline","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"progress_cyclic_shift","progress_head_mode":"cyclic_shift","visual_perturbation":"none","environment_profile":"nominal"},
+    {"name":"subpixel_shift_right_2_25","progress_head_mode":"normal","visual_perturbation":"subpixel_shift_right_2_25","environment_profile":"nominal"},
+    {"name":"rotation_counterclockwise_4deg","progress_head_mode":"normal","visual_perturbation":"rotation_counterclockwise_4deg","environment_profile":"nominal"},
+    {"name":"scale_108","progress_head_mode":"normal","visual_perturbation":"scale_108","environment_profile":"nominal"},
+    {"name":"combined_similarity_v1","progress_head_mode":"normal","visual_perturbation":"combined_similarity_v1","environment_profile":"nominal"},
+    {"name":"camera_right_back_4cm","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"camera_right_back_4cm"},
+    {"name":"lighting_bright_side","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_bright_side"},
+    {"name":"lighting_green_ambient","progress_head_mode":"normal","visual_perturbation":"none","environment_profile":"lighting_green_ambient"}
+  ],
+  "confirmation_rule": "After the V36 development gate and immutable multi-seed training, require every new-domain safe-success rate >=70%, every paired drop <=20 points, and positive causal-progress utility. No domain or seed in this file may be used for V36 training, tuning, routing calibration, or model selection.",
+  "claim_boundary": "Frozen before V36 training or rollout metrics. Simulation-only evidence; no real-robot, pure-SSL, or from-scratch-RL claim."
+}

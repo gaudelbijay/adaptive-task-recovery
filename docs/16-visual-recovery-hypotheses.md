@@ -32,7 +32,7 @@ gate additionally excludes TCP and therefore remains a stricter baseline.
   never copied from the earlier forced-sweeper condition. A separate post-audit
   state policy trained directly on the strict distribution reaches 98.44% raw
   and safe success with zero violations. It is a stronger distribution-matched
-  extension and the paper's required upper baseline, but it cannot rewrite the
+  extension and the benchmark's required upper baseline, but it cannot rewrite the
   preregistered V5 primary comparison.
 
 V1 is tested first. V2/V3 are a factorial comparison at the same 40M-step
@@ -65,7 +65,7 @@ than clean V6 on first-goal-physically-removed safe success, with paired 95%
 interval [−36.36, 20.66]. V5 is **confirmed only for its preregistered primary
 comparison**: V7 exceeds the historical state reference under identical strict
 evaluation seeds. That primary reference is only 2.86% safe and is superseded
-for paper competitiveness by the post-audit strict-trained state PPO at 98.44%
+for benchmark competitiveness by the post-audit strict-trained state PPO at 98.44%
 safe with zero violations. Thus V5 does not establish state-of-the-art or
 distribution-matched competitiveness. The authoritative generated artifact is
 `results/final_visual_comparison/hypotheses.json`; later extensions cannot

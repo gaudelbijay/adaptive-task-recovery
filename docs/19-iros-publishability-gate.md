@@ -1,0 +1,75 @@
+---
+title: IROS Publishability Gate and Method Reset
+status: active-experiment
+last_updated: 2026-08-30
+---
+
+# IROS publishability gate
+
+The existing V19 result is a strong custom-benchmark result, not yet a strong
+main-track IROS paper. Repository scale and the number of attempted variants do
+not substitute for novelty or external validity. V36--V60 is closed as a
+patching line after the independent V60 lineage retained only 69.53% nominal
+safe success on seed 9351.
+
+## Blocking weaknesses
+
+1. The benchmark contains one intervention mechanism, two colored cubes, one
+   camera, and one robot arm.
+2. V19 is a privileged dual-teacher distillation recipe rather than a concise
+   new recovery algorithm.
+3. The winning actor fails small camera and appearance shifts.
+4. There is no held-out failure-mechanism result and no shared external
+   benchmark comparison.
+5. Hundreds of millions of interactions and many post-hoc variants make a
+   sample-efficiency or clean-ablation claim difficult.
+
+## New method direction: irreversible feasibility memory
+
+The next method will separate perception of goal loss from motor control.
+
+- A frozen self-supervised visual backbone compares an episode reference frame
+  with the current frame using goal-conditioned features.
+- A learned head predicts a three-state belief for each requested goal:
+  pending, completed, or physically unavailable.
+- An irreversible temporal filter may latch `unavailable` only after calibrated
+  evidence and may not silently revert it. Uncertainty causes continued
+  observation or abstention, not an unqualified expert switch.
+- A modular controller consumes the belief and composes nominal and recovery
+  experts. The visual belief, not an evaluator label, performs deployment-time
+  routing.
+- Training uses factual/counterfactual paired renders and privileged labels,
+  disclosed as supervision. The primary novelty claim is causal feasibility
+  estimation and policy composition, not pure pixel RL.
+
+The first fail-fast experiment is
+`scripts/probe_v3_goal_loss_dinov2.py`. It trains a canonical-view linear head
+on reference/current DINOv2 features and evaluates unchanged weights under four
+renderer-native camera/lighting profiles. No controller allocation is allowed
+unless this perception-only probe materially exceeds the matched low-resolution
+pixel baseline on every profile.
+
+## Required paper-level evidence
+
+A method is paper-eligible only if all of the following are frozen before the
+corresponding outcomes:
+
+1. At least two physically distinct goal-loss mechanisms, with one held out
+   from method training.
+2. At least three goal identities or a variable-length goal sequence; the
+   current red/blue ordering alone is insufficient.
+3. Nominal, strict removal, each removal position, protected-object violation,
+   and recovery latency reported for the same checkpoints.
+4. Three or more independent training seeds and hierarchical uncertainty.
+5. Oracle-belief, end-to-end V19, no-memory, random-feature, and
+   no-counterfactual-pair baselines under identical evaluation seeds.
+6. A reserved camera/lighting/object-appearance suite with no tuning on its
+   outcomes.
+7. A second ManiSkill task family or a small real-robot validation. Without
+   either, the claim must be benchmark-focused rather than a general method
+   claim.
+8. Interaction, supervision, backbone, and teacher costs reported explicitly.
+
+The IROS manuscript remains an evidence draft until this gate passes. Good
+writing cannot repair a failed gate, and no threshold may be relaxed after an
+outcome is observed.

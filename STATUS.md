@@ -5,6 +5,18 @@ frequently updated execution notes live in [`ai-notes/`](ai-notes/).
 
 ## Current status
 
+**Latest method reset (D-230/D-231, 2026-08-30):** Independent V60 lineages
+reject the V36--V60 robustness-patching direction: pooled nominal safe success
+is only 83.46%, and seed 9351 falls to 69.53% with 12.50% violations. The
+reserved seed-133M suite remains unopened. A new perception-only gate gives a
+promising replacement signal: a canonical-trained, reference-conditioned,
+goal-interacted frozen-DINOv2 delta probe reaches 100%, 99.22%, 100%, 100%, and
+100% balanced accuracy on canonical, camera-left, camera-high, dim-light, and
+warm-light profiles respectively (256 goal examples each). This is not yet a
+controller or recovery result; completed-goal negatives, a second physical
+loss mechanism, and policy integration are mandatory before a paper claim.
+See `docs/19-iros-publishability-gate.md`.
+
 **Latest integrated result (D-146/D-147, 2026-08-28):** V19 is the first policy
 to pass every frozen restricted-input visual-control endpoint in
 `LearnedRecovery-v3`. Across three exact 99,999,744-step seeds and 768 held-out
@@ -101,7 +113,7 @@ intervention safe success, preserves a 27.34-point causal-progress drop
 observed OOD to 55.47%. The three-seed full V34 foundation, audit, V35 repair,
 and final-audit chain is submitted as jobs `1143214`--`1143217`, with fail-closed
 dependencies between stages. This is still one-seed observed-suite development
-evidence, not a paper-level robustness result. A distinct seven-domain V35
+evidence, not a general robustness result. A distinct seven-domain V35
 confirmatory suite remains frozen and unavailable for training or tuning;
 standard, strict-removal, and untouched-suite evaluation begin only after all
 three full checkpoints pass immutable audit. The complete confirmation chain is
@@ -121,8 +133,87 @@ tests those assumptions, archives the pre-repair files, and serializes D-176
 aggregation before a standard-baseline rerun to avoid legacy filename
 collision. Replacement jobs are `1143595`--`1143600`; no checkpoint, seed,
 domain, threshold, or successful episode outcome was changed.
+The completed repaired chain `1143639`--`1143643` now rejects V35 general
+release. Standard nominal/intervention safe success is 81.25%/89.19%, with a
+73.83% minimum seed. Strict removal remains positive at 91.54%, but untouched
+D-176 mean safe success is only 18.34%, worst pooled domain/condition is 2.08%,
+and the minimum seed/domain result is 0%. Causal-progress utility and all three
+strict checks pass; the other six final checks fail. V19 remains the integrated
+visual incumbent. D-176 is now development evidence for any successor and
+cannot be reused as that successor's untouched confirmation suite.
+V36 is frozen before metrics under D-181. It removes global pooling from the
+transform estimator, predicts continuous similarity and photometric correction,
+and structurally bypasses all sampling below a 0.9 learned corruption
+probability so the clean route is exact V19. Training uses continuous random
+joint transformations and paired same-state left/high views rather than named
+test-domain classes. A distinct seven-domain confirmation suite and seed base
+117,000,000 are frozen and unavailable for tuning. Jarvis tests pass 11/11 and
+both train/development preflights pass; only the one-seed smoke gate is
+authorized next.
 
-**Phase:** paper-quality confirmation, ablations, causal/OOD evaluation, and
+V36--V40 then isolated routing, sensor-cardinality, and renderer-exposure
+mechanisms without changing the frozen V19 controller. V41 keeps the audited
+V40 checkpoint byte-exact and changes only its deployment magnitude threshold
+to 0.015. The one-seed development gate passed all six checks. The corrected
+three-seed lineage `[9351, 4796, 1788]` subsequently completed V36, V38, and
+V40 training and immutable audits as jobs `1144450`--`1144455`; 28 targeted
+mechanism tests and 7 exact evaluation tests pass on Jarvis.
+
+V41's immutable evaluation chain `1144458`--`1144465` is complete. Standard
+nominal/intervention safe success is 89.45%/95.57%, with an 83.20% minimum
+seed. Strict removal exactly matches V19 at 96.35% pooled safe success, with a
+94.14% minimum seed and zero pooled regression. The untouched mean improves
+from V35's 18.34% to 44.47%, and three-seed causal progress utility is positive
+in nominal and intervention conditions. General visual robustness remains
+rejected: combined camera displacement reaches only 0.26%/10.81% and
+opposite-side lighting 0%/5.08%. The frozen final gate passes 6/10 checks and
+fails closed. V19 remains the released integrated controller; V41 is retained
+as evidence that canonicalization improves geometric transfer while camera
+and directional-light generalization remain unresolved.
+
+V42/V43 then tested whether the opened renderer failures could be repaired by
+more dense pixel-residual training. V42 crossed the 0.015 clean-route boundary,
+collapsing nominal/intervention to 50.39%/63.28% and mean development OOD to
+5.61%. V43 restarted from V40 with fivefold identity protection, fourfold lower
+learning rate, and 60% fewer updates. It restored 91.02%/91.80% retention and a
+26.56-point causal effect, but camera/light robustness remained near zero and
+mean development OOD reached only 33.65%; gate `1144517` passes 4/6. No
+multi-seed or untouched allocation occurred. The dense reconstruction family
+is closed; the next design must change representation/routing structure.
+
+V44--V52 changed that structure through multi-view features, renderer experts,
+hierarchical routing, and a narrow subpixel specialist. V52 became the first
+candidate to pass all six opened development checks (91.41% nominal, 90.62%
+intervention, 69.61% mean OOD, 35.94% worst OOD), but failed the independently
+reserved seed-127M confirmation: minimum safe success was 0% and maximum paired
+drop was 92.58%. That suite is now opened development evidence; seed-133M is
+reserved untouched for a later successor.
+
+V53 repaired the opened renderer families while preserving 90.23%/93.75%
+nominal/intervention, but geometry kept its known failures and the eight-domain
+mean/worst remained 50.59%/0%. V54 then trained four continuous geometry
+correctors for exactly 800,000 transitions. Its five-way router reached only
+74.0% training accuracy and never crossed the frozen 0.90 deployment threshold
+often enough to alter an episode: all 20 development cells exactly equal V53.
+V54 is rejected as a policy, while its correctors are retained. Router-free V56
+and binary-routed V57 then passed 3/6 and 4/6 checks respectively. V58's forced
+specialist hierarchy regressed clean control and passed only the two causal
+checks. Exact V39/V53 composition V59 restored 92.97%/96.09% control but missed
+mean/worst OOD at 63.87%/5.86%. V60 adds V54's joint corrector only as a
+residual after V39 and is the first successor to pass all six opened checks:
+92.97% nominal, 96.09% intervention, a 30.08-point causal drop [24.21, 35.94],
+68.48% mean OOD, and 30.08% worst-cell OOD. It raises nominal combined
+similarity from 5.86% to 42.58%.
+
+This remains opened seed-127M development evidence. A hash-pinned, fail-closed
+three-seed rebuild from the audited V38/V40 cohort is now live as jobs
+`1144860`--`1144869`; it independently rebuilds V39, V43, V45, V47, V50, V51,
+V52, V53, V54, and V60 for every seed `[9351, 4796, 1788]`. At present all six
+available L40S slots are occupied by the first V39/V43 stages. Standard,
+strict-removal, causal, and reserved seed-133M results do not yet exist and are
+still mandatory before V60 can replace the integrated incumbent.
+
+**Phase:** high-confidence confirmation, ablations, causal/OOD evaluation, and
 qualitative evidence for non-teleport visual recovery.
 
 The project now studies whether a robot can tell when something it was asked

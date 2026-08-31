@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "v4_dino_permanent_student_pilot",
+  "seed": 9351,
+  "teacher_checkpoint": "results/learned_recovery_v4/learned_recovery_v4_permanent_state_pilot/permanent_block_state_specialist/seed_9351/teacher_frozen_iter524.pt",
+  "updates": 3000,
+  "num_envs": 64,
+  "eval_envs": 128,
+  "eval_steps": 240,
+  "eval_frequency": 500,
+  "student_rollout_max": 0.8,
+  "learning_rate": 0.0003,
+  "claim_boundary": "One-seed canonical permanent-block action-distillation allocation gate with oracle causal progress input; not a deployable result."
+}

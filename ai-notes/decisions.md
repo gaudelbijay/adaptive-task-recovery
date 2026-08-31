@@ -2,6 +2,1058 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+# D-231: Replace absolute-view probing with goal-conditioned DINOv2 change features
+
+- **Status:** Perception-only development gate passed; controller not yet allocated
+- **Date:** 2026-08-30
+- **Evidence:** A frozen DINOv2 ViT-S/14 backbone and canonical-view linear
+  probe were trained on 512 goal/frame pairs from reference and post-removal
+  RGB. The first additive goal encoding was structurally incapable of a
+  feature-by-goal decision and stayed near chance. Explicit disjoint
+  goal-conditioned blocks fixed the interaction, but absolute scene embeddings
+  still fell to 59.38%/64.84% balanced accuracy under +5 cm camera-height/left
+  shifts. The final invariant form uses only signed/absolute reference-to-current
+  CLS and aligned patch-token deltas. Without retraining or camera-profile
+  calibration it reaches 100% canonical, 100% camera-height, 99.22% camera-left,
+  and 100% on both dim and warm lighting (256 goal examples per profile). The
+  matched 8x8 pixel-delta probe is at chance on four profiles and reaches 92.19%
+  only on camera-left.
+- **Decision:** Retain reference-conditioned, goal-interacted DINOv2 deltas as
+  the new feasibility-perception direction. Do not call this recovery or a
+  controller result. Before policy integration, add completed-goal negatives,
+  a physically distinct goal-loss mechanism, and an untouched object/camera
+  suite. Preserve v1/v2 failures as development evidence rather than reporting
+  only v3.
+- **Artifacts:** `scripts/probe_v3_goal_loss_dinov2.py`;
+  `results/probes/v3_goal_loss_dinov2_v1.json`--`v3.json`; Jarvis jobs
+  `1144909`, `1144911`, and `1144912`.
+
+# D-230: Independent V60 lineages fail nominal retention; close V36--V60
+
+- **Status:** Rejected before opening seed-133M
+- **Date:** 2026-08-30
+- **Evidence:** All ten mechanically derived stages completed for independent
+  seeds `[9351, 4796, 1788]` as jobs `1144860`--`1144869`. Frozen standard and
+  strict evaluations `1144903`/`1144904` then completed with no operational
+  failure. Pooled safe success is 83.46% nominal (641/768), 91.54% standard
+  intervention (703/768), and 93.36% strict removal (717/768), with 96.79% and
+  90.10% on the first/second removal branches. The weak seed reaches only
+  69.53% nominal safe success with 12.50% violations, despite 86.72% strict.
+- **Decision:** Reject V60 as an integrated controller and close the successive
+  canonicalizer/router/expert patching line. Do not render or evaluate the
+  reserved seed-133M suite. A development-suite pass from seed 1788 does not
+  survive independent lineages and cannot support an IROS robustness claim.
+  Move to an explicit reference-conditioned feasibility belief separated from
+  motor control; see D-231 and `docs/19-iros-publishability-gate.md`.
+
+## D-229: V60 passes development; freeze three independent confirmation lineages
+
+- **Status:** Development gate passed 6/6; full lineage frozen before metrics
+- **Date:** 2026-08-30
+- **Evidence:** V60 reaches 92.97% nominal and 96.09% intervention safe success,
+  with a 30.08-point causal drop whose paired 95% interval is [24.21, 35.94].
+  Mean opened OOD is 68.48% and the worst of all 16 domain/condition cells is
+  30.08%, so every predeclared V42--V60 development check passes. In particular,
+  nominal combined similarity rises from V39's 5.86% and V57's 5.86% to 42.58%
+  while retaining V39's pure-transform control.
+- **Decision:** Freeze complete adapter lineages for policy seeds
+  `[9351, 4796, 1788]`, retaining every seed. Starting from each audited V38/V40
+  source, independently rebuild V39, V43, V45, V47, V50, V51, V52, V53, V54,
+  and the tensor-only V60 composition. No seed reuses seed-1788 adapter weights.
+- **Execution contract:** `configs/v60_three_seed_pipeline_v1.json` hash-pins
+  every base config and declares every mechanical source-path rewrite. The
+  wrapper validates those hashes, derives only the frozen seed/name/source
+  fields in a temporary file, and runs the unchanged trainer/builder. Each
+  stage is fail-closed on all preceding sources.
+- **Required gates:** After immutable final audit, run three-seed standard
+  nominal/intervention, strict physical removal, causal progress intervention,
+  and the reserved seed-133M visual suite. Passing development alone is not a
+  general robustness or release result; no public result changes yet.
+
+## D-228: Reject forced V54 specialist selection; preserve exact V39 control
+
+- **Status:** V58 rejected; V59/V60 frozen before rollout
+- **Date:** 2026-08-30
+- **Evidence:** V58 passes only the causal checks. Nominal/intervention fall to
+  69.53/81.25%, mean OOD is 52.32%, and worst OOD is 11.33%. V39's 0.003
+  correction magnitude is safe when it selects V39's own corrected image, but
+  it is not a calibrated license to force one of V54's different experts on
+  every positive frame.
+- **V59 control:** Restore V39's exact end-to-end magnitude-gated path on every
+  frame except those where V53 independently selects a renderer expert above
+  0.90 confidence. This directly composes the two strongest complementary
+  opened-suite components without changing a tensor or threshold.
+- **V60 mechanism test:** Start from V59. Only when V39 detects geometry and
+  V54 ranks the joint class above its other three geometry classes, apply the
+  V54 joint corrector as a residual after V39's first correction. All other
+  geometry retains exact V39. This tests whether sequential residual correction
+  can target combined similarity without sacrificing V39's strong pure
+  transform cells.
+- **Boundary:** V59/V60 use the same 20 opened cells and six checks, with no new
+  interactions and no seed-133M rendering. Agent hashes are `00a7793b...0d25`
+  and `fc7ab836...e196`; configs `714b09e8...fb61` and `97a33c3d...2a66`.
+
+## D-227: Freeze hierarchical geometry detection and specialist selection
+
+- **Status:** Accepted before any V58 rollout
+- **Date:** 2026-08-30
+- **Decision:** Preserve V53's confidence-gated renderer path. On all remaining
+  frames, use V39's audited correction magnitude at its original 0.003
+  threshold only to detect geometric change. Once detected, remove V54's
+  invalid default class and use its four geometry logits only to select the
+  translation, rotation, scale, or joint corrector. All controller, detector,
+  router, and corrector tensors are frozen; no domain label is available.
+- **Reason:** V54 proves its 0.90 five-way confidence blocks every effective
+  route. V57 proves binary detection preserves control and improves scale, but
+  sending every geometry frame to the joint expert leaves combined similarity
+  as the 5.86% floor. V56 proves unconditional correction contaminates cameras.
+  The hierarchy assigns each validated component one narrower role and keeps
+  renderer and clean protection upstream of geometry specialist selection.
+- **Boundary:** Same 20 opened seed-127M cells and unchanged six checks. No new
+  training interactions and no seed-133M rendering. Agent hash
+  `0ea7a990...11fa`; builder `673d236d...07ad`; config
+  `15c5ab1a...593d`; suite `8bed6a3b...438`; gate `c4d52457...6a37`.
+
+## D-226: Reject V56/V57 while retaining the binary-routing mechanism
+
+- **Status:** Both frozen gates complete and ineligible
+- **Date:** 2026-08-30
+- **Evidence:** Router-free V56 reaches 88.28/89.45% nominal/intervention,
+  46.88% mean OOD, and 9.38% worst OOD, passing 3/6 checks. Binary V57 restores
+  91.02/93.75% retention and a 26.56-point causal drop, raises mean OOD to
+  58.18%, and passes 4/6. Its remaining floor is combined similarity at
+  5.86/19.14%; scale improves from V54's 3.12/2.73% to 44.92/53.12%.
+- **Decision:** Do not allocate multi-seed or seed-133M evaluation for either.
+  Preserve V57's detection evidence, reject the single joint-expert route, and
+  change correction composition in V58. Jobs `1144794`--`1144801` completed;
+  both gate jobs exited 1 as designed on unmet thresholds.
+
+## D-225: Reject V54's five-way deployment route; retain its trained experts
+
+- **Status:** Frozen development result complete; 0/6 effective advancement
+- **Date:** 2026-08-30
+- **Evidence:** Training completed exactly 800,000 synchronized simulator
+  transitions with final-100 correction/action losses finite and low, but
+  five-way router accuracy was only 74.0%. All 20 seed-127M rollout cells are
+  exactly equal to V53: 90.23/93.75% nominal/intervention, 27.34-point causal
+  intervention drop, 50.59% mean opened OOD, and 0% worst OOD. Thus no frame
+  crossed the frozen 0.90 class-confidence route often enough to change a
+  single episode outcome.
+- **Decision:** Do not advance V54 or open seed-133M. Preserve the trained
+  continuous correctors and evaluate the already-frozen routing controls V56
+  and V57. Jobs `1144703`--`1144705` all completed operationally; aggregate is
+  `results/evidence/v54_opened_development_ood_v1/aggregate.json`.
+
+## D-224: Materialize the frozen V54 routing controls without changing tensors
+
+- **Status:** Administrative composition repair before any V56/V57 rollout
+- **Date:** 2026-08-30
+- **Incident:** The initial V56 staging shell copied V54's immutable task
+  dictionary unchanged, which the evaluator would correctly reject against the
+  V56 config. Separately, V55 intentionally trained only its binary router from
+  the common V53/V39 initialization; its standalone checkpoint therefore did
+  not yet contain V54's trained continuous correctors despite D-223 specifying
+  that final composition.
+- **Repair:** Repackage V54 with the exact V56 task dictionary for the
+  renderer-first/router-free diagnostic. For V57, take every non-router tensor
+  from completed V54 and only the `router.*` tensors from completed V55. Assert
+  that all supposedly frozen shared V53/V39 tensors are byte-equal and allow
+  differences only in V54's trained correctors. Neither builder updates a
+  tensor, selects a checkpoint from rollout performance, or changes the frozen
+  0.90 threshold, seed-127M development suite, or seed-133M reservation.
+- **Accounting:** V56 inherits V54's exact interaction ledger. V57 counts
+  V54's 800,000 geometry transitions as its local budget and V55's 480,000
+  binary-router transitions once in initialization, with all inherited source
+  interactions retained. Builder hashes are `5e02aa31...c4e2` (V56) and
+  `4bba007a...40fb` (V57). Both use the unchanged six-check development gate:
+  85% nominal, 90% intervention, positive causal lower bound with at least a
+  three-point drop, 65% mean OOD, and 30% worst OOD.
+
+## D-223: Freeze a balanced binary geometry-routing hedge
+
+- **Status:** Accepted from V54 training diagnostics before any V54 rollout
+- **Date:** 2026-08-30
+- **Decision:** Train a separate balanced binary router to distinguish altered
+  geometry from clean or renderer-shifted frames. Keep V54 untouched. If the
+  five-way V54 router confuses transform categories, the binary candidate can
+  select V54's joint-similarity expert without requiring category identity.
+- **Reason:** At 384,000/800,000 transitions, V54 correction, feature, and
+  action losses were converging, but five-way routing accuracy was about 65%.
+  This isolates detection from an unnecessarily ambiguous transform-name
+  classification problem.
+- **Budget/boundary:** 3,000 synchronized updates, 480,000 simulator
+  transitions, balanced four-to-five altered/default batches. Opened
+  development images only; seed-133M remains unopened.
+- **Frozen artifacts:** agent `96cddbcf...eebe`; trainer
+  `149fcbb1...f68f`; config `d5327c42...82a9`; Jarvis job `1144783`.
+
+## D-222: Retain V53 only as a renderer component
+
+- **Status:** Development gate rejected after all frozen V53 jobs completed
+- **Date:** 2026-08-30
+- **Evidence:** Standard control remains high at 90.23% nominal and 93.75%
+  intervention, with a 27.34-point causal intervention drop. Magenta lighting
+  reaches 88.28/94.14% and low-side lighting 53.91/88.67%; left/front camera
+  reaches 33.20/72.27%. Camera yaw remains 44.92/60.16%, and the deliberately
+  unchanged geometry cells retain the V52 failures. Across the eight opened
+  domains and two conditions, mean safe success is 50.59% and worst is 0%.
+- **Decision:** Keep V53 as V54's exact renderer/default branch, but do not
+  promote V53 or open seed-133M. Continue the already-frozen V54 geometry run.
+- **Artifacts:** train `1144698`; evaluation `1144699`; aggregate `1144700`;
+  `results/evidence/v53_opened_development_ood_v1/aggregate.json`.
+
+## D-221: Freeze and queue V54 continuous geometry composition
+
+- **Status:** Accepted before V54 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Preserve V53 as the exact default and renderer branch. Import
+  the independently audited V39 visual corrector into four geometry experts
+  for translation, rotation, scale, and joint similarity. Train those experts
+  over continuous signed parameter ranges with paired clean-image, feature,
+  action, and transform supervision. A five-class RGB router may select an
+  expert only above 0.90 confidence; clean and all four opened renderer views
+  are explicit fallback negatives.
+- **Reason:** On opened seed-127M, V39 already raises scale from 3.12/2.73% to
+  57.03/70.31%, while V52 retains stronger control and V53 targets renderer
+  failures. The residual failure is the joint similarity case, so continuous
+  correction is a narrower and testable change than replacing the controller.
+- **Budget/boundary:** 5,000 synchronized updates across nominal plus four
+  renderer environments (800,000 simulator transitions); synthetic geometry
+  does not add simulator interactions. Seed-127M is development-only and the
+  frozen seed-133M suite remains unopened.
+- **Frozen artifacts:** agent `4212f4aa...0544`; trainer
+  `c4c254d0...3655`; evaluator `806dd5e0...7d4d`; training config
+  `f3cd608b...df12`; development suite `8920925b...d228`. Jarvis jobs:
+  train `1144703`, evaluation array `1144704`, aggregate `1144705`, all with
+  dependency on successful V53 training.
+
+## D-220: Repair V53 transform import before the first training update
+
+- **Status:** Administrative repair; zero V53 updates or metrics existed
+- **Date:** 2026-08-30
+- **Incident/repair:** Job 1144695 stopped while constructing its first batch
+  because the trainer imported V41's transform function instead of the V52
+  opened-domain function. Change only that import and rerun the identical
+  frozen config. Corrected trainer hash: `ca12969c...bdc5`.
+- **Boundary:** No model weight, training example, rollout metric, seed,
+  threshold, or budget informed this repair. The empty failed run is archived.
+
+## D-219: Freeze V53 opened-renderer experts before training
+
+- **Status:** Accepted before V53 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Freeze V52 as fallback. Add four independently initialized
+  encoders for opened left/front camera, camera yaw, magenta ambient, and
+  low-side lighting, plus a five-class RGB router. Route to a new expert only
+  above 0.90 confidence; otherwise preserve V52. Train clean plus all opened
+  geometry transforms as the fallback class.
+- **Reason:** V39 supplies strong complementary geometry but no renderer
+  transfer. V47/V50 show dedicated same-state renderer experts can exceed 70%
+  while confidence/hierarchical fallback protects established control.
+- **Budget/boundary:** 5,000 synchronized updates across nominal plus four
+  opened profiles (800,000 simulator transitions). These are opened
+  development domains; seed-133M remains unopened.
+- **Frozen artifacts:** config `2c0ae410...e8a0`; development suite
+  `184c65c9...ea31`; agent `4968fb97...d7d7`; trainer
+  `ca12969c...bdc5` after D-220; evaluator `2e396470...6982`.
+
+## D-218: Reserve the seed-133M successor confirmation suite
+
+- **Status:** Accepted before successor training or any seed-133M rendering
+- **Date:** 2026-08-30
+- **Decision:** Reserve vertical subpixel, larger opposite rotation/scale,
+  right/front and pitch camera changes, and cyan/rim-low lighting at seed base
+  133,000,000. Do not implement or open them until a successor passes frozen
+  development and multi-seed gates. Retain the same every-cell 70%, paired-drop
+  20-point, and positive-causal confirmation rule.
+- **Frozen artifact:** `configs/v53_confirmatory_unseen_visual_ood_v1.json`,
+  hash `9c993493...bcf8`.
+
+## D-217: V52 development success does not transfer to seed-127M
+
+- **Status:** Confirmation rejected; seed-127M is now opened development data
+- **Date:** 2026-08-30
+- **Evidence:** Causal utility replicates at 27.34 points [21.09, 33.59], but
+  the strict confirmation minimum is 0% and maximum paired drop is 92.58%.
+  Left/front camera is 10.94/14.06%, scale-0.90 is 3.12/2.73%, and combined
+  similarity is 0/1.17%.
+- **Complementary diagnostic:** Existing V39 reaches 76.17/89.06% on left
+  subpixel and 80.86/79.30% on clockwise rotation, but only 57.03/70.31% on
+  scale, 5.86/31.64% combined, and fails new lighting. This supports selective
+  composition, not wholesale replacement.
+- **Consequence:** Keep V52's 6/6 development result with its explicit scope;
+  do not call it general robustness. Any successor may develop on seed-127M
+  but must use the newly frozen seed-133M suite for untouched evidence.
+
+## D-216: Freeze the V52 seed-127M confirmation before opening outcomes
+
+- **Status:** Accepted before any seed-127M rollout
+- **Date:** 2026-08-30
+- **Decision:** After V52's 6/6 development pass, map the unchanged frozen
+  seed-127M variant list to V52 and implement its previously unopened opposite
+  camera, lighting, and similarity transforms in an isolated evaluator. Run
+  256 episodes per condition and variant. Require every unseen cell >=70%,
+  every paired drop <=20 points, and positive causal utility, exactly as the
+  original confirmation rule states.
+- **Frozen provenance:** Original suite `17d488bb...08a5`; mapped suite
+  `6bf79c5d...906e`; gate `d3d7f53d...79f7`; evaluator
+  `b3e0412a...fb52`; runner `22d107eb...b765`; checker
+  `71911847...9fe9`.
+- **Boundary:** These outcomes cannot be used to support the existing V52
+  development claim if the gate fails, nor to tune V52. A later successor
+  would require a newly frozen untouched suite.
+
+## D-215: V52 is the first complete development-gate result
+
+- **Status:** Accepted after complete frozen development gate
+- **Date:** 2026-08-30
+- **Evidence:** V52 passes all six checks: 91.41% nominal, 90.62%
+  intervention, 24.61-point causal drop [17.97, 31.25], 69.61% mean
+  development OOD, and 35.94% worst development OOD. Its subpixel specialist
+  raises the sole V51 failure from 29.69% to 35.94% without changing renderer
+  cells.
+- **Consequence:** V52 is eligible for the frozen seed-127M confirmation. It
+  is not yet a multi-seed or untouched result.
+
+## D-214: Freeze V52 subpixel specialist routing
+
+- **Status:** Accepted before V52 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Preserve V51 completely. Train a binary RGB classifier for the
+  opened right-2.25-pixel shift versus clean, rotation, scale, and combined
+  negatives. Only when V51's top router selects its clean/geometric branch and
+  the binary classifier is positive, use the audited V43 latent; all other
+  frames retain V51 exactly. Assert V43 and V51 actor/progress heads are
+  byte-identical before training.
+- **Reason:** V51 passes five checks with 69.50% mean breadth; its sole miss is
+  subpixel nominal at 29.6875%, one episode below the floor. V43 already
+  achieves 38.28/66.41% on the same opened subpixel cell. This composes known
+  complementary evidence instead of retuning a failed geometry encoder.
+- **Accounting/gate:** Train only the router for 3,000 updates (96,000 new
+  simulator transitions). Count V51 and V43's unique adapter work once. Use
+  the unchanged gate; seed-127M remains unopened.
+- **Frozen artifacts:** config `60a15187...607c`; development suite
+  `80fba93e...d31f`; gate `58b98330...77ae`; agent `8aec7854...423b`;
+  trainer `29b80ca6...e6b1`; evaluator `2dc28c5b...7d58`; development
+  evaluator `31252e68...1afd`.
+
+## D-213: Retain V51 as the near-complete development result
+
+- **Status:** Retained after complete frozen gate; not yet eligible
+- **Date:** 2026-08-30
+- **Evidence:** V51 reaches 91.41% nominal, 90.62% intervention, 69.50% mean
+  development OOD, and a 25-point causal effect [18.36, 31.64]. Five of six
+  checks pass. The only failure is a 29.6875% worst cell against a 30% floor,
+  exactly one episode out of 256.
+- **Consequence:** Preserve V51 byte-for-byte. Permit one narrow specialist
+  composition for the already identified subpixel cell; do not alter the
+  successful renderer hierarchy or open untouched evidence.
+
+## D-212: Freeze V51 hierarchical renderer routing before execution
+
+- **Status:** Accepted before V51 rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Reuse V50 weights without new training, but restore V47's
+  exact three-way router as the top level. Only when V47 selects lighting does
+  V50's bright-versus-green logit pair select a dedicated lighting encoder.
+  Clean, geometric, and camera frames therefore follow V47 byte-for-byte.
+- **Reason:** V50 clears mean breadth at 69.34%, but its flat four-way router
+  causes one-success misses in intervention retention and the worst geometric
+  cell. Hierarchical factorization keeps the new lighting gain while removing
+  those cross-family routing errors.
+- **Accounting/gate:** No new simulator interactions; retain V50's 640,000
+  local and 102,610,944 total interaction accounting. Use the unchanged gate;
+  seed-127M remains unopened.
+- **Frozen artifacts:** config `07af21e9...70a7`; development suite
+  `b339662e...717b`; gate `911c7b26...a1f8`; agent `ad1fc2df...570c`;
+  builder `14cad68c...0610`; evaluator `1aed9172...43cd`; development
+  evaluator `6fe3598d...b163`.
+
+## D-211: Retain V50 lighting experts; reject its flat router
+
+- **Status:** Rejected after complete frozen gate; experts retained
+- **Date:** 2026-08-30
+- **Evidence:** V50 raises mean development OOD from V47's 61.86% to 69.34%
+  and bright-side lighting to 79.69/73.05%. Nominal is 85.16%, causal drop is
+  25 points [18.36, 31.64], but intervention is 89.84% and worst OOD 28.91%.
+  The gate passes 4/6, with both misses attributable to very small routing
+  contamination of V47's otherwise unchanged paths.
+- **Consequence:** Keep the dedicated lighting encoders; replace only the flat
+  router with a hierarchy that cannot send clean/geometric frames to them.
+
+## D-210: Freeze V50 dedicated camera/bright/green experts
+
+- **Status:** Accepted before V50 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Restart from V47, preserving its validated V41 geometry path
+  and camera expert. Replace the shared V45 lighting path with independently
+  initialized bright-side and green-ambient encoders, and train a four-class
+  RGB router on clean/geometric, camera, bright, and green images. Update only
+  the two lighting encoders and new router.
+- **Reason:** V47's dedicated camera expert demonstrates that specialization
+  can raise a renderer family to about 80%, while its shared lighting encoder
+  remains near 50--60%. Raising lighting breadth can clear the mean gate
+  without risking geometry or camera control. Geometry-expert V48/V49 is
+  closed after two negative tests.
+- **Budget/gate:** 5,000 synchronized updates, 640,000 simulator transitions;
+  unchanged six-check gate and unopened seed-127M suite.
+- **Frozen artifacts:** config `7c4c7d6a...1aac`; development suite
+  `b4fbf57d...a91e`; gate `66bcc9cb...01d1`; agent `51155870...adb5`;
+  trainer `1c3302d6...72e5`; evaluator `f0c75836...18eb`; development
+  evaluator `dcdb2359...648f`.
+
+## D-209: Reject V49 and close geometry feature/action adaptation
+
+- **Status:** Rejected after complete frozen gate
+- **Date:** 2026-08-30
+- **Evidence:** V49 reaches 91.41/94.14% nominal/intervention and a 28.52-point
+  causal effect [22.27, 34.77], but mean development OOD is 54.24% and worst
+  is 14.45%. The unchanged gate passes 4/6.
+- **Mechanism:** On-policy correction lowers student-state action loss below
+  0.01 and improves some intervention cells, but nominal subpixel/combined
+  remain 23.05/14.45%. The limitation is therefore not fixed by removing
+  teacher-trajectory covariate shift alone.
+- **Consequence:** Do not tune the V48/V49 geometry encoder further. Return to
+  V47, retain its stronger geometry path, and target the lighting families
+  where dedicated specialization has positive evidence.
+
+## D-208: Freeze V49 on-policy corrective geometry adaptation
+
+- **Status:** Accepted before V49 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Retain V48's trained geometry router but reset its failed
+  geometry encoder to V41. Freeze all routers, controller heads, camera, and
+  lighting experts. Cycle the four opened transforms, query V41 on the clean
+  image at the same underlying state, update only the geometry encoder, and
+  execute the student's transformed-view action so subsequent supervision
+  covers student-induced states.
+- **Reason:** V48's teacher-trajectory feature matching optimizes successfully
+  but fails closed-loop, especially on combined similarity. This isolates
+  covariate shift. On-policy corrective imitation directly trains on the
+  states caused by the geometry expert's own errors without exposing state or
+  domain labels at deployment.
+- **Budget/gate:** 8,000 updates, 32 environments, 256,000 new simulator
+  transitions; action imitation weight 100. Use the unchanged six-check gate.
+  The seed-127M suite stays unopened.
+- **Frozen artifacts:** config `50a89978...a30a`; development suite
+  `47200c6f...cd46`; gate `74c9a81a...7818`; agent `1ee81c00...fa74`;
+  trainer `8644946a...8e9a`; evaluator `677d1b91...c6aa`; development
+  evaluator `4e03db12...7849`.
+
+## D-207: Reject V48 teacher-trajectory geometry adaptation
+
+- **Status:** Rejected after complete frozen gate
+- **Date:** 2026-08-30
+- **Evidence:** V48 retains nominal/intervention at 91.80/92.58% and both
+  causal checks, but mean development OOD falls to 55.16% and worst to 13.67%.
+  Combined similarity falls to 13.67/30.08%; subpixel nominal remains 29.69%.
+  The gate passes 4/6.
+- **Mechanism:** Nearly perfect clean/transform classification is insufficient.
+  Feature/action alignment on V41 teacher trajectories does not cover the
+  states induced by small student control errors, so closed-loop errors
+  compound even though supervised losses converge.
+- **Consequence:** Do not allocate multi-seed or untouched V48 evaluation.
+  Preserve its router only; reset the geometry encoder and train it with
+  student-executed corrective trajectories.
+
+## D-206: Freeze V48 hierarchical geometry expert before training
+
+- **Status:** Accepted before V48 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Freeze all V47 controller, camera, lighting, and top-level
+  router parameters. Beneath V47's class-0 path, add a binary RGB router for
+  clean versus opened geometric transforms and a geometry encoder trained to
+  match V41's clean latent/action on all four transforms. Clean frames retain
+  the exact V41 path; camera and lighting retain the exact V47 paths.
+- **Reason:** V47 solves the camera mechanism but the final two gate failures
+  are geometric breadth: mean 61.86% versus 65%, and a 29.6875% subpixel cell
+  versus the 30% floor. Hierarchical routing isolates that weakness without
+  risking the validated renderer experts.
+- **Budget/gate:** 4,000 updates with 32 nominal environments (128,000 new
+  simulator transitions); transformed views add no simulator transitions.
+  Use the identical six-check development gate. Seed-127M remains unopened.
+- **Frozen artifacts:** config `a3b73094...1d28`; development suite
+  `aa971b9d...b6b5`; gate `becb0923...8315`; agent `1ee81c00...fa74`;
+  trainer `f05fb483...e19d`; evaluator `1ffde8ab...0fb6`; development
+  evaluator `aeefc880...c14d8`.
+
+## D-205: Retain V47 camera mechanism; reject it as the final breadth result
+
+- **Status:** Rejected after complete frozen gate; mechanism retained
+- **Date:** 2026-08-30
+- **Evidence:** V47 preserves 91.41% nominal, 90.62% intervention, and a
+  25-point causal drop [18.36, 31.64]. Camera right/back rises from V46's
+  0/16.80% to 78.91/84.38%. Mean development OOD rises to 61.86%; worst is
+  29.6875%. The unchanged gate therefore passes 4/6 and misses the worst-cell
+  floor by one success out of 256.
+- **Consequence:** No multi-seed or untouched V47 allocation. Preserve its
+  camera/lighting experts and train only the still-missing geometric expert.
+
+## D-204: Freeze V47 RGB-routed renderer experts before training
+
+- **Status:** Accepted before V47 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Keep the V41 path for nominal and geometric images, keep V45's
+  clean-anchored encoder as a frozen lighting expert, and train a separate
+  camera encoder. Train a three-class RGB router on clean plus all four opened
+  geometric perturbations as class 0, right/back camera as class 1, and the
+  two opened lighting profiles as class 2. Deployment uses only RGB and
+  selects the argmax expert; no domain label is supplied.
+- **Reason:** V46 proves complementary routing can retain all four control and
+  causal checks and lift mean development robustness to 51.37%, but its binary
+  router recognizes lighting and misses displaced camera. An explicit camera
+  expert and geometric-negative class target that observed failure without
+  changing the controller or thresholds.
+- **Budget/gate:** Train 5,000 synchronized updates (640,000 simulator
+  transitions) from V45, updating only the camera encoder and router. Use the
+  identical six-check development gate. The seed-127M suite stays unopened.
+- **Frozen artifacts:** config `b1d5ff0f...745f`; development suite
+  `fdaa89fc...3ff5`; gate `2562d53a...2b55`; agent `84e7b862...6fb6`;
+  trainer `ac34d16a...a37a`; evaluator `64c70284...dce2`; development
+  evaluator `4f482eff...f1f`.
+
+## D-203: Reject V46 threshold-0.50 hybrid after its frozen gate
+
+- **Status:** Rejected after complete development evaluation
+- **Date:** 2026-08-30
+- **Evidence:** V46 passes nominal retention (91.41%), intervention retention
+  (90.62%), and both causal checks (25-point drop, interval [18.36, 31.64]).
+  Its mean development OOD rises from V45's 27.12% to 51.37%, while worst OOD
+  remains 0%; the unchanged gate passes 4/6.
+- **Mechanism:** The router preserves V41 results on clean/geometric inputs and
+  selects V45 for both lighting families, but does not select the camera
+  expert reliably. Bright lighting reaches 51.17/47.27% and green ambient
+  55.08/64.06%, while camera remains 0/16.80%.
+- **Consequence:** Do not allocate multi-seed or untouched V46 evaluation. A
+  successor must add explicit camera expertise and train the selector against
+  geometric negatives rather than tune a global binary threshold alone.
+
+## D-202: Freeze V46 complementary feature routing at threshold 0.50
+
+- **Status:** Accepted before any V46 rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Compose the trained V44 RGB router with the V45 clean-anchored
+  renderer encoder and the untouched V41 controller path. Route per frame at
+  probability 0.50, chosen before V46 evaluation from V44's training-only
+  separation (about 0.41 clean versus 0.56 shifted). No domain label enters
+  the actor.
+- **Reason:** V45 improves all three renderer-native development families but
+  degrades the geometric families that V41/V44 preserve. Their errors are
+  complementary, and V44 already learned the required deployable selector;
+  its original 0.90 threshold, rather than lack of separation, prevented use.
+- **Accounting:** The hybrid inherits two independently trained adapters over
+  the common V40 source, so it counts V44's 512,000 and V45's 307,200 adapter
+  transitions once (819,200 local; 101,842,944 total including the common
+  source). This arithmetic was verified from both completion records before
+  V46 rollouts; the initial draft's 614,400 value was corrected pre-execution.
+- **Frozen artifacts:** config `a893523b...43a9`; development suite
+  `965760d0...0754`; gate `4ccdc0be...e47cb`; agent `f5eae70b...0af5e`;
+  builder `575dc7b9...cdda`; evaluator `ca1cc789...413b`; development
+  evaluator `2c505dcc...96b1`; runner `9c1a67d6...d517`.
+- **Gate/boundary:** Use the unchanged six V42--V45 thresholds and development
+  seeds. The seed-127M suite remains unopened unless V46 passes.
+
+## D-201: Repair V45 execution-manifest serialization without changing evaluation
+
+- **Status:** Administrative repair after rollout metrics, before aggregation
+- **Date:** 2026-08-30
+- **Incident:** V45 array tasks completed both frozen-condition rollouts and
+  wrote their evaluation files, then failed while serializing the execution
+  manifest because the development spec omitted the required
+  `claim_boundary` metadata field (`KeyError`). No policy, seed, condition,
+  episode count, perturbation, or threshold was affected.
+- **Repair:** Add only `claim_boundary` to the development spec and rerun all
+  nine tasks, including cells that happened to finish, so every execution
+  manifest has one consistent repaired-spec hash. The repaired spec hash is
+  `f694e459...8435`; the original frozen hash was `1fd4de0e...0e09`.
+- **Boundary:** This is not a metric-informed model or protocol change. V45's
+  checkpoint, evaluator, seeds, variants, episode counts, and gate remain
+  frozen, and the seed-127M suite remains unopened.
+
+## D-200: Reject V44 routing and freeze the always-feature V45 control
+
+- **Status:** V44 rejected after its frozen gate; V45 accepted before metrics
+- **Date:** 2026-08-30
+- **V44 result:** Retention and causal checks pass, but the 0.9 router never
+  activates reliably: final training probabilities are about 0.41 clean and
+  0.56 shifted. Development mean is 37.56%, worst is 0%, and the gate passes
+  4/6. This rejects routing while leaving feature alignment untested in control.
+- **V45 decision:** Remove the router confound by always using the cloned
+  feature encoder. Train it on both shifted-to-nominal invariance and explicit
+  clean feature/action identity, from the same frozen V40 source. Use 2400
+  updates at 5e-6 and the unchanged six-check gate.
+- **Frozen artifacts:** config `7075b31c...b356`; development suite
+  `1fd4de0e...0e09`; gate `a4d3b628...4369`; agent `2f27ae94...ce98`;
+  trainer `1fe048b4...4c06`; evaluator `a641295b...01de`.
+- **Boundary:** The seed-127M suite remains unopened; V45 receives no larger
+  allocation unless the unchanged gate passes.
+
+## D-199: Freeze V44 routed multi-view feature adaptation before training
+
+- **Status:** Accepted before V44 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Preserve the complete V41 path byte-exact. Add a separately
+  initialized renderer encoder and a conservative RGB router. Clean frames use
+  V41 unless router probability exceeds 0.9; routed frames use a feature vector
+  trained to match the synchronized nominal V41 latent and action. Only the new
+  encoder/router learn.
+- **Reason:** V42/V43 prove pixel reconstruction cannot jointly preserve clean
+  control and invert renderer changes. Feature alignment does not require
+  reconstructing parallax, shadows, or illumination, while the explicit route
+  keeps the validated controller path intact.
+- **Gate/boundary:** Use the identical V42/V43 one-seed development suite and
+  six thresholds. The unopened seed-127M suite remains byte-identical and
+  inaccessible unless the gate passes.
+- **Frozen artifacts:** config `d7b019cd...e242`; development suite
+  `20fbbb0e...46b6`; gate `784844bf...14ae`; agent `0afa09bc...a5d4`;
+  trainer `414ab8c1...b872`; evaluator `30ad88de...910b`; tests
+  `a5e893d7...c868`.
+- **Boundary:** Paired same-state feature targets are privileged training
+  supervision. Deployment remains restricted RGB/proprio/instruction with no
+  domain label.
+
+## D-198: Reject V43 and close dense pixel reconstruction as the renderer fix
+
+- **Status:** Accepted after the frozen V43 development gate
+- **Date:** 2026-08-30
+- **Decision:** Reject V43 before multi-seed allocation and close this dense
+  pixel-residual family. Preserve V41 as the stronger result. Any successor
+  must change representation/routing structure rather than retune the same
+  reconstruction loss.
+- **Evidence:** V43 restores nominal/intervention safe success to 91.02%/91.80%
+  and retains a 26.56-point causal effect [20.31, 32.81]. Its final clean
+  identity error is 0.0061, again safely below the 0.015 route. Nevertheless,
+  mean development OOD is only 33.65%, worst OOD is 0%, combined camera is
+  0.78%/12.50%, bright-side lighting 0%/6.25%, and green ambient
+  7.81%/14.45%. Gate `1144517` passes retention and causal checks but fails
+  mean and worst OOD (4/6).
+- **Mechanism:** V42 demonstrates the high-plasticity failure: learning a
+  renderer inverse raises clean correction above the deployment threshold and
+  corrupts controller inputs. V43 demonstrates the opposite boundary: strong
+  identity regularization preserves clean control but the pixel residual
+  cannot invert parallax or directional illumination. This is an
+  architecture-level limitation, not a threshold near miss.
+- **Consequences:** No V42/V43 multi-seed or untouched jobs are allocated. The
+  unopened suite `17d488bb...08a5` remains reserved. The next eligible design
+  must use a representation-level multi-view objective and an explicitly
+  clean-preserving route, with V41 as its fixed control baseline.
+
+## D-197: Reject V42 and freeze one identity-bounded V43 repair
+
+- **Status:** V42 rejected after its frozen gate; V43 accepted before metrics
+- **Date:** 2026-08-30
+- **V42 result:** Training/audit and all nine development tasks completed, but
+  the gate passes only causal effect/lower-bound checks. Nominal/intervention
+  safe success falls to 50.39%/63.28%, mean development OOD to 5.61%, and the
+  worst cell to 0%. No multi-seed or untouched V42 allocation is permitted.
+- **Diagnosis:** V40's final clean identity error was about 0.0066 normalized
+  RGB units, safely below the 0.015 deployment route. V42's final identity
+  error rose to about 0.0151, crossing that boundary and routing clean frames
+  through a renderer-specialized correction. Freezing policy heads was
+  therefore insufficient to preserve their input distribution.
+- **V43 decision:** Restart byte-exact from V40, retain the same three V42
+  development profiles and frozen gate, multiply identity weight 30→150,
+  reduce learning rate 2e-5→5e-6, and reduce updates 4000→1600. No other task
+  parameter changes. This is the only bounded repair allocated from V42.
+- **Frozen V43 artifacts:** config `238826e4...53db`; routing
+  `ef1ab458...dbc6`; development suite `c1fb2b34...62a5`; gate
+  `5223a68c...800b`; tests `a7cd29f4...3ad3`.
+- **Boundary:** The V42 untouched suite `17d488bb...08a5` remains unopened and
+  byte-identical. V43 must pass the unchanged development gate before any
+  multi-seed or untouched work.
+
+## D-196: Freeze V42 broad-render repair and a new untouched suite
+
+- **Status:** Accepted before V42 training or rollout metrics
+- **Date:** 2026-08-30
+- **Decision:** Initialize from the audited V40 seed-1788 checkpoint, keep the
+  full controller/global canonicalizer frozen, and fine-tune only its dense RGB
+  residual on synchronized nominal plus V41's opened camera, bright-side, and
+  green-ambient renderer failures. Retain V41's 0.015 deployment threshold.
+- **Reason:** V41 preserves strict control and improves geometric transfer, but
+  its two renderer-native families dominate the remaining error. This directly
+  tests whether broader same-state renderer supervision repairs that mechanism
+  without rewriting the policy.
+- **Development gate:** Require >=85% nominal, >=90% intervention, positive
+  causal lower bound with >=3-point effect, >=65% mean development OOD, and
+  >=30% worst development OOD. V41's completed untouched suite is now V42
+  development data and cannot support a V42 unseen-domain claim.
+- **New untouched boundary:** Reserve seed base 127,000,000 and opposite/harder
+  subpixel, rotation, scale, joint-similarity, camera left/front, camera yaw,
+  magenta-ambient, and low-side-light variants. They cannot enter V42 training,
+  development, calibration, routing, or model selection.
+- **Frozen artifacts:** training config `596a1f58...b4cf`; routing
+  `a4d2ae39...d108`; development suite `65a9ef69...0e9c`; gate
+  `51a41eda...846a`; untouched suite `17d488bb...08a5`; parameterized trainer
+  `877b3b27...2926`; evaluator `79c455df...c3ac`; development evaluator
+  `ca83c949...5179`; runner `9909af75...baf1`; tests `92db4750...bf9a`.
+- **Boundary:** V42 remains supervised invariance repair on privileged
+  same-state views, not pure self-supervision, from-scratch reinforcement
+  learning, or real-robot evidence.
+
+## D-195: Retain V41 as a mechanism result; reject general visual robustness
+
+- **Status:** Accepted after immutable three-seed evaluation and final gate
+- **Date:** 2026-08-30
+- **Decision:** Retain V19 as the released integrated controller. Preserve V41
+  as the strongest current canonicalization result, but do not describe it as
+  generally robust and do not relax the frozen thresholds.
+- **Evidence:** V41 reaches 89.45% standard nominal and 95.57% intervention
+  safe success, with an 83.20% minimum standard seed. It exactly matches V19's
+  pooled strict result at 96.35%, with a 94.14% minimum strict seed. Its frozen
+  untouched mean is 44.47%, versus V35's 18.34%, but the minimum seed/domain
+  result is 0%. Bright-side lighting reaches 0% nominal / 5.08% intervention;
+  combined right/back camera displacement reaches 0.26% / 10.81%.
+- **Causal result:** Cyclically shifting learned progress reduces safe success
+  by 11.07 points nominal [4.43, 19.79] and 13.15 points intervention
+  [0.39, 23.18]. Causal progress utility therefore replicates across all three
+  V41 seeds.
+- **Gate:** Job `1144465` writes a valid fail-closed result and exits 1 as
+  intended. Six of ten checks pass: standard intervention, standard per-seed,
+  all three strict checks, and causal utility. Standard nominal misses by 0.55
+  point; mean/minimum untouched robustness and the all-domain rule fail.
+- **Consequence:** V41 shows that continuous/dense canonicalization transfers
+  meaningfully to unseen synthetic geometry while preserving control, but
+  renderer-level camera and directional-light variation remains the dominant
+  unresolved mechanism. This untouched suite may become development evidence
+  only for a separately frozen successor with new untouched domains.
+- **Boundary:** The result is simulation-only, privileged-supervision evidence
+  for restricted RGB deployment; it is not pure self-supervision,
+  from-scratch reinforcement learning, or real-robot evidence.
+
+## D-194: Freeze the V41 final evidence thresholds before evaluation
+
+- **Status:** Accepted before standard, strict-removal, or untouched outcomes
+- **Date:** 2026-08-30
+- **Decision:** Apply one fail-closed ten-check gate after all three evidence
+  families finish. Require pooled standard nominal/intervention and strict
+  safe success of at least 90%; per-seed standard/strict floors of at least
+  80%; at most a five-point strict drop from V19; mean untouched safe success
+  of at least 80%; a 60% untouched per-seed floor; every frozen per-domain
+  robustness rule; and positive causal progress utility.
+- **Frozen artifacts:** gate config `23fa6e65...f74c`; Slurm entry
+  `15a79971...a5f6f`. The gate is scheduled only after both the strict and
+  untouched aggregates and writes its result even when a threshold fails.
+- **Boundary:** A passing result remains simulation-only evidence for the
+  exact frozen task, policy lineage, seeds, and perturbation suite.
+
+## D-193: Freeze the V41 three-seed evaluation chain before outcomes
+
+- **Status:** Accepted before standard, strict-removal, or untouched outcomes
+- **Date:** 2026-08-30
+- **Decision:** Evaluate the exact audited V40 checkpoint tasks through V41's
+  fixed 0.015 deployment threshold. Run 256 episodes per seed for nominal,
+  intervention, and strict removal, then run every frozen untouched variant
+  at both nominal and intervention conditions. Serialize standard aggregation
+  before untouched baselines to prevent legacy filename collisions.
+- **Untouched transform semantics:** The joint similarity transform combines
+  a 2.25-pixel right shift, four-degree counterclockwise rotation, and 1.08
+  enlargement. The camera profile combines a four-centimeter radial retreat
+  with a four-centimeter right shift. The two lighting profiles use an
+  opposite-side bright key and green ambient illumination, respectively.
+- **Frozen artifacts:** selection `4228c7b0...fd7c`; evaluation identity
+  `69e120e4...d9a2`; strict comparison `2c22a695...0f63`; untouched evaluator
+  `58d5049e...f457`; runner `ff8f3062...1359`; strict adapter
+  `0c9d5048...1e1b`; standard Slurm entry `c67ee821...fec1`; strict Slurm entry
+  `11dfae46...09f`; untouched Slurm entry `4c68f800...29da`; untouched
+  aggregation `7bdc9d37...f27f`; untouched tests `fdc996fe...a965`, exact
+  lineage tests `a5af42e8...88cd`, and evaluation-identity test
+  `4419fbb5...b2a`.
+- **Validation:** Jarvis passes 7/7 exact-lineage and untouched-transform tests;
+  the frozen runner resolves 27 tasks. No rollout outcome has been inspected.
+- **Boundary:** These are simulation-only tests of a restricted RGB controller
+  trained with privileged supervision. They do not establish real-robot,
+  pure self-supervised, or from-scratch reinforcement-learning performance.
+
+## D-192: Repair the V41 lineage view to the audited V19 seed cohort
+
+- **Status:** Accepted after a pre-training source lookup failure
+- **Date:** 2026-08-30
+- **Decision:** Replace the incorrectly assumed seeds 2671/3253 with V19's
+  actual registered three-seed cohort `[9351,4796,1788]`; allocate task indices
+  0 and 1 and reuse seed 1788 at index 2.
+- **Reason:** V36 jobs `1144442_1` and `_2` stopped before loading a checkpoint
+  because those assumed V19 paths do not exist. Jarvis and the immutable V19
+  config both resolve the original cohort to 9351/4796/1788. No optimizer step,
+  model update, rollout metric, or evaluation occurred.
+- **Consequences:** Cancel dependency-held jobs `1144443`--`1144447`, re-run
+  exact-task tests/preflights, freeze replacement view hashes, then resubmit.
+- **Frozen replacement hashes:** V36 view
+  `3522ac5dac4ded0f42408b687df86938cb79bab8226d1cbd7fd86f781bb5197b`,
+  V38 view
+  `f4631e0849295fe046b5f9bcd92002912e4cc9df94ac744ef68e09e2e752f56a`,
+  V40 view
+  `2eeefef7ed356cf6e1fab2d90361513521626e6200fe2463c52af68d0519c1b3`,
+  and lineage test
+  `a5af42e8167c300245b92f747b0eaefd5ff094e01dafc7989d8247c3c1a888cd`.
+
+## D-191: Freeze the exact three-seed V41 training lineage (superseded)
+
+- **Status:** Superseded before training by D-192
+- **Date:** 2026-08-30
+- **Decision:** Extend the byte-identical V36, V38, and V40 tasks from seed
+  1788 to the established seeds `[1788,2671,3253]`. Keep each output experiment
+  name unchanged so the audited seed-1788 checkpoint is reused in place; train
+  only task indices 1 and 2 at every stage. Audit all three seeds before the
+  next dependent stage.
+- **Frozen views:** V36 `fe2b4094...d8ce8`; V38
+  `959a6553...c3ef5`; V40 `cad8d7a4...e0b9f`; exact-task tests
+  `bc3f2b3d...bab05`.
+- **Boundary:** Jarvis passes 2/2 exact-equality tests and all three missing-seed
+  preflights. This allocates training lineage only. No standard, strict, or
+  untouched outcome may be inferred until the corresponding frozen
+  evaluations complete.
+
+## D-190: Freeze V41 deployment threshold after bounded development calibration
+
+- **Status:** Accepted before the complete V41 development rerun
+- **Date:** 2026-08-30
+- **Decision:** Keep the audited V40 checkpoint byte-exact and change only the
+  magnitude fallback from 0.003 to 0.015. This is a deployment rule with no new
+  parameter, training transition, optimizer update, or domain input.
+- **Selection evidence:** A predeclared six-value development grid
+  `{0.005,0.010,0.015,0.020,0.030,0.040}` gives 78.13%, 89.84%, 92.97%,
+  92.97%, 92.97%, and 92.19% nominal safe success over 128 episodes. Select
+  0.015 as the smallest value on the maximum plateau. A separate 128-episode
+  screen at 0.015 retains back-key at 33.59%/32.03%, camera-back intervention
+  at 83.59%, scale intervention at 81.25%, and subpixel intervention at 48.44%.
+- **Frozen artifacts:** agent `64c04c8f...ca20d`; evaluator
+  `bb1dcbf2...f5661`; development evaluator `f6085e1e...333df`; runner
+  `bb869a82...e31a9`; complete development suite `b526565f...566ab`; gate
+  `41a28f5d...64f0`; tests `dd1926ad...138e`.
+- **Boundary:** Calibration results are development-only. Jarvis passes 2/2
+  state-key/gate tests and the nine-task preflight. The untouched suite remains
+  byte-identical at `9a3008b4...52fc` and unobserved. The unchanged full gate
+  must pass before any multi-seed or untouched evaluation.
+
+## D-189: Freeze extended V40 exposure before training
+
+- **Status:** Accepted before any V40 training or rollout metric
+- **Date:** 2026-08-30
+- **Decision:** Reuse the byte-identical V39 trainer, agent, and evaluator from
+  the same V38 source. Change only experiment identity, fine-tuning updates
+  1,200→2,400, exact transitions 192,000→384,000, and back-key sampling
+  4/7→8/11. Keep learning rate, losses, magnitude threshold, seeds, domains,
+  and all gate thresholds unchanged.
+- **Frozen artifacts:** trainer `4287418d...c252`; agent
+  `22a99343...7512`; evaluator `d7eafe0c...80b6`; development evaluator
+  `15d1621f...6663`; runner `51be4d35...cca3`; smoke config
+  `06420ae8...dd89`; development suite `d0cdf976...6339`; gate
+  `627849af...b0f4`; tests `dd387b42...061e`.
+- **Boundary:** Jarvis passes 2/2 exact-delta tests and both preflights. The
+  untouched suite remains byte-identical at `9a3008b4...52fc` and unobserved.
+  V40 must clear the unchanged six-check gate before any confirmation work.
+
+## D-188: Reject V39 near miss and extend only its confirmed floor mechanism
+
+- **Status:** Accepted after the frozen V39 gate
+- **Date:** 2026-08-30
+- **Decision:** Do not allocate V39 confirmation. Run one extended V40 smoke
+  from the same audited V38 source using the byte-identical V39 trainer and
+  deployment agent, but double fine-tuning to 2,400 updates and increase
+  back-key sampling from 4/7 to 8/11.
+- **Reason:** V39 passes five of six checks: 87.89% nominal, 94.92%
+  intervention, 68.58% mean development OOD, and both causal checks. Back-key
+  nominal improves from V38's 15.23% to 29.30%, but back-key intervention is
+  24.22%, leaving the worst cell 5.78 points below the 30% floor. This is
+  direct evidence that the targeted mechanism helps but has insufficient
+  exposure; changing architecture, thresholds, or other domains is excluded.
+- **Boundary:** V40 remains development-only and must pass the unchanged gate.
+  V39 job `1144393` is correctly ineligible. The untouched suite remains
+  unobserved.
+
+## D-187: Freeze V39 magnitude fallback and targeted dense repair
+
+- **Status:** Accepted before any V39 training or rollout metric
+- **Date:** 2026-08-30
+- **Decision:** Initialize from audited V38, freeze V19 and the global
+  factorized corrector, and fine-tune only the dense residual on synchronized
+  physical-domain pairs. Oversample the single V38 floor domain,
+  `lighting_back_key`, four times in a seven-item cycle. At deployment, bypass
+  correction when its mean normalized RGB magnitude is below 0.003.
+- **Reason:** V38 passes mean development OOD at 65.09%, intervention retention
+  at 96.09%, and causal checks, but misses nominal retention at 81.64% and has
+  a 15.23% worst cell. A 128-episode development diagnostic raises nominal to
+  85.16% at magnitude thresholds 0.003 and 0.005; 0.003 is selected because it
+  retains more corrected frames. The remaining floor is specifically back-key
+  lighting, so retraining the already successful global corrector is excluded.
+- **Frozen artifacts:** agent `22a99343...7512`; trainer
+  `4287418d...c252`; evaluator `d7eafe0c...80b6`; development evaluator
+  `15d1621f...6663`; runner `37193658...8de4`; smoke config
+  `d0d08e67...bdfb`; development suite `ddc8164e...70ae`; gate
+  `0fcba678...3976`; tests `b540c24f...4393`.
+- **Budget and boundary:** 1,200 updates across five synchronized 32-way
+  simulators equal exactly 192,000 new transitions. Jarvis passes all three
+  focused tests, including strict V38/V39 checkpoint-key compatibility, and
+  both preflights. The byte-identical untouched suite remains
+  `9a3008b4...52fc` and unobserved. The unchanged six-check gate is the only
+  route to multi-seed confirmation.
+
+## D-186: Freeze V38 cardinality-aligned canonicalization before training
+
+- **Status:** Accepted before any V38 training or rollout metric
+- **Date:** 2026-08-30
+- **Decision:** Re-run the V37 factorized/dense hypothesis from V36, but pair
+  every single-camera shifted renderer with a synchronized nominal
+  single-camera reference. Keep the three-camera control simulator separate.
+  Assert paired proprioception, critic state, and task progress every 20 steps
+  and after coordinated resets.
+- **Frozen artifacts:** trainer `970e685a...4f43`; agent
+  `e62310a7...7e2c`; evaluator `bb12a258...ac50`; development evaluator
+  `c9c33b3e...9497`; runner `aa5d2f30...a900`; smoke config
+  `9b95cdb8...8baf`; development suite `d78afb36...6305`; gate
+  `4c6244fb...9bc3`; tests `31b96390...00f7`.
+- **Budget and boundary:** 2,000 updates across 32 environments in six
+  synchronized/primary simulators equals exactly 384,000 new simulator
+  transitions. Jarvis passes 3/3 focused tests and both preflights. The
+  untouched confirmation suite remains byte-identical at
+  `9a3008b4...52fc` and has not been evaluated.
+- **Gate:** Unchanged: >=85% nominal/intervention, positive causal lower bound
+  with >=3-point effect, >=55% mean development OOD, and >=30% worst-domain
+  safe success. Passing only permits multi-seed confirmation.
+
+## D-185: Reject V37 and restore sensor-cardinality-matched physical pairs
+
+- **Status:** Accepted after the frozen V37 gate
+- **Date:** 2026-08-30
+- **Decision:** Reject V37 before multi-seed allocation. Retain its factorized
+  sensor curriculum, but train the next physical canonicalizer against a
+  separate nominal single-camera reference synchronized with the single-camera
+  shifted environments.
+- **Reason:** V37 passes nominal/intervention retention and both causal checks,
+  and raises scale intervention from V36's 9.77% to 78.12% plus subpixel
+  nominal from 3.52% to 76.56%. Yet its mean/worst development OOD are only
+  37.30%/0%. It paired single-camera physical renders against a three-camera
+  control simulator—the exact sensor-cardinality mismatch previously isolated
+  in D-171. Camera/lighting results consequently regressed despite training.
+- **Consequences:** Gate `1144347` rejects V37. V38 must assert paired proprio,
+  critic state, and task-progress equality during training; no multi-seed or
+  untouched V37 confirmation is allocated.
+
+## D-184: Repair V37 smoke inherited interaction accounting before evaluation
+
+- **Status:** Accepted after training and before completed rollout evaluation
+- **Date:** 2026-08-30
+- **Decision:** Cancel the first downstream V37 evaluation array, correct only
+  `TRAINING_COMPLETE.json`, rerun the immutable checkpoint audit, and then
+  resubmit all evaluations.
+- **Reason:** V37 correctly recorded 320,000 local simulator transitions but
+  its inheritance helper selected V36's 256,000 local count before V36's
+  100,255,744 cumulative count. The correct V37 cumulative total is therefore
+  100,575,744, not 576,000.
+- **Boundary:** Repair script validates both old and new exact totals and the
+  V36 source completion. It changes no checkpoint tensor, optimizer state,
+  training example, update, environment step, seed, evaluator, outcome, or
+  threshold. Jobs `1144332`--`1144334` were cancelled before any task completed.
+
+## D-183: Freeze V37 dense paired-domain repair before training
+
+- **Status:** Accepted before any V37 training or rollout metric
+- **Date:** 2026-08-30
+- **Decision:** Initialize from the audited V36 smoke checkpoint, always apply
+  its global continuous correction, and add a zero-initialized dense residual
+  corrector. Train factorized identity/translation/rotation/scale/color cases
+  plus synchronized same-state views from the four observed D-176 physical
+  profiles. Preserve the frozen V19 controller and expose no domain label to
+  the deployed actor.
+- **Hypothesis:** V36's joint-only synthetic mixture made subtle single-factor
+  corruptions look clean to its route, while a global similarity/color model
+  cannot express parallax or directional-light residuals. Factorized training
+  should repair the first failure; a local dense residual trained from paired
+  simulator views should repair the second without sacrificing clean control.
+- **Frozen artifacts:** agent `e62310a7...7e2c`; trainer
+  `18b59767...612c`; evaluator `2facbabe...373c9`; development evaluator
+  `44684d44...d0d8`; runner `23b059e7...71b8`; smoke config
+  `d6fdea6d...8c05`; development suite `f363d78d...09e9`; gate
+  `02d66fe4...6f1f`; tests `f92f042f...0a67`.
+- **Untouched boundary:** Confirmation config remains byte-identical at
+  `9a3008b4...52fc`, seed base 117,000,000. None of its seven new domains has
+  been evaluated or used for V37 design, training, calibration, or selection.
+- **Gate:** The same predeclared thresholds require at least 85% nominal and
+  intervention safe success, positive causal evidence with at least a
+  three-point drop, at least 55% mean development OOD, and at least 30% on the
+  worst development domain. Passing allocates multi-seed confirmation; it is
+  not itself an unseen-robustness claim.
+
+## D-182: Reject V36 smoke and isolate routing from correction quality
+
+- **Status:** Accepted after the frozen V36 development gate
+- **Date:** 2026-08-30
+- **Decision:** Do not allocate V36 multi-seed or untouched-confirmation runs.
+  Preserve its outputs and run a development-only always-route diagnostic on
+  the same checkpoint before designing V37.
+- **Reason:** V36 passes nominal retention (94.14%), intervention retention
+  (92.58%), and both causal-utility checks, but reaches only 33.79% mean and
+  0% worst development-OOD safe success. The learned route activates on just
+  0.1--1.2% of subtle translation/scale frames despite 98.84% positive routing
+  on its training mixture. This directly implicates corruption detection, but
+  does not yet establish that the predicted correction is useful.
+- **Consequences:** Frozen gate job `1144315` is ineligible as expected (exit
+  1). A separate 128-episode-per-domain diagnostic may use D-176 because it is
+  development data; it cannot support robustness or confirmation claims and
+  cannot overwrite the frozen V36 evaluation files.
+
+## D-181: Freeze V36 continuous canonicalization before training
+
+- **Status:** Accepted before any V36 training or rollout metric
+- **Date:** 2026-08-30
+- **Decision:** Preserve the complete frozen V19 controller on a conservative
+  clean route. Replace V35's global-average binary translation estimator and
+  V34's named-domain router with a position-aware network that predicts
+  continuous two-axis translation, rotation, isotropic scale, RGB gain, and RGB
+  bias. Train from random joint transformations plus paired same-state camera
+  views; require a one-seed gate before any multi-seed allocation.
+- **Reason:** V35 retains strict control but its untouched mean falls to 18.34%.
+  Its translation estimator destroys explicit spatial layout through global
+  average pooling, while discrete routing encourages memorizing named domains.
+  V36 tests whether continuous canonicalization and a structurally exact V19
+  fallback improve breadth without sacrificing nominal control. The design is
+  aligned with published multi-view spatial-transformer/curriculum evidence,
+  but this implementation and its claims remain project-specific.
+- **Frozen artifacts:** agent `ffb26044...fad91`; trainer
+  `f7900d9a...d8219`; evaluator `9d17dbf2...511f7`; development evaluator
+  `af64550b...9ede9`; gate checker `bece6c2f...6a25`; smoke config
+  `a3e57c7f...f390`; development suite `5aa7bb7e...c57d`; smoke gate
+  `2fe104f5...a0f7`; tests `e4b88f7d...e778`.
+- **Confirmation boundary:** Config `9a3008b4...52fc` reserves seed base
+  117,000,000 and seven new domains: fractional opposite translation,
+  opposite four-degree rotation, enlargement, a joint similarity transform,
+  combined right/back camera displacement, side lighting, and green ambient
+  lighting. These cannot be used for V36 training, development, routing
+  calibration, or model selection.
+- **Consequences:** Jarvis passes 11/11 targeted V35/V36 accounting and
+  canonicalization tests; train and nine-task development preflights pass.
+  The smoke gate requires >=85% nominal/intervention, a >=3-point causal drop
+  with positive lower bound, >=55% mean development OOD, and >=30% worst
+  development OOD. V36 is supervised invariance repair on privileged V19
+  training, not pure SSL, from-scratch RL, or real-robot evidence.
+
+## D-180: Reject V35 general release after full three-seed confirmation
+
+- **Status:** Accepted after immutable standard, strict, D-176, and final-gate
+  aggregates
+- **Date:** 2026-08-30
+- **Decision:** Retain V19 as the integrated visual incumbent. Record V35 as a
+  successful observed-domain/strict-retention study but reject it for general
+  release and general unseen robustness.
+- **Reason:** V35 reaches 81.25% standard nominal and 89.19% standard
+  intervention safe success; its weakest standard seed is 73.83%. Strict
+  removal is stronger at 91.54%, with an 82.81% minimum seed and a 4.82-point
+  regression from V19. On D-176, causal-progress utility remains confirmed,
+  but mean unseen safe success is only 18.34%, the worst pooled domain/condition
+  is 2.08%, and the minimum seed/domain result is 0%. Final gate `1143643`
+  therefore passes 4/10 checks: causal utility and all three strict checks.
+- **Evaluator completion:** SAPIEN singleton-batches both position and
+  orientation from `look_at`; the second fail-closed repair flattens and casts
+  both to the exact SAPIEN `(3,)`/`(4,)` float32 contract. Repaired evaluator
+  `51c9c317...2f59` and tests `2468c999...66b` complete jobs
+  `1143639`--`1143643`. This changed no policy input, image, outcome rule,
+  checkpoint, seed, domain, budget, or threshold.
+- **Consequences:** README hash `0820ce08...7b18` now leads with the verified
+  V35 strict result and explicit rejection boundary. Any V36 design may use
+  D-176 only as development evidence and requires a newly frozen untouched
+  suite before it can make a confirmation claim.
+
 ## D-179: Repair V35 reporting infrastructure and serialize colliding baselines
 
 - **Status:** Accepted after fail-closed evaluation/reporting errors; no model,
@@ -144,7 +1196,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   The next mechanism must explicitly learn global translation rather than rely
   on reconstruction loss to make dense flow move salient pixels. It must also
   preserve V34's renderer/color gains and subsequently address camera-left
-  nominal performance before any paper-level robustness claim.
+  nominal performance before any general robustness claim.
 
 ## D-173: Replace independent automatic resets with paired deterministic resets
 
@@ -585,7 +1637,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   only +4.69 points versus +20 required, worst OOD safe success remained 0%,
   and camera-left intervention regressed 20.70 points.
 - **Consequences:** Full job `1141058` is `DependencyNeverSatisfied`; V27 has no
-  three-seed, strict-removal, unseen-OOD, or paper-eligible robustness result.
+  three-seed, strict-removal, unseen-OOD, or release-eligible robustness result.
   Initial gate `1141057` correctly rejected the candidate but compared it to
   V19's pooled three-seed OOD rates. That violated the intended one-seed matched
   smoke design. Before accepting the verdict, the checker was repaired to read
@@ -620,7 +1672,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   conditional on the declared camera and appearance distribution. This is a
   simulation-only post-selection test and does not alter V19's frozen primary
   rates or the pending V21 selector. Artifact
-  `results/paper/v19_incumbent_causal_ood_v1/aggregate.json` has SHA-256
+  `v19_incumbent_causal_ood_v1/aggregate.json` has SHA-256
   `8491e068...5334`. The failure motivates a separately preregistered robust
   distillation/augmentation extension; it must retain in-distribution safety
   and be evaluated on the same paired suite rather than tuning individual
@@ -723,7 +1775,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   interactions per seed. Do not divide success rates by interactions or imply
   that upstream teacher/initializer training is free.
 - **Reason:** V19 uses expert-guided initialization and 1.92M routed DAgger
-  transitions in addition to PPO. A paper-ready sample-cost comparison must
+  transitions in addition to PPO. A defensible sample-cost comparison must
   make this visible while avoiding a nonstandard scalar metric that would hide
   branch failures and training lineage.
 - **Consequences:** Focused test passes. Initial production job `1140918`
@@ -734,9 +1786,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   PPO + 1,920,000 DAgger = 101,919,744 new interactions/seed; V13 uses
   99,999,744 and state baselines 99,942,400. Upstream lineage is disclosed in
   the source contract and excluded only where applicable. Artifacts are
-  `results/paper/integrated_sample_efficiency_v1.{json,csv,md}`.
+  `integrated_sample_efficiency_v1.{json,csv,md}`.
 
-## D-149: Use the seven-method matched integrated table as the three-seed paper screen
+## D-149: Use the seven-method matched integrated table as the three-seed benchmark screen
 
 - **Date:** 2026-08-28
 - **Status:** Accepted; source-validated JSON/CSV/Markdown/PNG/PDF complete
@@ -746,14 +1798,14 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   three-seed strict-removal and nominal protocols and keep visual/state
   deployment modality explicit.
 - **Reason:** Single-regime headline rates hide catastrophic retention failure.
-  A paper comparison must expose strict and nominal safety, both physical-
+  A benchmark comparison must expose strict and nominal safety, both physical-
   removal branches, violations, and the minimum safe endpoint simultaneously.
 - **Consequences:** Aggregate `1140913` and report `1140914` complete with exit
   zero. V19 is the only cohort whose worst endpoint exceeds 90%: 91.41%, versus
   83.69% V13, 74.06% V20, 29.14% clean V6, and 0% for all three state cohorts
   because each has 0/768 nominal safe successes. State methods remain valid
   strict specialists/upper baselines rather than integrated policies. Artifact
-  `results/paper/integrated_regime_comparison_v2.{json,csv,md,png,pdf}` records
+  `integrated_regime_comparison_v2.{json,csv,md,png,pdf}` records
   exact source hashes and a claim boundary excluding real-robot and
   cross-benchmark superiority. Three-seed hierarchical intervals remain wide;
   the active five-seed confirmation is required for the final table.
@@ -942,7 +1994,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   NeurIPS 2024 CP3ER as the closest published consistency-policy visual-RL
   reference. Do not call either a head-to-head ATR baseline and do not place
   their published percentages beside ATR results. Do not promote the current
-  under-review VLA jump-starting submission to a required baseline.
+  external VLA jump-starting work to a required baseline.
 - **Reason:** Dreamer 4's official project demonstrates offline Minecraft RL
   and robotics world-model prediction, not a trained manipulation controller.
   CP3ER directly studies visual actor--critic policy degradation and stabilizes
@@ -1124,7 +2176,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Reason:** Full isolated suite `1140374` ran all 70 files and 443 tests with
   exactly one failure: the in-sample constant-logit assertion. The result
   contradicts that mechanism without contradicting the held-out comparison.
-  A paper-quality boundary must follow the reproducible endpoint rather than
+  A high-confidence boundary must follow the reproducible endpoint rather than
   preserve an attractive post-hoc explanation.
 - **Consequences:** The failed manifest and JUnit remain immutable. A composite
   repair gate may reuse the other 69 results only after verifying their source
@@ -1148,7 +2200,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   nominal controls, seed dispersion, and first/second-goal-removal strata.
 - **Reason:** V2's pooled raw success hid two problems: success concentrated on
   the easier second-goal-removal branch, and episodes could succeed before later
-  violating the constraint. A paper-facing result must show recovery on the
+  violating the constraint. A validated result must show recovery on the
   hard branch and cannot count unsafe completion as success.
 - **Consequences:** All nine jobs completed exactly 99,942,400 transitions and
   all 4,608 disjoint held-out episodes completed. Under intervention, adaptive
@@ -1295,7 +2347,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   64 MiB PhysX `collision_stack_size` in its immutable task configuration.
   Quarantine every run that emitted collision-stack overflow diagnostics and
   restart it from zero through the continuation array. Replace pending Slurm scripts
-  whose submission-time snapshots still selected system Python with verified
+  whose historical snapshots still selected system Python with verified
   `.venv/bin/python` jobs and new dependencies.
 - **Reason:** SAPIEN first reported that the configured 4 MiB collision stack
   needed 5.34 MiB and, in a longer 16 MiB validation run, later peaked near

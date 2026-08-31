@@ -1,0 +1,9 @@
+{
+  "schema_version":1,
+  "name":"v39_backkey_smoke_gate_v1",
+  "candidate_aggregate":"results/paper/v39_smoke_development_ood_v1/aggregate.json",
+  "candidate_method":"v19_backkey_magnitude_smoke",
+  "matched_training_seed":1788,
+  "thresholds":{"minimum_nominal_safe_success":0.85,"minimum_intervention_safe_success":0.85,"minimum_causal_safe_success_drop":0.03,"require_positive_causal_lower_bound":true,"minimum_mean_development_ood_safe_success":0.55,"minimum_worst_development_ood_safe_success":0.30},
+  "claim_boundary":"Frozen before V39 training. Passing allocates multi-seed and untouched confirmation only."
+}

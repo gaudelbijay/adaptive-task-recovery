@@ -1,15 +1,43 @@
 ---
 title: Results and Claim Boundaries
 status: active
-last_updated: 2026-08-29
+last_updated: 2026-08-30
 ---
 
 # Results and claim boundaries
 
-This is the paper-facing index of results that passed their current validation
+This is the validated index of results that passed their current validation
 gate. It deliberately separates abstract skill selection from continuous robot
 control. Confidence intervals are 95%; a point interval means the aggregate was
 constant across the evaluated high-level split, not that uncertainty is absent.
+
+## V41 three-seed canonicalization result
+
+V41 deploys the audited V40 checkpoint lineage with one fixed magnitude gate.
+It reaches 89.45% standard nominal, 95.57% standard intervention, and 96.35%
+strict-removal safe success across three seeds. The minimum standard and strict
+seed rates are 83.20% and 94.14%; pooled strict performance exactly matches the
+V19 incumbent. Cyclic progress intervention produces positive paired effects
+in both conditions: 11.07 points nominal [4.43, 19.79] and 13.15 points under
+intervention [0.39, 23.18].
+
+The untouched mean improves from V35's 18.34% to 44.47%, but the frozen
+all-domain rule is rejected. Synthetic geometric intervention cells reach
+72.92%--82.03%; combined camera displacement reaches only 0.26% nominal /
+10.81% intervention, and opposite-side lighting reaches 0% / 5.08%. The final
+gate passes 6/10 checks. This supports preserved strict control, replicated
+causal progress utility, and improved geometric transfer—not general visual
+robustness. V41 uses privileged same-state supervision and supplies no
+real-robot, pure self-supervised, or from-scratch RL evidence.
+
+Two bounded follow-ups clarify the limitation. V42's unconstrained renderer
+repair crosses the clean route and collapses nominal/intervention to
+50.39%/63.28%. V43 restores retention to 91.02%/91.80% with stronger identity
+protection, but reaches only 33.65% mean development OOD and 0% worst OOD.
+Together they isolate a plasticity/invariance conflict in dense pixel
+reconstruction: it can either alter clean controller inputs or preserve them
+without undoing parallax and directional lighting. Neither follow-up received
+multi-seed or untouched allocation.
 
 ## V35 observed-domain allocation result
 
@@ -22,6 +50,16 @@ observed domains influenced model design, generic translations are supervised
 training data, and V35 inherits privileged V34/V19 supervision. Consequently
 these numbers support only a development-gate claim, not pure self-supervised
 learning, end-to-end RL, unseen-domain generalization, or real-robot transfer.
+
+The subsequent three-seed confirmation rejects general V35 release. Standard
+nominal/intervention safe success is 81.25%/89.19%, below both frozen 90%
+thresholds, and the minimum standard seed is 73.83% versus an 80% floor. V35
+does retain strict physical recovery: 91.54% pooled safe success, 82.81%
+minimum seed, and a 4.82-point regression from V19 all pass. On the untouched
+D-176 suite, mean unseen safe success is 18.34%, the worst pooled cell is 2.08%,
+and at least one seed/domain is 0%. The causal-progress test remains positive,
+but unseen robustness is rejected. The final gate passes 4/10 checks and V19
+remains the incumbent.
 
 ## Frozen cross-embodiment adaptation benchmark
 
@@ -335,7 +373,7 @@ rejected. Combined with the strict V7 result, primary V4 is rejected as well.
 Primary V5 is confirmed only against its preregistered historical state
 reference (2.86% strict safe); the later distribution-matched strict state PPO
 at 98.44% safe with zero violations is the mandatory competitive baseline and
-prevents using V5 as a paper-level competitiveness claim.
+prevents using V5 as a general competitiveness claim.
 
 The stabilized V13 integrated RGB continuation completed three exact
 99,999,744-step runs and passed the finite checkpoint/optimizer/provenance
@@ -369,7 +407,7 @@ passes all six frozen selector checks and improves the integrated worst
 endpoint from V13's 83.69% to 91.41%. This supports a competitive non-teleport
 restricted-input visual-control claim within this benchmark. It does not show
 state-upper-bound parity (strict V11: 98.44% safe, zero violations), pure pixel
-RL, pure self-supervision, real-robot transfer, or cross-paper superiority:
+RL, pure self-supervision, real-robot transfer, or cross-method superiority:
 V19 uses privileged dual teachers, progress labels, and an asymmetric critic
 during training, and its fixed new-seed confirmation remains in progress.
 
