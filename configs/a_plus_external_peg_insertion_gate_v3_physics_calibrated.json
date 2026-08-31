@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_after_development_physics_calibration_before_corrected_router_production_or_reserved_outcomes",
+  "supersedes": "configs/a_plus_external_peg_insertion_gate_v2_counterfactual_direction.json",
+  "supersession_reason": "Development-only force/contact audits found that V2 used a world-frame smoke oracle after moving ejection into the randomized hole frame, an asymmetric held-out force magnitude, and an uncompensated blocker servo that could drift before onset. V3 fixes the smoke oracle, uses matched 1.7 N hole-frame impulses, and calibrates force-only blocker station-keeping and return on 421M development seeds. No router production outcome, numerical method threshold, selection seed, or confirmation seed was opened or changed.",
+  "purpose": "Close the external-validity blocker independently of the LearnedRecovery-v4 primary gate.",
+  "task": {
+    "base_environment": "PegInsertionSide-v1",
+    "source": "ManiSkill3 3.0.0b22 official tabletop benchmark",
+    "task_family": "contact_rich_side_insertion",
+    "execution_rule": "All runtime object motion and insertion use simulator forces, contacts, and robot actions; pose assignment is permitted only at reset.",
+    "native_success_preserved": true
+  },
+  "physics_calibration": {
+    "development_seed_family": "421M only",
+    "selection_seed_status": "425M untouched",
+    "confirmation_seed_status": "429M untouched",
+    "ejection_force_newtons": 1.7,
+    "positive_negative_force_scale": 1.0,
+    "ejection_steps": 5,
+    "blocker_force_newtons": 5.0,
+    "blocker_position_gain": 40.0,
+    "blocker_velocity_gain": 4.0,
+    "blocker_gravity_compensation_newtons": 0.12,
+    "blocker_target_peg_length_scale": 0.0,
+    "blocker_return_position_gain": 120.0,
+    "blocker_home_offset_meters": 0.05,
+    "smoke_contract": "Accumulate safety violations over the full 160-step episode; measure ejection displacement in the randomized hole frame; require at least 90% ejection observability, blocker engagement, and temporary clearance, with at most 10% zero-action ejection violations."
+  },
+  "interventions": {
+    "training_mechanisms": ["positive_lateral_peg_ejection", "permanent_hole_block", "temporary_hole_block"],
+    "heldout_physical_mechanism": "negative hole-frame lateral peg ejection",
+    "heldout_real_trajectory_rule": "Every real negative-ejection prefix is excluded from training and validation and reserved for test.",
+    "counterfactual_direction_supervision": "The physical ejection force and all relative vectors use each episode's randomized hole frame. Reflect local lateral-y coordinates of positive-ejection prefixes. These paired tensors supervise event/readiness/direction factors only; option-2 cross-entropy is masked.",
+    "forbidden_runtime_inputs": ["intervention kind", "intervention target", "future observation", "oracle feasibility", "native success flag"]
+  },
+  "method_contract": {
+    "representation": "current-centered causal task-geometry prefixes",
+    "geometry_entities": ["peg", "hole", "blocker", "robot_tcp"],
+    "heldout_option": 2,
+    "heldout_option_cross_entropy": false,
+    "factorized_training_signals": ["event family", "counterfactual physical direction", "reversibility"],
+    "matched_methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_router", "oracle_router_upper_bound"],
+    "same_observation_tensor_for_learned_methods": true,
+    "same_specialist_checkpoints_for_all_routers": true,
+    "group_rule": "Factual and reflected prefixes share an episode group; all real held-out groups are test-only."
+  },
+  "outcomes": {
+    "feasible_conditions": "Native PegInsertionSide success without a safety violation.",
+    "permanently_infeasible_condition": "Calibrated safe abstention after physical obstruction, with no protected-region collision; oracle mechanism state is used only for scoring.",
+    "report_separately": ["native_task_success", "safe_abstention_accuracy", "constraint_violations", "decision_latency", "recovery_latency"]
+  },
+  "development_seed_base": 421000000,
+  "selection_seed_base": 425000000,
+  "confirmation_seed_base": 429000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "pass_criteria": {
+    "closed_loop_safe_recovery_min": 0.8,
+    "native_nominal_success_min": 0.75,
+    "heldout_ejection_safe_recovery_min": 0.75,
+    "permanent_safe_abstention_min": 0.8,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "causal_heldout_offline_accuracy_min": 0.85,
+    "static_heldout_offline_accuracy_max": 0.4,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "fail_fast_order": [
+    "environment_force_and_contact_audit",
+    "official_nominal_controller_competence",
+    "instantaneous_geometry_shortcut_audit",
+    "three_seed_offline_heldout_composition",
+    "selection_closed_loop",
+    "untouched_confirmation"
+  ],
+  "cost_reporting": ["environment_steps", "GPU_hours", "supervision_labels", "counterfactual_pairs", "specialist_count", "checkpoint_selection_trials"],
+  "release_rule": "An A/A+ method claim requires both the LearnedRecovery-v4 gate and this external task-family gate to pass."
+}

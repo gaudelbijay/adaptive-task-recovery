@@ -49,12 +49,16 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         intervention_probability: float = 0.8,
         intervention_types: Sequence[str] = INTERVENTION_TYPES,
         onset_step_range: Sequence[int] = (18, 42),
-        ejection_force: float = 2.4,
+        ejection_force: float = 1.7,
         ejection_steps: int = 5,
-        negative_ejection_force_scale: float = 0.85,
+        negative_ejection_force_scale: float = 1.0,
         blocker_force: float = 5.0,
         blocker_position_gain: float = 40.0,
         blocker_velocity_gain: float = 4.0,
+        blocker_gravity_compensation: float = 0.12,
+        blocker_home_offset: float = 0.05,
+        blocker_target_peg_length_scale: float = 0.0,
+        blocker_return_position_gain: float = 120.0,
         blocker_return_delay_steps: int = 48,
         include_blocker_state_observation: bool = True,
         **kwargs,
@@ -76,6 +80,12 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         self.blocker_force = float(blocker_force)
         self.blocker_position_gain = float(blocker_position_gain)
         self.blocker_velocity_gain = float(blocker_velocity_gain)
+        self.blocker_gravity_compensation = float(blocker_gravity_compensation)
+        self.blocker_home_offset = float(blocker_home_offset)
+        self.blocker_target_peg_length_scale = float(
+            blocker_target_peg_length_scale
+        )
+        self.blocker_return_position_gain = float(blocker_return_position_gain)
         self.blocker_return_delay_steps = int(blocker_return_delay_steps)
         self.include_blocker_state_observation = bool(include_blocker_state_observation)
         self._intervention_mechanism = None
@@ -134,7 +144,8 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             hole_pose = Pose.create_from_pq(hole_raw[:, :3], hole_raw[:, 3:])
             local_target = torch.zeros((batch, 3))
             local_target[:, 0] = -(
-                self.peg_half_sizes[env_idx, 0]
+                self.blocker_target_peg_length_scale
+                * self.peg_half_sizes[env_idx, 0]
                 + self.blocker_half_sizes[0]
                 + 0.006
             )
@@ -143,7 +154,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             # Five centimetres of force-driven travel is large relative to
             # the randomized hole diameter but short enough for a bounded
             # servo to converge uniformly across heterogeneous GPU scenes.
-            local_home[:, 0] -= 0.05
+            local_home[:, 0] -= self.blocker_home_offset
             home = (hole_pose * Pose.create_from_pq(local_home)).p
             self._blocker_home[env_idx] = home
             self._blocker_target[env_idx] = target
@@ -196,10 +207,16 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         home = self._blocker_home
         toward_hole = block_active & ~returning
         desired = torch.where(toward_hole[:, None], target, home)
+        position_gain = torch.where(
+            returning,
+            torch.full_like(step, self.blocker_return_position_gain, dtype=torch.float),
+            torch.full_like(step, self.blocker_position_gain, dtype=torch.float),
+        )
         raw_force = (
-            self.blocker_position_gain * (desired - self.hole_blocker.pose.p)
+            position_gain[:, None] * (desired - self.hole_blocker.pose.p)
             - self.blocker_velocity_gain * self.hole_blocker.linear_velocity
         )
+        raw_force[:, 2] += self.blocker_gravity_compensation
         norm = torch.linalg.vector_norm(raw_force, dim=1, keepdim=True).clamp_min(1e-6)
         bounded_force = raw_force * (self.blocker_force / norm).clamp(max=1.0)
         self._apply_batched_force(

@@ -30,6 +30,11 @@ def test_heldout_direction_and_matched_reversible_control_exist():
     assert "local_peg_force[:, 1]" in SOURCE
     assert "self.box_hole_pose.q" in SOURCE
     assert "_local_vector_to_world" in SOURCE
+    assert "blocker_gravity_compensation" in SOURCE
+    assert "ejection_force: float = 1.7" in SOURCE
+    assert "negative_ejection_force_scale: float = 1.0" in SOURCE
+    assert "blocker_target_peg_length_scale: float = 0.0" in SOURCE
+    assert "blocker_return_position_gain: float = 120.0" in SOURCE
 
 
 def test_router_geometry_is_physical_and_excludes_mechanism_labels():
@@ -65,6 +70,10 @@ def test_fail_fast_smoke_covers_every_frozen_condition():
     ):
         assert f'"{condition}"' in smoke
     assert "ejection_observed_rate" in smoke
+    assert "world_to_local" in smoke
+    assert "maximum_hole_frame_lateral_shift_mean" in smoke
+    assert "maximum_peg_y_shift_mean" not in smoke
+    assert 'ever_constraint_violated |= info["constraint_violated"].bool()' in smoke
     assert "blocker_engaged_rate" in smoke
     assert "temporary_cleared_rate" in smoke
 
@@ -186,6 +195,27 @@ def test_external_v2_gate_holds_real_negative_physics_out_of_training():
     assert '"calibration_status": "no_prediction_reached_search_floor"' in trainer
     audit = (ROOT / "scripts/audit_temporal_composition_router.py").read_text()
     assert '"physical_heldout_option_accuracy"' in audit
+
+
+def test_external_v3_gate_freezes_development_calibrated_physics_only():
+    v2 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v2_counterfactual_direction.json").read_text()
+    )
+    v3 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v3_physics_calibrated.json").read_text()
+    )
+    assert "before_corrected_router_production" in v3["status"]
+    assert v3["pass_criteria"] == v2["pass_criteria"]
+    assert v3["selection_seed_base"] == v2["selection_seed_base"]
+    assert v3["confirmation_seed_base"] == v2["confirmation_seed_base"]
+    physics = v3["physics_calibration"]
+    assert physics["selection_seed_status"] == "425M untouched"
+    assert physics["confirmation_seed_status"] == "429M untouched"
+    assert physics["ejection_force_newtons"] == 1.7
+    assert physics["positive_negative_force_scale"] == 1.0
+    assert physics["blocker_gravity_compensation_newtons"] == 0.12
+    assert physics["blocker_target_peg_length_scale"] == 0.0
+    assert physics["blocker_return_position_gain"] == 120.0
 
 
 def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
