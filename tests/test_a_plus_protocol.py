@@ -175,6 +175,17 @@ def test_v10_freezes_validated_factor_dispatch_and_fresh_seeds():
     assert v10["confirmation_seed_base"] == 347_000_000
 
 
+def test_v10_frozen_candidate_records_selection_and_external_gap():
+    manifest = json.loads((ROOT / "configs/temporal_composition_v10_frozen_candidate.json").read_text())
+    gate = json.loads((ROOT / "configs/a_plus_recovery_gate_v10_guarded_factorized_dispatch.json").read_text())
+    assert manifest["status"] == "frozen_before_confirmation"
+    assert manifest["confirmation_seed_base"] == gate["confirmation_seed_base"]
+    assert manifest["selection_evidence"]["primary_gate_pass"] is True
+    assert manifest["selection_evidence"]["ood_gate_pass"] is True
+    assert manifest["external_evidence"]["peg_closed_loop_gate"] == "incomplete"
+    assert "necessary but not sufficient" in manifest["claim_boundary"]
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

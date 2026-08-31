@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_confirmation",
+  "candidate": "V10 guarded factorized causal dispatch",
+  "code_commit": "7ee50db",
+  "gate": {
+    "path": "configs/a_plus_recovery_gate_v10_guarded_factorized_dispatch.json",
+    "sha256": "46ffbc2d28ce25e8754287f91fc38663a35c7314748f794264d21f151f955b15"
+  },
+  "selection_seed_base": 343000000,
+  "confirmation_seed_base": 347000000,
+  "confirmation_status_at_freeze": "untouched",
+  "execution": {
+    "safe_hold_start_step": 1,
+    "safe_hold_until_step": 40,
+    "defer_action_mode": "retreat_to_reset",
+    "terminate_score_on_first_resolution": true,
+    "router_query_every_step": true,
+    "factorized_sweep_dispatch": "causal only, from frozen group-disjoint calibration",
+    "maximum_steps": 240,
+    "nominal_ensemble_reduction": "mean",
+    "nominal_policy_indices": [0, 1, 2],
+    "temporary_policy_index": 2
+  },
+  "router_checkpoint_sha256": {
+    "causal_seed0": "532b763e8d7df5627df445f6a4bb0fc5394c2951c581d178993a498a26dcf883",
+    "causal_seed1": "e4c87b036591df70ecee878f1c23ecff03e77813093d4e082bf885115c2ec701",
+    "causal_seed2": "88691dd12c16b61709b59ba858cbc63a5a970fe4f40ac7acbfc962cce1a2e2cb",
+    "unstructured_seed0": "6e66ed897b4c17d8922ffe19e2619fb4d4505a5583af03abe100408ae0496a54",
+    "unstructured_seed1": "8c471eae1d1bdcb34638b40789796715bce3ed8fb27786174144480fa6e8a51d",
+    "unstructured_seed2": "29056288b41041bc1fd1cc2861ab56fe2c42335760e986f2b195779f2e0f8abc",
+    "static_seed0": "e8d3d83b22a35aa330efab1007fe760173821ccea47a9f27b9ce82404db3cbf9",
+    "static_seed1": "9b50ccff0e6a3a63b10563241b8535d854f35d91e9aadd5f9e13568a1d77cb5b",
+    "static_seed2": "5140db153ee35af7ed680bd2affedc35af1364a45ff134dd23eed9fc2fb058c2"
+  },
+  "shared_controller_sha256": {
+    "forward": "2ebdeef71af33132fa1146af22f2d0e5676778f74d2a6ca234fed5dd6701c527",
+    "reverse": "bb98fdebefa30bb9a855557e16fd01f05af2fa4196e4e91ecde455683033606c",
+    "nominal_9351": "b03dea7b9dc958347c09301199308e1e566e3f185b0de56017a48ed3383c1ac3",
+    "nominal_4796": "61f72c411dfb5880748a005c3a8987c92c6c18b45402e4b0e805171b9c5691d4",
+    "nominal_1788": "7d9c039f43180923843c7061e8aa1f4890ac939f6f0575605fb985b2e7d5e7ec"
+  },
+  "selection_evidence": {
+    "primary_artifact": "results/router/v10_selection_primary_gate.json",
+    "primary_artifact_sha256": "fde4699b97b4c89bc469a689ff888a10d6c82f6684ae0af241caf95e8e4b7d8b",
+    "causal_safe_success": 0.9375,
+    "causal_violations": 21,
+    "episodes": 2880,
+    "worst_condition_safe_success": 0.8802083333333334,
+    "heldout_reverse_safe_success": 0.9895833333333334,
+    "gain_over_unstructured": 0.08125,
+    "newcombe_95": [0.05947453740758091, 0.10280900233713952],
+    "primary_gate_pass": true,
+    "ood_artifact": "results/router/v10_selection_ood_gate.json",
+    "ood_artifact_sha256": "27a437f42109ca22198cd6a25e9833233887913b539d4420a5f156bd90f4cfb3",
+    "pooled_ood_safe_success": 0.8389322916666667,
+    "pooled_ood_violations": 202,
+    "pooled_ood_episodes": 7680,
+    "ood_gate_pass": true
+  },
+  "external_evidence": {
+    "reboot_artifact": "results/a_plus_audit/reboot_v2_aggregate.json",
+    "reboot_artifact_sha256": "35d2cc5224877429dace354b562b67c6d6479b5f72b52547197c827feadddc6e",
+    "reboot_causal_macro_auroc": 0.8353336244266307,
+    "peg_physics_audit": "results/a_plus_audit/external_peg_recovery_physics_smoke_v1.json",
+    "peg_physics_audit_sha256": "3612ce9a8d173965124f8cd04635d2b0f69d49a417859782140bd3a1d24c7654",
+    "peg_closed_loop_gate": "incomplete"
+  },
+  "claim_boundary": "This manifest freezes the primary candidate. Passing confirmation is necessary but not sufficient for A/A+; the independently preregistered PegInsertion closed-loop gate must also pass."
+}
