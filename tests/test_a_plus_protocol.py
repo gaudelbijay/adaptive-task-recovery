@@ -145,6 +145,22 @@ def test_v8_natural_termination_and_ensemble_are_matched_and_fresh():
     assert v8["confirmation_seed_base"] == 341_000_000
 
 
+def test_v9_changes_only_shared_reverse_specialist_and_uses_fresh_seeds():
+    v8 = json.loads((ROOT / "configs/a_plus_recovery_gate_v8_terminal_ensemble.json").read_text())
+    v9 = json.loads((ROOT / "configs/a_plus_recovery_gate_v9_reverse_handoff.json").read_text())
+    assert v9["status"] == "preregistered_before_v9_selection_or_evaluation"
+    assert v9["representation"] == v8["representation"]
+    assert v9["pass_criteria"] == v8["pass_criteria"]
+    assert v9["ood_axes"] == v8["ood_axes"]
+    assert len(v9["shared_option_controllers"]["reverse_checkpoint_sha256"]) == 64
+    assert "shared by causal, static, unstructured" in v9["shared_option_controllers"]["matching_rule"]
+    assert v9["selection_seed_base"] == 338_000_000
+    assert v9["confirmation_seed_base"] == 342_000_000
+    assert v9["confirmation_seed_base"] not in {
+        v8["selection_seed_base"], v8["confirmation_seed_base"],
+    }
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
@@ -222,3 +238,18 @@ def test_optional_terminal_scoring_masks_post_resolution_actions():
     wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
     assert "ATR_TERMINATE_SCORE_ON_FIRST_RESOLUTION" in wrapper
     assert "ATR_ROUTER_STEPS" in wrapper
+
+
+def test_reverse_specialist_ensemble_is_matched_and_hashed():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert '"--reverse-state-checkpoint", action="append"' in source
+    assert "reverse_stack.mean(0)" in source
+    assert '"reverse_state_checkpoint_sha256"' in source
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_REVERSE_CHECKPOINTS" in wrapper
+    assert "ATR_REVERSE_ENSEMBLE_REDUCTION" in wrapper
+
+
+def test_primary_summarizer_uses_gate_endpoint_label():
+    source = (ROOT / "scripts/summarize_a_plus_recovery_gate.py").read_text()
+    assert 'gate.get(\n            "primary_endpoint"' in source

@@ -178,3 +178,22 @@ temporary option 4 remains seed 1788. On opened development data this reached
 886/960 (92.29%) safe successes, 10 violations, and 162/192 (84.38%) in each
 weakest condition. `configs/a_plus_recovery_gate_v8_terminal_ensemble.json`
 uses fresh `337000000` selection and untouched `341000000` confirmation.
+
+### V8 selection rejection and V9 reverse-handoff specialist
+
+V8 is rejected before confirmation. It reached 2644/2880 (91.81%) causal safe
+successes with 43/2880 (1.49%) violations; its weakest conditions were
+492/576 (85.42%), and held-out reverse was 537/576 (93.23%). The strongest
+non-oracle unstructured GRU reached 2514/2880 (87.29%). The causal gain was
+therefore 4.51 points with a 95% Newcombe interval of [2.29, 6.73] points: a
+positive result, but below the unchanged five-point magnitude floor. The
+reserved `341000000` family remains untouched.
+
+The causal router's final reverse decision accuracy was 100% in every V8
+reverse manifest; residual failures were downstream controller failures.
+On the now-open `337000000` development family, a screen of existing reverse
+controllers rejected action averaging (144/192) and selected the seed-4796
+handoff checkpoint (188/192 safe, zero violations). V9 changes only this exact
+option-2 checkpoint, shared by every router, and freezes its SHA-256 in
+`configs/a_plus_recovery_gate_v9_reverse_handoff.json`. Fresh selection is
+`338000000`; `342000000` is reserved for once-only confirmation.

@@ -41,3 +41,14 @@ def test_fail_fast_smoke_covers_every_frozen_condition():
     assert "ejection_observed_rate" in smoke
     assert "blocker_engaged_rate" in smoke
     assert "temporary_cleared_rate" in smoke
+
+
+def test_nominal_competence_uses_official_solver_without_intervention():
+    audit = (ROOT / "scripts/audit_external_peg_nominal_controller.py").read_text()
+    assert "mani_skill.examples.motionplanning.panda.solutions.peg_insertion_side" in audit
+    assert 'intervention_probability=0.0' in audit
+    assert 'info["success"]' in audit
+    assert 'info["constraint_violated"]' in audit
+    wrapper = (ROOT / "scripts/slurm_audit_external_peg_nominal_controller.sh").read_text()
+    assert "#SBATCH --array=0-31" in wrapper
+    assert '"${SLURM_ARRAY_TASK_ID}"' in wrapper

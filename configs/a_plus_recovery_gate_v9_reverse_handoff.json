@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v9_selection_or_evaluation",
+  "supersedes": "configs/a_plus_recovery_gate_v8_terminal_ensemble.json",
+  "supersession_reason": "V8 was rejected on selection: causal safe success was 2644/2880 (91.81%) with 43/2880 (1.49%) violations and a 93.23% held-out reverse rate, but its gain over the unstructured GRU was 4.51 points, below the frozen 5-point floor. On the opened 337000000 development family, a declared screen of three already-trained reverse controllers selected the seed-4796 handoff checkpoint at 188/192 (97.92%) safe reverse recoveries and zero violations. V9 changes only that shared option-2 checkpoint and reserves fresh outcome families.",
+  "research_question": "Can calibrated causal evidence and factorized supervision compose a held-out recovery option when every router shares a seed-robust handoff specialist?",
+  "primary_endpoint": "first_resolution_success_without_prior_or_simultaneous_constraint_violation",
+  "representation": {
+    "name": "complete_current_centered_causal_motion",
+    "geometry_dimensions": 57,
+    "centered_feature_groups": ["actor_goal_relative", "mechanism_cube_relative", "tcp_task_relative"],
+    "definition": "At each decision, subtract the current 57-D task geometry from every geometry frame in the causal prefix; the final geometry is identically zero for every method.",
+    "runtime_causality": "Uses only stored observations at or before the current decision.",
+    "heldout_option_label": "reverse",
+    "heldout_option_index": 2,
+    "forbidden_training_signal": "reverse option cross-entropy",
+    "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"]
+  },
+  "episode_resolution": {
+    "rule": "Score and mask an environment at its first native success or constraint violation; a simultaneous success and violation is unsafe.",
+    "post_resolution_actions_scored": false,
+    "same_rule_for_all_methods": true,
+    "maximum_steps": 240
+  },
+  "defer_policy": {
+    "maximum_safe_hold_step": 36,
+    "release_rule": "Release defer when the method's calibrated posterior confirms nominal option 0; a later observed event may revise nominal or hand off irreversibly to a specialist.",
+    "confirmation_steps": 1,
+    "same_rule_for_all_methods": true
+  },
+  "shared_option_controllers": {
+    "nominal_ensemble_reduction": "mean",
+    "nominal_policy_indices": [0, 1, 2],
+    "nominal_checkpoint_sha256_by_seed": {
+      "9351": "b03dea7b9dc958347c09301199308e1e566e3f185b0de56017a48ed3383c1ac3",
+      "4796": "61f72c411dfb5880748a005c3a8987c92c6c18b45402e4b0e805171b9c5691d4",
+      "1788": "7d9c039f43180923843c7061e8aa1f4890ac939f6f0575605fb985b2e7d5e7ec"
+    },
+    "temporary_policy_index": 2,
+    "reverse_checkpoint": "results/manipulation_ppo/learned_recovery_v4_reverse_handoff_continuation_v2/reverse_ejection_state_handoff_continuation_v2/seed_4796/best.pt",
+    "reverse_checkpoint_sha256": "bb98fdebefa30bb9a855557e16fd01f05af2fa4196e4e91ecde455683033606c",
+    "matching_rule": "The exact nominal ensemble, temporary checkpoint, and reverse handoff checkpoint are shared by causal, static, unstructured, heuristic, and oracle routers."
+  },
+  "methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_v28_router", "oracle_mechanism_router_upper_bound"],
+  "selection_seed_base": 338000000,
+  "confirmation_seed_base": 342000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": ["nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection"],
+  "ood_axes": {"force": [0.65, 1.35], "onset_steps": [12, 36], "temporary_return_delay_steps": [18, 48], "control_delay_steps": [4, 12]},
+  "pass_criteria": {
+    "closed_loop_safe_success_min": 0.9,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "worst_condition_safe_success_min": 0.82,
+    "heldout_reverse_safe_success_min": 0.85,
+    "static_heldout_reverse_offline_accuracy_max": 0.4,
+    "causal_heldout_reverse_offline_accuracy_min": 0.9,
+    "ood_safe_success_min": 0.75,
+    "external_reboot_macro_auroc_min": 0.82,
+    "external_gain_over_static_min": 0.2,
+    "external_gain_over_moment_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "anti_shortcut_audits": ["all_57_final_geometry_values_are_exactly_zero", "heldout_option_absent_from_option_loss", "group_disjoint_train_validation_test", "pre_action_prefix_alignment", "time_only_probe", "current_frame_probe", "shuffled_history_ablation", "matched_feature_tensor_hash"],
+  "readme_release_rule": "Promote the primary V9 result only if every primary, OOD, external, seed-count, and anti-shortcut criterion passes on untouched 342000000. An A/A+ general-method claim additionally requires the external PegInsertion closed-loop gate."
+}

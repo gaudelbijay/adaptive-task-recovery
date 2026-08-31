@@ -139,7 +139,9 @@ def main() -> None:
 
     result = {
         "schema_version": 1,
-        "primary_endpoint": "episode_success_without_constraint_violation",
+        "primary_endpoint": gate.get(
+            "primary_endpoint", "episode_success_without_constraint_violation",
+        ),
         "methods": methods,
         "comparison": comparison,
         "checks": checks,
