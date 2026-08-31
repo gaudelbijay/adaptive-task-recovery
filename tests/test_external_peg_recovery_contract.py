@@ -167,6 +167,7 @@ def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
     assert 'args.forward_checkpoint or args.nominal_checkpoint' in evaluator
     assert 'args.reverse_checkpoint or args.nominal_checkpoint' in evaluator
     assert 'safe_abstention |= abstained' in evaluator
+    assert '"episode_safe_outcome": safe_outcome.cpu().tolist()' in evaluator
     assert 'available_success &= info["intervention_finished"].bool()' in evaluator
     assert 'blocker_protected & (peg_head_blocker_distance < blocker_clearance)' in SOURCE
     learned_runtime = evaluator.split("def learned_option", 1)[1].split(
@@ -186,3 +187,5 @@ def test_external_gate_summarizer_enforces_every_frozen_endpoint():
     ):
         assert f'criteria["{key}"]' in summary
     assert 'name not in set(args.oracle)' in summary
+    assert "def seed_bootstrap_gain" in summary
+    assert '"training_seed_bootstrap": hierarchical_gain' in summary

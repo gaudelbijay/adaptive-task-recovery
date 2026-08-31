@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 from collections import defaultdict
 from pathlib import Path
 
@@ -45,7 +46,43 @@ def aggregate(records):
         row["safe_success_rate"] = row["safe_successes"] / row["episodes"]
         row["violation_rate"] = row["violations"] / row["episodes"]
         row["safe_success_wilson_95"] = wilson(row["safe_successes"], row["episodes"])
-    return {"overall": overall, "conditions": dict(sorted(by_condition.items()))}
+    by_router_seed = {}
+    for seed in sorted({record.get("router_seed") for record in records if record.get("router_seed") is not None}):
+        selected = [record for record in records if record.get("router_seed") == seed]
+        episodes = sum(int(record["episodes"]) for record in selected)
+        safe = sum(int(record["safe_successes"]) for record in selected)
+        by_router_seed[str(seed)] = {
+            "episodes": episodes,
+            "safe_successes": safe,
+            "safe_success_rate": safe / episodes,
+        }
+    return {
+        "overall": overall,
+        "conditions": dict(sorted(by_condition.items())),
+        "by_router_seed": by_router_seed,
+    }
+
+
+def seed_bootstrap_gain(candidate, baseline, samples=10000, seed=20260831):
+    common = sorted(set(candidate["by_router_seed"]) & set(baseline["by_router_seed"]))
+    if len(common) < 2:
+        return None
+    gains = [
+        candidate["by_router_seed"][key]["safe_success_rate"]
+        - baseline["by_router_seed"][key]["safe_success_rate"]
+        for key in common
+    ]
+    rng = random.Random(seed)
+    draws = sorted(
+        sum(gains[rng.randrange(len(gains))] for _ in gains) / len(gains)
+        for _ in range(samples)
+    )
+    return {
+        "paired_router_seeds": [int(key) for key in common],
+        "gain_by_seed": gains,
+        "bootstrap_samples": samples,
+        "bootstrap_95": [draws[int(0.025 * samples)], draws[int(0.975 * samples) - 1]],
+    }
 
 
 def main() -> None:
@@ -92,6 +129,7 @@ def main() -> None:
     )
     checks["gain_over_strongest_non_oracle"] = gain >= criteria["gain_over_strongest_non_oracle_min_pp"] / 100
     checks["gain_newcombe_lower"] = difference_ci[0] > criteria["gain_newcombe_95_lower_min_pp"] / 100
+    hierarchical_gain = seed_bootstrap_gain(candidate, strongest)
     result = {
         "schema_version": 1,
         "gate": str(args.gate),
@@ -101,6 +139,7 @@ def main() -> None:
             "strongest_non_oracle": strongest_name,
             "gain": gain,
             "newcombe_95": difference_ci,
+            "training_seed_bootstrap": hierarchical_gain,
         },
         "checks": checks,
         "external_gate_pass": all(checks.values()),
