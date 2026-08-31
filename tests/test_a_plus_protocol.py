@@ -47,6 +47,24 @@ def test_v4_changes_only_the_shared_nominal_controller_and_preserves_gates():
     assert v4["selection_seed_base"] != v4["confirmation_seed_base"]
 
 
+def test_external_peg_gate_is_distinct_matched_and_untouched():
+    gate = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v1.json").read_text()
+    )
+    assert gate["status"] == "preregistered_before_external_task_implementation_or_outcomes"
+    assert gate["task"]["base_environment"] == "PegInsertionSide-v1"
+    assert gate["task"]["native_success_preserved"] is True
+    assert "pose assignment is permitted only at reset" in gate["task"]["execution_rule"]
+    assert gate["method_contract"]["same_observation_tensor_for_learned_methods"] is True
+    assert gate["method_contract"]["same_specialist_checkpoints_for_all_routers"] is True
+    assert len({
+        gate["development_seed_base"], gate["selection_seed_base"],
+        gate["confirmation_seed_base"],
+    }) == 3
+    assert gate["pass_criteria"]["minimum_independent_training_seeds"] >= 3
+    assert gate["pass_criteria"]["confirmation_must_be_untouched"] is True
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

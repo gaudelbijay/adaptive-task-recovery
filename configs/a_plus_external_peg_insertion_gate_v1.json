@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_external_task_implementation_or_outcomes",
+  "purpose": "Close the external-validity blocker independently of the LearnedRecovery-v4 primary gate.",
+  "task": {
+    "base_environment": "PegInsertionSide-v1",
+    "source": "ManiSkill3 3.0.0b22 official tabletop benchmark",
+    "task_family": "contact_rich_side_insertion",
+    "why_distinct": "The native task requires grasping, six-DoF peg alignment, and contact-rich insertion rather than ordered cube transport to planar goal pads.",
+    "execution_rule": "All object motion and insertion must use simulator forces, contacts, and robot actions; pose assignment is permitted only at reset.",
+    "native_success_preserved": true
+  },
+  "interventions": {
+    "training_mechanisms": ["positive_lateral_peg_ejection", "permanent_hole_block", "temporary_hole_block"],
+    "heldout_mechanism": "negative_lateral_peg_ejection",
+    "matched_controls": ["nominal", "temporary_hole_block"],
+    "forbidden_runtime_inputs": ["intervention kind", "intervention target", "future observation", "oracle feasibility", "native success flag"]
+  },
+  "method_contract": {
+    "representation": "current-centered causal task-geometry prefixes",
+    "geometry_entities": ["peg", "hole", "blocker", "robot_tcp"],
+    "heldout_option_cross_entropy": false,
+    "factorized_training_signals": ["event family", "physical direction", "reversibility"],
+    "matched_methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_router", "oracle_router_upper_bound"],
+    "same_observation_tensor_for_learned_methods": true,
+    "same_specialist_checkpoints_for_all_routers": true
+  },
+  "outcomes": {
+    "feasible_conditions": "Native PegInsertionSide success without a safety violation.",
+    "permanently_infeasible_condition": "Calibrated safe abstention after physical obstruction, with no protected-region collision; oracle mechanism state is used only for scoring.",
+    "report_separately": ["native_task_success", "safe_abstention_accuracy", "constraint_violations", "decision_latency", "recovery_latency"]
+  },
+  "development_seed_base": 421000000,
+  "selection_seed_base": 425000000,
+  "confirmation_seed_base": 429000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "pass_criteria": {
+    "closed_loop_safe_recovery_min": 0.8,
+    "native_nominal_success_min": 0.75,
+    "heldout_ejection_safe_recovery_min": 0.75,
+    "permanent_safe_abstention_min": 0.8,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "causal_heldout_offline_accuracy_min": 0.85,
+    "static_heldout_offline_accuracy_max": 0.4,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "fail_fast_order": [
+    "environment_force_and_contact_audit",
+    "official_nominal_controller_competence",
+    "instantaneous_geometry_shortcut_audit",
+    "three_seed_offline_heldout_composition",
+    "selection_closed_loop",
+    "untouched_confirmation"
+  ],
+  "cost_reporting": ["environment_steps", "GPU_hours", "supervision_labels", "specialist_count", "checkpoint_selection_trials"],
+  "release_rule": "An A/A+ method claim requires both the LearnedRecovery-v4 gate and this external task-family gate to pass. A failure is retained and cannot be replaced by the existing teleport-based TidyUp evidence or offline REBOOT alone."
+}

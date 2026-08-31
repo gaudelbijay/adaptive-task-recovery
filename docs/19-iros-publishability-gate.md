@@ -73,3 +73,43 @@ corresponding outcomes:
 The IROS manuscript remains an evidence draft until this gate passes. Good
 writing cannot repair a failed gate, and no threshold may be relaxed after an
 outcome is observed.
+
+## 2026-08-31 reconciliation after the temporal-composition study
+
+The assessment above predates the completed A+ V3 experiment. V3 fixed the
+input mismatch and produced a positive causal-composition result: the causal
+model reached 100% held-out reverse accuracy offline while the static and
+unstructured controls reached 3.22% and 0%; on the once-only closed-loop
+confirmation it achieved 573/576 held-out reverse safe successes and 2655/2880
+overall, versus 2369/2880 for the matched unstructured baseline. The overall
+gain was 9.93 points with a 95% Newcombe interval of [7.54, 12.29] points.
+
+V3 is still rejected. Its nominal condition reached only 456/576 (79.17%),
+below the frozen 82% worst-condition floor. This isolates a shared low-level
+controller weakness rather than a router or causal-composition failure. V4
+therefore changes only the nominal/post-clearance controller, identically for
+all baselines, and reserves a fresh confirmation family. It does not reopen or
+reinterpret V3.
+
+Passing V4 is necessary but no longer sufficient for an A/A+ claim. The
+remaining blocker is closed-loop external validity. The second-family protocol
+is frozen separately in
+`configs/a_plus_external_peg_insertion_gate_v1.json`: an intervention extension
+of ManiSkill3's official `PegInsertionSide-v1`, chosen because contact-rich
+six-DoF insertion is physically distinct from planar cube transport. Runtime
+pose assignment and the older teleport-based TidyUp controllers are forbidden.
+The external gate uses matched observations, shared specialists, a held-out
+ejection direction, three seeds, a static shortcut ceiling, and a once-only
+confirmation bank.
+
+The release decision is conjunctive:
+
+1. V4 primary gate passes on `333000000`.
+2. The external PegInsertion gate passes on `429000000`.
+3. The existing REBOOT result remains labeled offline real-robot transfer, not
+   closed-loop real-robot control.
+4. Costs and all rejected V-series candidates are compressed into auditable
+   tables rather than presented as independent discoveries.
+
+Until both closed-loop gates pass, the defensible paper framing is benchmark
+and representation evidence, not a top-tier general recovery method.
