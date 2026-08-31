@@ -21,6 +21,10 @@ if [[ "${ATR_NOMINAL_ENSEMBLE:-0}" == "1" ]]; then
   ENSEMBLE_ARGS+=(--nominal-ensemble --nominal-ensemble-reduction "${ATR_NOMINAL_ENSEMBLE_REDUCTION:-mean}")
 fi
 POLICY_MEMBER_ARGS=()
+NOMINAL_STATE_ARGS=()
+if [[ -n "${ATR_NOMINAL_STATE_CHECKPOINT:-}" ]]; then
+  NOMINAL_STATE_ARGS+=(--nominal-state-checkpoint "${ATR_NOMINAL_STATE_CHECKPOINT}")
+fi
 if [[ -n "${ATR_NOMINAL_POLICY_INDEX:-}" ]]; then
   POLICY_MEMBER_ARGS+=(--nominal-policy-index "${ATR_NOMINAL_POLICY_INDEX}")
 fi
@@ -43,6 +47,7 @@ fi
   --return-delay "${ATR_ROUTER_RETURN_DELAY:-30}" \
   --control-delay "${ATR_ROUTER_CONTROL_DELAY:-0}" \
   --safe-hold-until-step "${ATR_ROUTER_SAFE_HOLD_UNTIL_STEP:-0}" \
+  "${NOMINAL_STATE_ARGS[@]}" \
   "${FIXED_OPTION_ARGS[@]}" \
   "${ENSEMBLE_ARGS[@]}" \
   "${POLICY_MEMBER_ARGS[@]}"

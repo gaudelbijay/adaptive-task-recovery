@@ -77,6 +77,14 @@ def main():
     parser.add_argument("--permanent-state-checkpoint", default="results/manipulation_ppo/learned_recovery_v4_delayed_permanent_transfer/delayed_permanent_state_transfer/seed_9351/delayed_frozen_iter24.pt")
     parser.add_argument("--reverse-state-checkpoint", default="results/learned_recovery_v4/learned_recovery_v4_reverse_state_pilot/reverse_ejection_state_specialist/seed_9351/reverse_frozen_iter424.pt")
     parser.add_argument("--forward-state-checkpoint", default="results/learned_recovery/learned_recovery_ppo_v11_strict_removal/event_reward_strict_removal_state_ppo/seed_9351/best.pt")
+    parser.add_argument(
+        "--nominal-state-checkpoint",
+        help=(
+            "Optional input-matched state PPO shared by nominal execution and "
+            "temporary recovery after clearance. When set, no visual nominal "
+            "policy is loaded."
+        ),
+    )
     parser.add_argument("--episodes", type=int, default=128)
     parser.add_argument("--num-envs", type=int, default=32)
     parser.add_argument("--steps", type=int, default=240)
@@ -133,7 +141,10 @@ def main():
     ]
     temporary_index = args.temporary_policy_index if args.temporary_policy_index is not None else seed_index
     loaded_indices = list(dict.fromkeys([*nominal_indices, temporary_index]))
-    nominal_tasks = [select_task(config, index)[0] for index in loaded_indices]
+    nominal_tasks = (
+        [] if args.nominal_state_checkpoint
+        else [select_task(config, index)[0] for index in loaded_indices]
+    )
     nominal_agents = []
     for nominal_task in nominal_tasks:
         member_rgb, member_proprio, member_critic = extract_observation(
@@ -160,6 +171,10 @@ def main():
         "reverse": (Path(args.reverse_state_checkpoint), v4_state.shape[1]),
         "forward": (Path(args.forward_state_checkpoint), v3_state.shape[1]),
     }
+    if args.nominal_state_checkpoint:
+        state_specs["nominal"] = (
+            Path(args.nominal_state_checkpoint), v4_state.shape[1],
+        )
     state_agents = {}
     for name, (path, width) in state_specs.items():
         agent = StateAgent(width, action_dim).cuda(); agent.load_state_dict(torch.load(path, map_location=device, weights_only=False)["agent"], strict=True); agent.eval(); state_agents[name] = agent
@@ -224,25 +239,31 @@ def main():
                     selected_option,
                 )
                 abstentions += int((effective_option == 5).sum())
-                nominal_actions = []
-                for agent, nominal_task in nominal_agents:
-                    rgb, proprio, _ = extract_observation(
-                        obs, nominal_task["asymmetric_critic"],
-                        nominal_task.get("actor_tcp_pose", False),
-                        nominal_task.get("actor_goal_progress", False),
-                    )
-                    latent = agent.encode(rgb)
-                    native = torch.sigmoid(agent.goal_progress_predictor(latent))
-                    nominal_actions.append(torch.tanh(agent.actor(torch.cat((latent, proprio, native), dim=1))))
-                action_by_index = dict(zip(loaded_indices, nominal_actions))
-                nominal_stack = torch.stack([action_by_index[index] for index in nominal_indices])
-                nominal_action = (
-                    nominal_stack.median(0).values
-                    if args.nominal_ensemble_reduction == "median"
-                    else nominal_stack.mean(0)
-                )
-                temporary_action = action_by_index[temporary_index]
                 v4_state = reconstruct_v4_state_teacher_observation(obs); v3_state = reconstruct_state_teacher_observation(obs)
+                if args.nominal_state_checkpoint:
+                    nominal_action = state_agents["nominal"].get_action(
+                        v4_state, deterministic=True,
+                    ).clamp(-1, 1)
+                    temporary_action = nominal_action
+                else:
+                    nominal_actions = []
+                    for agent, nominal_task in nominal_agents:
+                        rgb, proprio, _ = extract_observation(
+                            obs, nominal_task["asymmetric_critic"],
+                            nominal_task.get("actor_tcp_pose", False),
+                            nominal_task.get("actor_goal_progress", False),
+                        )
+                        latent = agent.encode(rgb)
+                        native = torch.sigmoid(agent.goal_progress_predictor(latent))
+                        nominal_actions.append(torch.tanh(agent.actor(torch.cat((latent, proprio, native), dim=1))))
+                    action_by_index = dict(zip(loaded_indices, nominal_actions))
+                    nominal_stack = torch.stack([action_by_index[index] for index in nominal_indices])
+                    nominal_action = (
+                        nominal_stack.median(0).values
+                        if args.nominal_ensemble_reduction == "median"
+                        else nominal_stack.mean(0)
+                    )
+                    temporary_action = action_by_index[temporary_index]
                 actions = (
                     nominal_action,
                     state_agents["forward"].get_action(v3_state, deterministic=True).clamp(-1, 1),
@@ -276,10 +297,22 @@ def main():
         "environment": args.env_id, "visual_domain_profile": args.visual_domain_profile or "nominal",
         "fixed_option": args.fixed_option,
         "fixed_option_start_step": args.fixed_option_start_step,
-        "nominal_ensemble": args.nominal_ensemble,
+        "nominal_policy_type": "state_ppo" if args.nominal_state_checkpoint else "visual_ppo",
+        "nominal_state_checkpoint": args.nominal_state_checkpoint,
+        "nominal_state_checkpoint_sha256": (
+            hashlib.sha256(Path(args.nominal_state_checkpoint).read_bytes()).hexdigest()
+            if args.nominal_state_checkpoint else None
+        ),
+        "nominal_ensemble": args.nominal_ensemble if not args.nominal_state_checkpoint else False,
         "nominal_ensemble_reduction": args.nominal_ensemble_reduction,
-        "nominal_ensemble_seeds": [int(select_task(config, index)[0]["seed"]) for index in nominal_indices],
-        "temporary_policy_seed": int(select_task(config, temporary_index)[0]["seed"]),
+        "nominal_ensemble_seeds": (
+            [int(select_task(config, index)[0]["seed"]) for index in nominal_indices]
+            if not args.nominal_state_checkpoint else []
+        ),
+        "temporary_policy_seed": (
+            int(select_task(config, temporary_index)[0]["seed"])
+            if not args.nominal_state_checkpoint else None
+        ),
         "router_checkpoint": args.router_checkpoint,
         "router_checkpoint_sha256": hashlib.sha256(Path(args.router_checkpoint).read_bytes()).hexdigest(),
         "feature_metadata_sha256": router_checkpoint["feature_metadata_sha256"],

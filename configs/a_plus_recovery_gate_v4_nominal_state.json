@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v4_nominal_training_or_evaluation",
+  "supersedes": "configs/a_plus_recovery_gate_v3_full_geometry.json",
+  "supersession_reason": "V3's untouched confirmation passed its overall, gain, uncertainty, violation, held-out reverse, offline, OOD, and external gates, but nominal safe success was 456/576 (79.17%), below the frozen 82% worst-condition floor. V4 changes only the shared nominal and post-clearance temporary controller from the V19 RGB policy to a dedicated state PPO; router representation, specialists, calibration, safe hold, conditions, and numerical thresholds are unchanged.",
+  "research_question": "Can causal memory and factorized physical supervision compose an unseen recovery option while a stronger input-matched shared nominal controller clears the frozen all-condition gate?",
+  "primary_endpoint": "episode_success_without_constraint_violation",
+  "representation": {
+    "name": "complete_current_centered_causal_motion",
+    "geometry_dimensions": 57,
+    "centered_feature_groups": ["actor_goal_relative", "mechanism_cube_relative", "tcp_task_relative"],
+    "definition": "At each decision, subtract the current 57-D task geometry from every geometry frame in the causal prefix; the final geometry is identically zero for every method.",
+    "runtime_causality": "Uses only stored observations at or before the current decision.",
+    "heldout_option_label": "reverse",
+    "heldout_option_index": 2,
+    "forbidden_training_signal": "reverse option cross-entropy",
+    "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"]
+  },
+  "shared_option_change": {
+    "options": ["nominal", "temporary_block_after_clearance"],
+    "old_controller": "V19 restricted-RGB PPO",
+    "new_controller": "LearnedRecovery-v4 state PPO trained only on nominal episodes",
+    "matching_rule": "The exact selected checkpoint is shared by causal, static, unstructured, heuristic, and oracle routers.",
+    "unchanged_safe_hold_until_step": 36
+  },
+  "methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_v28_router", "oracle_mechanism_router_upper_bound"],
+  "selection_seed_base": 329000000,
+  "confirmation_seed_base": 333000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": ["nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection"],
+  "ood_axes": {
+    "force": [0.65, 1.35],
+    "onset_steps": [12, 36],
+    "temporary_return_delay_steps": [18, 48],
+    "control_delay_steps": [4, 12]
+  },
+  "pass_criteria": {
+    "closed_loop_safe_success_min": 0.9,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "worst_condition_safe_success_min": 0.82,
+    "heldout_reverse_safe_success_min": 0.85,
+    "static_heldout_reverse_offline_accuracy_max": 0.4,
+    "causal_heldout_reverse_offline_accuracy_min": 0.9,
+    "ood_safe_success_min": 0.75,
+    "external_reboot_macro_auroc_min": 0.82,
+    "external_gain_over_static_min": 0.2,
+    "external_gain_over_moment_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "anti_shortcut_audits": ["all_57_final_geometry_values_are_exactly_zero", "heldout_option_absent_from_option_loss", "group_disjoint_train_validation_test", "pre_action_prefix_alignment", "time_only_probe", "current_frame_probe", "shuffled_history_ablation", "matched_feature_tensor_hash"],
+  "readme_release_rule": "Promote V4 only if every primary, OOD, external, seed-count, and anti-shortcut criterion passes on the once-only untouched 333000000 confirmation family. V1, V2, and V3 remain recorded as rejected."
+}

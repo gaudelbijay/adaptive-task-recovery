@@ -87,3 +87,23 @@ training. It centers the complete 57-dimensional geometry prefix and changes
 no numerical threshold. Its selection family is `328000000`; its untouched
 confirmation family is `332000000`. V2 remains a machine-recorded failed
 candidate and is not pooled with V3.
+
+### V3 confirmation rejection and V4 nominal-controller correction
+
+V3 was opened once on its untouched `332000000` confirmation family. The
+causal router achieved 2655/2880 (92.19%) safe successes with 51/2880 (1.77%)
+violations, versus 2369/2880 (82.26%) for the strongest non-oracle baseline.
+The 9.93-point gain had a 95% Newcombe interval of [7.54, 12.29] points. It
+also achieved 573/576 safe successes on the held-out reverse condition.
+Nevertheless, nominal safe success was only 456/576 (79.17%), below the frozen
+82% worst-condition floor. V3 is therefore rejected and is never rerun as an
+untouched result.
+
+V4 is preregistered in `configs/a_plus_recovery_gate_v4_nominal_state.json`.
+It changes only the controller shared by nominal execution and temporary
+recovery after clearance: the V19 RGB controller is replaced with a dedicated
+LearnedRecovery-v4 state PPO trained on nominal episodes. The exact selected
+checkpoint is shared by every router baseline. The 57-dimensional temporal
+representation, specialists, router calibration, 36-step safe hold, OOD axes,
+and every numerical threshold remain unchanged. V4 uses `329000000` for
+selection and reserves `333000000` for a once-only untouched confirmation.

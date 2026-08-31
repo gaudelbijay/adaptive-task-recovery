@@ -34,6 +34,19 @@ def test_v3_centers_the_complete_named_geometry_contract():
     assert gate["selection_seed_base"] != gate["confirmation_seed_base"]
 
 
+def test_v4_changes_only_the_shared_nominal_controller_and_preserves_gates():
+    v3 = json.loads((ROOT / "configs/a_plus_recovery_gate_v3_full_geometry.json").read_text())
+    v4 = json.loads((ROOT / "configs/a_plus_recovery_gate_v4_nominal_state.json").read_text())
+    assert v4["status"] == "preregistered_before_v4_nominal_training_or_evaluation"
+    assert v4["representation"] == v3["representation"]
+    assert v4["pass_criteria"] == v3["pass_criteria"]
+    assert v4["ood_axes"] == v3["ood_axes"]
+    assert v4["shared_option_change"]["unchanged_safe_hold_until_step"] == 36
+    assert v4["selection_seed_base"] == 329_000_000
+    assert v4["confirmation_seed_base"] == 333_000_000
+    assert v4["selection_seed_base"] != v4["confirmation_seed_base"]
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
@@ -78,3 +91,13 @@ def test_learned_router_has_no_mechanism_state_machine():
     assert "intervention_target" not in runtime
     assert "MOTION_THRESHOLD" not in runtime
     assert "BLOCKAGE_DECISION_HORIZON" not in runtime
+
+
+def test_v4_state_nominal_is_shared_by_nominal_and_temporary_options():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert 'parser.add_argument(\n        "--nominal-state-checkpoint"' in source
+    assert 'state_specs["nominal"]' in source
+    assert "temporary_action = nominal_action" in source
+    assert '"nominal_policy_type": "state_ppo"' in source
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_NOMINAL_STATE_CHECKPOINT" in wrapper
