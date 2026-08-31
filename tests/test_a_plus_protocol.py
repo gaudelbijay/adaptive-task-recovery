@@ -81,6 +81,13 @@ def test_v5_preserves_the_primary_gate_and_uses_fresh_seed_families():
     }
 
 
+def test_primary_summarizer_enforces_heldout_and_training_seed_gates():
+    source = (ROOT / "scripts/summarize_a_plus_recovery_gate.py").read_text()
+    assert 'checks["heldout_reverse_safe_success"]' in source
+    assert 'checks["training_seed_count"]' in source
+    assert 'conditions"].get("reverse_ejection")' in source
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

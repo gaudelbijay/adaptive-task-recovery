@@ -83,7 +83,10 @@ def main() -> None:
     )
     if success_min is None or violation_max is None or worst_min is None:
         raise RuntimeError("gate is missing a closed-loop success, violation, or worst-condition threshold")
-    methods = {name: aggregate(load_manifests(directory)) for name, directory in args.method}
+    method_records = {
+        name: load_manifests(directory) for name, directory in args.method
+    }
+    methods = {name: aggregate(records) for name, records in method_records.items()}
     if args.candidate not in methods:
         raise RuntimeError(f"candidate {args.candidate!r} was not supplied")
     candidate = methods[args.candidate]["overall"]
@@ -98,6 +101,23 @@ def main() -> None:
             row["safe_success_rate"] for row in methods[args.candidate]["conditions"].values()
         ) >= worst_min,
     }
+    if "heldout_reverse_safe_success_min" in criteria:
+        reverse = methods[args.candidate]["conditions"].get("reverse_ejection")
+        if reverse is None:
+            raise RuntimeError("candidate manifests omit held-out reverse_ejection")
+        checks["heldout_reverse_safe_success"] = (
+            reverse["safe_success_rate"]
+            >= criteria["heldout_reverse_safe_success_min"]
+        )
+    if "minimum_independent_training_seeds" in criteria:
+        router_seeds = {
+            record.get("router_seed")
+            for record in method_records[args.candidate]
+            if record.get("router_seed") is not None
+        }
+        checks["training_seed_count"] = (
+            len(router_seeds) >= criteria["minimum_independent_training_seeds"]
+        )
     comparison = None
     if competitors:
         strongest_name, strongest = max(
