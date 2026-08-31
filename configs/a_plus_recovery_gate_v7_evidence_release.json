@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v7_selection_or_evaluation",
+  "supersedes": "configs/a_plus_recovery_gate_v6_option_specific_nominal.json",
+  "supersession_reason": "V6 was rejected on the fresh 335000000 selection family because nominal safe success was 435/576 (75.52%) despite passing overall, violation, gain, uncertainty, temporary, and held-out gates. Development on that opened family isolated the fixed 36-step defer as an off-distribution low-level handoff. V7 permits the identical confidence-calibrated router used by each method to release defer when it confirms nominal; observed later events remain revisable. A declared controller screen selected V19 seed 1788, which achieved 167/192 (86.98%) nominal safe successes with evidence release and 893/960 (93.02%) over all conditions in the causal development run.",
+  "research_question": "Can calibrated causal evidence release unnecessary defer while retaining temporal held-out recovery composition under matched observations and policies?",
+  "primary_endpoint": "episode_success_without_constraint_violation",
+  "representation": {
+    "name": "complete_current_centered_causal_motion",
+    "geometry_dimensions": 57,
+    "centered_feature_groups": ["actor_goal_relative", "mechanism_cube_relative", "tcp_task_relative"],
+    "definition": "At each decision, subtract the current 57-D task geometry from every geometry frame in the causal prefix; the final geometry is identically zero for every method.",
+    "runtime_causality": "Uses only stored observations at or before the current decision.",
+    "heldout_option_label": "reverse",
+    "heldout_option_index": 2,
+    "forbidden_training_signal": "reverse option cross-entropy",
+    "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"]
+  },
+  "defer_policy": {
+    "maximum_safe_hold_step": 36,
+    "release_rule": "Release defer when the method's calibrated posterior confirms nominal option 0; a later observed event may revise nominal or hand off irreversibly to a specialist.",
+    "confirmation_steps": 1,
+    "same_rule_for_all_methods": true
+  },
+  "shared_option_controller": {
+    "nominal_policy_index": 2,
+    "temporary_policy_index": 2,
+    "checkpoint": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/event_reward_dual_specialist_dagger_visual_ppo/seed_1788/best.pt",
+    "checkpoint_sha256": "7d9c039f43180923843c7061e8aa1f4890ac939f6f0575605fb985b2e7d5e7ec",
+    "matching_rule": "The exact checkpoint is shared by causal, static, unstructured, heuristic, and oracle routers."
+  },
+  "methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_v28_router", "oracle_mechanism_router_upper_bound"],
+  "selection_seed_base": 336000000,
+  "confirmation_seed_base": 340000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": ["nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection"],
+  "ood_axes": {"force": [0.65, 1.35], "onset_steps": [12, 36], "temporary_return_delay_steps": [18, 48], "control_delay_steps": [4, 12]},
+  "pass_criteria": {
+    "closed_loop_safe_success_min": 0.9,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "worst_condition_safe_success_min": 0.82,
+    "heldout_reverse_safe_success_min": 0.85,
+    "static_heldout_reverse_offline_accuracy_max": 0.4,
+    "causal_heldout_reverse_offline_accuracy_min": 0.9,
+    "ood_safe_success_min": 0.75,
+    "external_reboot_macro_auroc_min": 0.82,
+    "external_gain_over_static_min": 0.2,
+    "external_gain_over_moment_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "anti_shortcut_audits": ["all_57_final_geometry_values_are_exactly_zero", "heldout_option_absent_from_option_loss", "group_disjoint_train_validation_test", "pre_action_prefix_alignment", "time_only_probe", "current_frame_probe", "shuffled_history_ablation", "matched_feature_tensor_hash"],
+  "readme_release_rule": "Promote the primary V7 result only if every primary, OOD, external, seed-count, and anti-shortcut criterion passes on untouched 340000000. An A/A+ general-method claim additionally requires the external PegInsertion closed-loop gate."
+}

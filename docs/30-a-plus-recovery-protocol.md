@@ -141,3 +141,21 @@ uses the seed-1788 controller that was stronger on that recovery role. The
 library is identical for every router. V6 changes no routing model, specialist,
 feature, calibration, hold, or numerical criterion. It uses `335000000` for
 selection and reserves `339000000` for once-only confirmation.
+
+### V6 selection rejection and V7 evidence-conditioned defer
+
+V6 is rejected before confirmation. It passed overall safe success, violation,
+gain, uncertainty, held-out reverse, and temporary recovery, but nominal safe
+success fell to 435/576 (75.52%) on the fresh `335000000` selection family.
+The reserved `339000000` family remains untouched.
+
+Development on the opened selection family showed that the universal 36-step
+defer, not recovery routing, was placing the nominal controller outside its
+training-state distribution. V7 retains 36 as a maximum hold but releases it
+when the method's own calibrated posterior confirms nominal execution. Later
+events remain revisable. Every method receives the same release rule; no
+mechanism label is consulted. A declared controller screen chose V19 seed 1788,
+which achieved 167/192 (86.98%) nominal safe successes and 893/960 (93.02%)
+across all conditions in the causal development run. V7 is frozen for fresh
+`336000000` selection and untouched `340000000` confirmation in
+`configs/a_plus_recovery_gate_v7_evidence_release.json`.

@@ -101,6 +101,14 @@ def main():
             "still selects nominal. An observed event can override the hold early."
         ),
     )
+    parser.add_argument(
+        "--release-safe-hold-on-confirmed-nominal",
+        action="store_true",
+        help=(
+            "Release the initial defer as soon as the causal router confirms "
+            "nominal execution; later observed events can still revise it."
+        ),
+    )
     parser.add_argument("--env-id", default="LearnedRecovery-v4")
     parser.add_argument("--visual-domain-profile")
     parser.add_argument("--fixed-option", type=int, choices=range(6))
@@ -198,6 +206,9 @@ def main():
             # with no observed event.  The learned readiness/event posterior
             # can explicitly defer at the first query or hand off to recovery.
             selected_option = torch.zeros_like(candidate)
+            nominal_confirmed = torch.zeros(
+                args.num_envs, dtype=torch.bool, device=device,
+            )
             decision_locked = torch.zeros(args.num_envs, dtype=torch.bool, device=device)
             success = torch.zeros(args.num_envs, dtype=torch.bool, device=device); violation = torch.zeros_like(success)
             for step in range(1, args.steps + 1):
@@ -223,6 +234,7 @@ def main():
                     confirmed = candidate_count >= args.confirmation_steps
                     accepted = confirmed & ~decision_locked
                     selected_option = torch.where(accepted, candidate, selected_option)
+                    nominal_confirmed |= accepted & (candidate == 0)
                     # Specialist hand-offs are irreversible. Nominal/defer
                     # remain revisable so delayed events can still be routed.
                     irreversible = torch.isin(
@@ -234,7 +246,12 @@ def main():
                         args.fixed_option if step >= args.fixed_option_start_step else 5
                     )
                 effective_option = torch.where(
-                    (selected_option == 0) & (step <= args.safe_hold_until_step),
+                    (selected_option == 0)
+                    & (step <= args.safe_hold_until_step)
+                    & ~(
+                        args.release_safe_hold_on_confirmed_nominal
+                        & nominal_confirmed
+                    ),
                     torch.full_like(selected_option, 5),
                     selected_option,
                 )
@@ -293,6 +310,9 @@ def main():
         "abstention_step_rate": abstentions / (args.episodes * args.steps),
         "seed_base": args.seed_base, "force_scale": args.force_scale, "onset_step": args.onset_step,
         "safe_hold_until_step": args.safe_hold_until_step,
+        "release_safe_hold_on_confirmed_nominal": (
+            args.release_safe_hold_on_confirmed_nominal
+        ),
         "return_delay": args.return_delay, "control_delay": args.control_delay,
         "environment": args.env_id, "visual_domain_profile": args.visual_domain_profile or "nominal",
         "fixed_option": args.fixed_option,

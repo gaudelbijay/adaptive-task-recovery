@@ -118,6 +118,19 @@ def test_v6_uses_matched_option_specific_controllers_and_fresh_seeds():
     assert v6["confirmation_seed_base"] != v5["confirmation_seed_base"]
 
 
+def test_v7_evidence_release_is_matched_causal_and_fresh():
+    v6 = json.loads((ROOT / "configs/a_plus_recovery_gate_v6_option_specific_nominal.json").read_text())
+    v7 = json.loads((ROOT / "configs/a_plus_recovery_gate_v7_evidence_release.json").read_text())
+    assert v7["status"] == "preregistered_before_v7_selection_or_evaluation"
+    assert v7["representation"] == v6["representation"]
+    assert v7["pass_criteria"] == v6["pass_criteria"]
+    assert v7["ood_axes"] == v6["ood_axes"]
+    assert v7["defer_policy"]["same_rule_for_all_methods"] is True
+    assert "calibrated posterior" in v7["defer_policy"]["release_rule"]
+    assert v7["selection_seed_base"] == 336_000_000
+    assert v7["confirmation_seed_base"] == 340_000_000
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
@@ -172,3 +185,15 @@ def test_v4_state_nominal_is_shared_by_nominal_and_temporary_options():
     assert '"nominal_policy_type": "state_ppo"' in source
     wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
     assert "ATR_NOMINAL_STATE_CHECKPOINT" in wrapper
+
+
+def test_evidence_conditioned_hold_release_uses_only_router_acceptance():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    runtime = source.split("for step in range", 1)[1].split(
+        '"forbidden_runtime_inputs"', 1
+    )[0]
+    assert "release_safe_hold_on_confirmed_nominal" in runtime
+    assert "nominal_confirmed |= accepted & (candidate == 0)" in runtime
+    assert "critic_intervention_mechanism" not in runtime
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_RELEASE_SAFE_HOLD_ON_CONFIRMED_NOMINAL" in wrapper

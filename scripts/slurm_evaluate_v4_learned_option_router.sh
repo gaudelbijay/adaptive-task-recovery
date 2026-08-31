@@ -25,6 +25,10 @@ NOMINAL_STATE_ARGS=()
 if [[ -n "${ATR_NOMINAL_STATE_CHECKPOINT:-}" ]]; then
   NOMINAL_STATE_ARGS+=(--nominal-state-checkpoint "${ATR_NOMINAL_STATE_CHECKPOINT}")
 fi
+RELEASE_HOLD_ARGS=()
+if [[ "${ATR_RELEASE_SAFE_HOLD_ON_CONFIRMED_NOMINAL:-0}" == "1" ]]; then
+  RELEASE_HOLD_ARGS+=(--release-safe-hold-on-confirmed-nominal)
+fi
 if [[ -n "${ATR_NOMINAL_POLICY_INDEX:-}" ]]; then
   POLICY_MEMBER_ARGS+=(--nominal-policy-index "${ATR_NOMINAL_POLICY_INDEX}")
 fi
@@ -48,6 +52,7 @@ fi
   --control-delay "${ATR_ROUTER_CONTROL_DELAY:-0}" \
   --safe-hold-until-step "${ATR_ROUTER_SAFE_HOLD_UNTIL_STEP:-0}" \
   "${NOMINAL_STATE_ARGS[@]}" \
+  "${RELEASE_HOLD_ARGS[@]}" \
   "${FIXED_OPTION_ARGS[@]}" \
   "${ENSEMBLE_ARGS[@]}" \
   "${POLICY_MEMBER_ARGS[@]}"
