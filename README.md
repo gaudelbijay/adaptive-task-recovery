@@ -61,6 +61,41 @@ detail and every underlying number is in
 and claim boundaries are in
 [`docs/14-results-and-claim-boundaries.md`](docs/14-results-and-claim-boundaries.md).
 
+### 2026 causal-recovery audit: real trajectories expose the simulator shortcut
+
+The latest candidate was evaluated on the May 2026
+[REBOOT real-robot benchmark](https://nanayawoa.github.io/REBOOT/) before any
+README promotion. The pinned audit contains **2,072 usable trajectories from
+37 repositories**, evaluated by leaving out each of nine object families in
+turn. Inputs and splits are matched across methods; repository SHAs, excluded
+episodes, optimizer seeds, and every held-out fold are recorded in
+[`results/a_plus_audit`](results/a_plus_audit/reboot_v2_aggregate.json).
+
+| REBOOT recovery-state predictor | Leave-one-object-out macro-AUROC |
+|---|---:|
+| Static MLP (last observation) | 0.5797 |
+| Trajectory-moment MLP | 0.7450 |
+| Capacity-matched unstructured GRU | 0.8072 |
+| **Causal dynamics GRU** | **0.8353** |
+
+The structured causal model improves over the static model by **+25.56 AUROC
+points** (object-bootstrap 95% CI **+21.10 to +29.47**) and over the strong
+trajectory-moment baseline by **+9.03 points** (**+1.96 to +18.08**). It is
+also +2.82 points above the unstructured GRU, but that narrower interval
+crosses zero (**−1.40 to +9.38**), so the repository does not claim a
+significant architecture win. This is an offline real-robot recovery-prefix
+result, not real-robot closed-loop control.
+
+The matched simulator audit reached **878/960 — 91.46% safe success** with
+**16/960 — 1.67% violations**, but the unstructured recurrent router produced
+the exact same closed-loop outcome and the static router was only one episode
+behind (**877/960**). The frozen A+ gate therefore correctly rejects the local
+method-superiority claim: recurrence is valuable on REBOOT, while the current
+simulator exposes the mechanism in a single state and cannot establish that
+claim. The failure and shortcut-probe artifacts are retained rather than
+hidden; the previous V4 confirmatory headline below remains the released
+closed-loop result.
+
 | | Hypothesis | Result |
 |---|---|---|
 | **H1** | A perceptual feasibility signal (not just privileged simulator state) is usable | **Confirmed.** Real zero-shot CLIP perception matches oracle behavior exactly on the project's own success-criteria benchmark — same recall, real reduction in wasted steps. A robustness gap was found by actually running the benchmark, then fixed and re-verified, not assumed away. |

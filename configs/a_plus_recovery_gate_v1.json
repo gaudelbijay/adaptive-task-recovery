@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_development",
+  "primary_endpoint": "episode_success_without_constraint_violation",
+  "primary_suite": "LearnedRecovery-v4 mechanism-diverse closed-loop control",
+  "methods": [
+    "causal_recurrent_option_router",
+    "static_option_mlp_matched_state",
+    "unstructured_gru_matched_state",
+    "heuristic_v28_router_matched_state",
+    "v19_nominal_policy_context_only",
+    "oracle_mechanism_router_upper_bound"
+  ],
+  "development_seed_base": 310000000,
+  "selection_seed_base": 320000000,
+  "confirmation_seed_base": 330000000,
+  "episodes_per_condition_per_seed": 128,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": [
+    "nominal",
+    "ejection",
+    "permanent_block",
+    "temporary_block",
+    "reverse_ejection"
+  ],
+  "ood_axes": {
+    "force": [0.65, 1.35],
+    "onset_steps": [12, 36],
+    "temporary_return_delay_steps": [18, 48],
+    "control_delay_steps": [4, 12],
+    "renderer_profiles": [
+      "camera_left_5cm",
+      "camera_high_5cm",
+      "lighting_dim",
+      "lighting_warm"
+    ]
+  },
+  "external_benchmark": {
+    "name": "REBOOT",
+    "version": "2026-05 dataset snapshots pinned by repository SHA",
+    "protocol": "leave-one-object-pair-out recovery-state prediction from causal trajectory prefixes",
+    "primary_metric": "macro_auroc",
+    "baselines": [
+      "majority",
+      "trajectory_length_only",
+      "static_mlp_matched_proprioception",
+      "unstructured_gru_matched_proprioception"
+    ]
+  },
+  "pass_criteria": {
+    "closed_loop_success_min": 0.9,
+    "closed_loop_violation_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "nominal_regression_max_pp": 2.0,
+    "worst_condition_success_min": 0.82,
+    "ood_success_min": 0.75,
+    "ood_gain_over_strongest_non_oracle_min_pp": 5.0,
+    "external_macro_auroc_min": 0.75,
+    "external_gain_over_static_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true,
+    "all_claims_require_complete_manifests": true
+  },
+  "anti_shortcut_audits": [
+    "no_intervention_actor_identity",
+    "no_mechanism_or_target_label",
+    "matched_policy_inputs",
+    "time_only_probe",
+    "shuffled_history_ablation",
+    "entity_identity_permutation",
+    "seed_and_trajectory_disjoint_splits",
+    "repository_sha_and_episode_manifest"
+  ],
+  "readme_release_rule": "Do not replace the current headline result unless every pass criterion succeeds on the untouched confirmation bank."
+}
