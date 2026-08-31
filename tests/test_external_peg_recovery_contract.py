@@ -64,3 +64,18 @@ def test_official_ppo_nominal_config_is_pinned_and_three_seed():
     assert task["total_timesteps"] == 250_000_000
     assert task["num_envs"] == 1024
     assert task["env_kwargs"]["intervention_probability"] == 0.0
+
+
+def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention():
+    audit = (ROOT / "scripts/evaluate_external_peg_ppo.py").read_text()
+    assert 'default=421_000_000' in audit
+    assert '"intervention_probability": 0.0' in audit
+    assert 'agent.get_action(observation, deterministic=True)' in audit
+    assert 'info["success"]' in audit
+    assert 'info["constraint_violated"]' in audit
+    wrapper = (ROOT / "scripts/slurm_evaluate_external_peg_ppo.sh").read_text()
+    assert "#SBATCH --array=0-2" in wrapper
+    summary = (ROOT / "scripts/summarize_external_peg_ppo_competence.py").read_text()
+    assert 'criteria["minimum_three_seed_mean_safe_success"]' in summary
+    assert 'criteria["minimum_per_seed_safe_success"]' in summary
+    assert 'criteria["maximum_constraint_violation_rate"]' in summary
