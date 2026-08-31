@@ -218,3 +218,26 @@ step 40, and an existing seed-84293 forward specialist that achieved 181/192,
 violations. Every router shares the guard and controllers; only models with a
 validated factorized dispatch may use it. Fresh selection is `343000000`, and
 `347000000` is reserved for untouched confirmation.
+
+### V10 untouched confirmation passes; external gate remains blocking
+
+The V10 candidate was frozen and committed before `347000000` was opened. Its
+once-only primary confirmation passed every preregistered check: 2655/2880
+(92.19%) safe successes, 24/2880 (0.83%) violations, 84.38% in the worst
+condition, and 561/576 (97.40%) on held-out reverse ejection. The strongest
+matched non-oracle baseline was the unstructured GRU at 2354/2880 (81.74%).
+The causal gain was 10.45 points with a 95% Newcombe interval of [8.05, 12.83]
+points.
+
+The same frozen candidate passed the registered pooled OOD confirmation at
+6369/7680 (82.93%) safe successes, above the 75% floor. Axis-level results are
+not hidden: four-step and twelve-step control delay reached only 73.33% and
+55.83%, and the 48-step temporary-block axis incurred 15.83% violations. Thus
+V10 establishes the pooled result, not universal delay robustness. The exact
+machine-readable record is
+`configs/temporal_composition_v10_confirmation.json`.
+
+This closes the input-matched positive-method blocker on LearnedRecovery-v4.
+It does not close the paper gate. The independently preregistered, no-teleport
+`PegInsertionSide-v1` closed-loop experiment must still pass before an A/A+
+general recovery claim or README headline promotion.

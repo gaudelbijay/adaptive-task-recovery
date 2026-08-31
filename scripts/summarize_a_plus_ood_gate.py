@@ -24,6 +24,9 @@ def aggregate(directory: Path, expected_manifests: int) -> dict:
     episodes = sum(int(row["episodes"]) for row in records)
     safe = sum(int(row["safe_successes"]) for row in records)
     violations = sum(int(row["violations"]) for row in records)
+    seed_bases = {int(row["seed_base"]) for row in records}
+    if len(seed_bases) != 1:
+        raise RuntimeError(f"{directory}: mixed evaluation seed bases: {sorted(seed_bases)}")
     return {
         "manifests": len(records),
         "episodes": episodes,
@@ -31,6 +34,7 @@ def aggregate(directory: Path, expected_manifests: int) -> dict:
         "safe_success_rate": safe / episodes,
         "violations": violations,
         "violation_rate": violations / episodes,
+        "seed_base": next(iter(seed_bases)),
         "conditions": {
             condition: {
                 "episodes": sum(int(row["episodes"]) for row in records if row["condition"] == condition),
@@ -56,11 +60,14 @@ def main() -> None:
     episodes = sum(row["episodes"] for row in axes.values())
     safe = sum(row["safe_successes"] for row in axes.values())
     violations = sum(row["violations"] for row in axes.values())
+    seed_bases = {row["seed_base"] for row in axes.values()}
+    if len(seed_bases) != 1:
+        raise RuntimeError(f"axes mix evaluation seed bases: {sorted(seed_bases)}")
     threshold = float(gate["pass_criteria"]["ood_safe_success_min"])
     result = {
         "schema_version": 1,
         "gate": str(args.gate),
-        "selection_seed_base": gate["selection_seed_base"],
+        "evaluation_seed_base": next(iter(seed_bases)),
         "axes": axes,
         "pooled": {
             "episodes": episodes,

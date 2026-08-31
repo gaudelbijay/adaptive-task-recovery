@@ -83,9 +83,9 @@ def main() -> None:
     )
     if success_min is None or violation_max is None or worst_min is None:
         raise RuntimeError("gate is missing a closed-loop success, violation, or worst-condition threshold")
-    method_records = {
-        name: load_manifests(directory) for name, directory in args.method
-    }
+    method_records: dict[str, list[dict]] = defaultdict(list)
+    for name, directory in args.method:
+        method_records[name].extend(load_manifests(directory))
     methods = {name: aggregate(records) for name, records in method_records.items()}
     if args.candidate not in methods:
         raise RuntimeError(f"candidate {args.candidate!r} was not supplied")

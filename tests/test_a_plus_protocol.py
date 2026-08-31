@@ -310,6 +310,7 @@ def test_factorized_sweep_dispatch_is_validation_calibrated():
 def test_primary_summarizer_uses_gate_endpoint_label():
     source = (ROOT / "scripts/summarize_a_plus_recovery_gate.py").read_text()
     assert 'gate.get(\n            "primary_endpoint"' in source
+    assert 'method_records[name].extend(load_manifests(directory))' in source
 
 
 def test_ood_summarizer_retains_each_axis_and_checks_manifest_count():
@@ -317,3 +318,21 @@ def test_ood_summarizer_retains_each_axis_and_checks_manifest_count():
     assert '"axes": axes' in source
     assert "expected {expected_manifests} manifests" in source
     assert 'gate["pass_criteria"]["ood_safe_success_min"]' in source
+    assert '"evaluation_seed_base": next(iter(seed_bases))' in source
+    assert "mixed evaluation seed bases" in source
+
+
+def test_v10_confirmation_passes_primary_but_retains_external_blocker():
+    record = json.loads(
+        (ROOT / "configs/temporal_composition_v10_confirmation.json").read_text()
+    )
+    gate = json.loads(
+        (ROOT / "configs/a_plus_recovery_gate_v10_guarded_factorized_dispatch.json").read_text()
+    )
+    assert record["confirmation_seed_base"] == gate["confirmation_seed_base"]
+    assert record["confirmation_opened_once"] is True
+    assert record["primary"]["all_frozen_checks_pass"] is True
+    assert record["ood"]["pooled_gate_pass"] is True
+    assert record["ood"]["safe_success_rate"] >= gate["pass_criteria"]["ood_safe_success_min"]
+    assert record["ood"]["weak_axes_retained"]["control_delay_12_safe_success_rate"] < 0.75
+    assert record["external_validity"]["peg_insertion_gate"] == "incomplete"

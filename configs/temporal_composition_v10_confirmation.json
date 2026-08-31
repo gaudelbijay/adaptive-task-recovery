@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "primary_confirmed_external_gate_incomplete",
+  "candidate": "V10 guarded factorized causal dispatch",
+  "frozen_candidate": "configs/temporal_composition_v10_frozen_candidate.json",
+  "confirmation_seed_base": 347000000,
+  "confirmation_opened_once": true,
+  "primary": {
+    "artifact": "results/router/v10_confirmation_primary_gate.json",
+    "artifact_sha256": "bf3dca5761b6cf8185e2f37407c5bb61d437dd526b6e1605d98d0bec4313fb7d",
+    "episodes": 2880,
+    "safe_successes": 2655,
+    "safe_success_rate": 0.921875,
+    "violations": 24,
+    "violation_rate": 0.008333333333333333,
+    "worst_condition": "temporary_block",
+    "worst_condition_safe_success_rate": 0.84375,
+    "heldout_reverse_safe_success_rate": 0.9739583333333334,
+    "strongest_non_oracle": "unstructured",
+    "gain_over_strongest_non_oracle": 0.1045138888888889,
+    "gain_newcombe_95": [0.08045595214268941, 0.12829338744346763],
+    "all_frozen_checks_pass": true
+  },
+  "ood": {
+    "artifact": "results/router/v10_confirmation_ood_gate.json",
+    "artifact_sha256": "8bccc6db7b62897f8cb280f028a5074f67a552cd5f8e7deab1a6f1108f2b6570",
+    "episodes": 7680,
+    "safe_successes": 6369,
+    "safe_success_rate": 0.829296875,
+    "violations": 216,
+    "violation_rate": 0.028125,
+    "frozen_pooled_threshold": 0.75,
+    "pooled_gate_pass": true,
+    "weak_axes_retained": {
+      "control_delay_4_safe_success_rate": 0.7333333333333333,
+      "control_delay_12_safe_success_rate": 0.5583333333333333,
+      "return_48_violation_rate": 0.15833333333333333
+    },
+    "claim_boundary": "The frozen pooled OOD distribution passes. The result does not establish per-axis robustness to long action delays or long temporary obstruction."
+  },
+  "external_validity": {
+    "reboot": "offline real-robot transfer only",
+    "peg_insertion_gate": "incomplete",
+    "required_confirmation_seed_base": 429000000
+  },
+  "release_decision": "Do not promote an A/A+ general-method claim or rewrite the README headline until the independently frozen PegInsertionSide-v1 closed-loop gate also passes."
+}

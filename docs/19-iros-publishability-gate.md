@@ -84,15 +84,21 @@ confirmation it achieved 573/576 held-out reverse safe successes and 2655/2880
 overall, versus 2369/2880 for the matched unstructured baseline. The overall
 gain was 9.93 points with a 95% Newcombe interval of [7.54, 12.29] points.
 
-V3 is still rejected. Its nominal condition reached only 456/576 (79.17%),
-below the frozen 82% worst-condition floor. This isolates a shared low-level
-controller weakness rather than a router or causal-composition failure. V4
-therefore changes only the nominal/post-clearance controller, identically for
-all baselines, and reserves a fresh confirmation family. It does not reopen or
-reinterpret V3.
+V3 remains rejected because its nominal condition reached only 456/576
+(79.17%), below the frozen 82% worst-condition floor. V4--V9 retained that
+rejection history and used fresh selection/confirmation families; none was
+reinterpreted as a pass.
 
-Passing V4 is necessary but no longer sufficient for an A/A+ claim. The
-remaining blocker is closed-loop external validity. The second-family protocol
+V10 now closes the custom-benchmark method blocker. On the once-only untouched
+`347000000` confirmation family, the causal method achieved 2655/2880 (92.19%)
+safe success with 0.83% violations, versus 2354/2880 (81.74%) for the strongest
+matched non-oracle baseline. The +10.45-point gain has a 95% Newcombe interval
+of [8.05, 12.83] points. It also passed the frozen pooled OOD gate at 6369/7680
+(82.93%). This result has a real boundary: twelve-step control delay reached
+only 55.83%, and the 48-step temporary-block axis produced 15.83% violations.
+
+Passing V10 is necessary but not sufficient for an A/A+ claim. The remaining
+blocker is closed-loop external validity. The second-family protocol
 is frozen separately in
 `configs/a_plus_external_peg_insertion_gate_v1.json`: an intervention extension
 of ManiSkill3's official `PegInsertionSide-v1`, chosen because contact-rich
@@ -104,7 +110,7 @@ confirmation bank.
 
 The release decision is conjunctive:
 
-1. V4 primary gate passes on `333000000`.
+1. V10 primary and pooled OOD gates pass on `347000000` (completed).
 2. The external PegInsertion gate passes on `429000000`.
 3. The existing REBOOT result remains labeled offline real-robot transfer, not
    closed-loop real-robot control.
