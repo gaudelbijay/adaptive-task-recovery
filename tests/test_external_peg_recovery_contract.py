@@ -42,6 +42,15 @@ def test_router_geometry_is_physical_and_excludes_mechanism_labels():
     assert "_physical_unavailable" not in geometry
 
 
+def test_blocker_contact_is_a_hard_protected_region_violation():
+    runtime = SOURCE.split("def _before_simulation_step", 1)[1].split(
+        "def evaluate", 1
+    )[0]
+    assert "peg_head_blocker_distance" in runtime
+    assert "blocker_clearance" in runtime
+    assert "blocker_protected & (peg_head_blocker_distance < blocker_clearance)" in runtime
+
+
 def test_fail_fast_smoke_covers_every_frozen_condition():
     smoke = (ROOT / "scripts/smoke_external_peg_recovery.py").read_text()
     for condition in (

@@ -208,9 +208,15 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         self._blocker_engaged |= toward_hole & (target_distance < 0.065)
         self._temporary_cleared |= returning & (home_distance < 0.05)
         peg_position = self.peg.pose.p
+        blocker_protected = self._blocker_engaged & ~self._temporary_cleared & block_kind
+        blocker_clearance = self.blocker_half_sizes[0] + self.peg_half_sizes[:, 1]
+        peg_head_blocker_distance = torch.linalg.vector_norm(
+            self.peg_head_pose.p - self.hole_blocker.pose.p, dim=1,
+        )
         self._constraint_violated |= (
             (peg_position[:, 2] < -0.02)
             | (torch.linalg.vector_norm(peg_position[:, :2], dim=1) > 0.8)
+            | (blocker_protected & (peg_head_blocker_distance < blocker_clearance))
         )
 
     def evaluate(self):
@@ -236,6 +242,9 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             "intervention_finished": intervention_finished,
             "critic_blocker_target_distance": torch.linalg.vector_norm(
                 self.hole_blocker.pose.p - self._blocker_target, dim=1,
+            ),
+            "critic_peg_head_blocker_distance": torch.linalg.vector_norm(
+                self.peg_head_pose.p - self.hole_blocker.pose.p, dim=1,
             ),
             # Physical task geometry used by the state-based router. The
             # intervention identity and feasibility labels above are never
