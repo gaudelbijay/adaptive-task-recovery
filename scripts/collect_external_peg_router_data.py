@@ -62,7 +62,9 @@ def make_env(
     return ManiSkillVectorEnv(env, num_envs, ignore_terminations=True, record_metrics=False)
 
 
-def labels(kind_index: int, info: dict, length: int):
+def labels(
+    kind_index: int, info: dict, length: int, geometry_history: torch.Tensor,
+):
     onset = info["critic_intervention_onset_step"].long()
     post_event = length >= onset + 2
     count = len(onset)
@@ -79,7 +81,19 @@ def labels(kind_index: int, info: dict, length: int):
     elif kind_index in (1, 4):
         event[post_event] = 1
         direction[post_event] = 0 if kind_index == 1 else 1
-        ready = post_event
+        # Readiness must be justified by the causal prefix, not merely by an
+        # oracle clock. Compare the current hole-frame lateral position with
+        # the prefix frame at onset and require motion in the labeled physical
+        # direction. Onset is a training-only alignment target and never an
+        # input to the deployed router.
+        reference_index = onset.clamp(min=1, max=length) - 1
+        row = torch.arange(count, device=onset.device)
+        reference_lateral = geometry_history[row, reference_index, 1]
+        current_lateral = geometry_history[:, -1, 1]
+        sign = 1.0 if kind_index == 1 else -1.0
+        ready = post_event & (
+            sign * (current_lateral - reference_lateral) > 0.01
+        )
     elif kind_index == 2:
         event[post_event] = 2
         engaged = info["blocker_engaged"].bool()
@@ -162,9 +176,10 @@ def main() -> None:
                             args.num_envs, args.horizon, feature.shape[1],
                             dtype=feature.dtype, device=feature.device,
                         )
-                        padded[:, :step] = torch.stack(history, dim=1)
+                        geometry_history = torch.stack(history, dim=1)
+                        padded[:, :step] = geometry_history
                         option, event, direction, block, ready, onset = labels(
-                            kind_index, info, step,
+                            kind_index, info, step, geometry_history,
                         )
                         rows["sequence"].append(padded.cpu().numpy().astype(np.float32))
                         rows["length"].append(np.full(args.num_envs, step, dtype=np.int64))
@@ -234,6 +249,10 @@ def main() -> None:
             "event_family", "physical_direction", "blocker_engaged",
             "temporary_cleared", "option_ready",
         ],
+        "sweep_readiness_rule": (
+            "more than 1 cm of prefix-observed displacement in the labeled "
+            "hole-frame direction relative to the onset-aligned past frame"
+        ),
         "heldout_option": 2,
         "heldout_option_cross_entropy": False,
         "real_negative_ejection_split": "physical_heldout test-only",

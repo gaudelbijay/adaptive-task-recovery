@@ -229,6 +229,8 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
     assert "from atr.policies.peg_router_features import relative_geometry" in evaluator
     assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
+    assert 'sign * (current_lateral - reference_lateral) > 0.01' in collector
+    assert '"sweep_readiness_rule"' in collector
     assert '"split_unit": "entire vectorized simulator reset batch"' in collector
     assert '"ejection_force": args.ejection_force' in collector
     assert '"ejection_steps": args.ejection_steps' in collector

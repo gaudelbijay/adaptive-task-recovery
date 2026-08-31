@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "scheduled_dependency_gated_development_only",
+  "nominal_training_job": 1150794,
+  "nominal_transfer_evaluation_job": 1150795,
+  "nominal_competence_summary_job": 1150796,
+  "positive_negative_specialist_training_job": 1150889,
+  "causal_prefix_collection_job": 1150890,
+  "causal_prefix_merge_job": 1150891,
+  "matched_three_seed_router_fit_job": 1150892,
+  "offline_fail_closed_gate_job": 1150893,
+  "release_dependency": "Every downstream branch is afterok:1150796; merge, fit, and audit are transitively afterok the preceding stage.",
+  "development_seed_families": [421350000, 421400000],
+  "nominal_and_specialist_training_seeds": [73129, 50411, 99277],
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "Scheduled jobs are not results. Their outcomes cannot enter the README unless all applicable frozen gates pass."
+}
