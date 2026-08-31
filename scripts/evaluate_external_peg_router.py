@@ -145,6 +145,17 @@ def main() -> None:
     evaluation_seed_index, condition_index = divmod(args.task_index, len(CONDITIONS))
     condition = CONDITIONS[condition_index]
     device = torch.device("cuda")
+    nominal_tasks = [
+        torch.load(path, map_location="cpu", weights_only=False)["task"]
+        for path in args.nominal_checkpoint
+    ]
+    blocker_observation_flags = {
+        bool(task.get("env_kwargs", {}).get("include_blocker_state_observation", True))
+        for task in nominal_tasks
+    }
+    if len(blocker_observation_flags) != 1:
+        raise ValueError("nominal checkpoints disagree on blocker observation contract")
+    include_blocker_state_observation = next(iter(blocker_observation_flags))
     env = gym.make(
         "PegInsertionRecovery-v1", num_envs=args.num_envs, reconfiguration_freq=1,
         obs_mode="state", render_mode=None, sim_backend="physx_cuda",
@@ -154,6 +165,7 @@ def main() -> None:
             ("positive_lateral_peg_ejection",) if condition == "nominal" else (condition,)
         ),
         onset_step_range=(18, 42), max_episode_steps=args.steps,
+        include_blocker_state_observation=include_blocker_state_observation,
     )
     if isinstance(env.action_space, gym.spaces.Dict):
         env = FlattenActionSpaceWrapper(env)
@@ -299,6 +311,7 @@ def main() -> None:
         "nominal_checkpoint_sha256": [sha256(path) for path in args.nominal_checkpoint],
         "forward_checkpoint_sha256": [sha256(path) for path in (args.forward_checkpoint or args.nominal_checkpoint)],
         "reverse_checkpoint_sha256": [sha256(path) for path in (args.reverse_checkpoint or args.nominal_checkpoint)],
+        "include_blocker_state_observation": include_blocker_state_observation,
         "forbidden_runtime_inputs": [
             "intervention kind", "intervention target", "future observation",
             "oracle feasibility", "native success flag",

@@ -56,6 +56,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         blocker_position_gain: float = 40.0,
         blocker_velocity_gain: float = 4.0,
         blocker_return_delay_steps: int = 48,
+        include_blocker_state_observation: bool = True,
         **kwargs,
     ):
         kinds = tuple(intervention_types)
@@ -76,6 +77,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         self.blocker_position_gain = float(blocker_position_gain)
         self.blocker_velocity_gain = float(blocker_velocity_gain)
         self.blocker_return_delay_steps = int(blocker_return_delay_steps)
+        self.include_blocker_state_observation = bool(include_blocker_state_observation)
         self._intervention_mechanism = None
         self._onset_step = None
         self._blocker_engaged = None
@@ -261,6 +263,6 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
 
     def _get_obs_extra(self, info: dict):
         obs = super()._get_obs_extra(info)
-        if self.obs_mode_struct.use_state:
+        if self.obs_mode_struct.use_state and self.include_blocker_state_observation:
             obs["hole_blocker_pose"] = self.hole_blocker.pose.raw_pose
         return obs

@@ -32,7 +32,7 @@ GEOMETRY_NAMES = tuple(
 )
 
 
-def make_env(num_envs: int, kind: str):
+def make_env(num_envs: int, kind: str, include_blocker_state_observation: bool):
     kwargs = dict(
         num_envs=num_envs, obs_mode="state", render_mode=None,
         sim_backend="physx_cuda", control_mode="pd_joint_delta_pos",
@@ -42,6 +42,7 @@ def make_env(num_envs: int, kind: str):
             ("positive_lateral_peg_ejection",) if kind == "nominal" else (kind,)
         ),
         onset_step_range=(18, 42),
+        include_blocker_state_observation=include_blocker_state_observation,
     )
     env = gym.make("PegInsertionRecovery-v1", **kwargs)
     if isinstance(env.action_space, gym.spaces.Dict):
@@ -100,6 +101,11 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("external Peg prefix collection requires CUDA")
     checkpoint = torch.load(args.checkpoint, map_location="cuda", weights_only=False)
+    include_blocker_state_observation = bool(
+        checkpoint["task"].get("env_kwargs", {}).get(
+            "include_blocker_state_observation", True,
+        )
+    )
     rows = {key: [] for key in (
         "sequence", "length", "option", "event", "direction", "block_status",
         "temporary_cleared", "option_ready", "onset", "return_delay",
@@ -107,7 +113,9 @@ def main() -> None:
     )}
     for kind_index, kind in enumerate(KINDS):
         for batch in range(args.batches_per_kind):
-            env = make_env(args.num_envs, kind)
+            env = make_env(
+                args.num_envs, kind, include_blocker_state_observation,
+            )
             try:
                 observation, info = env.reset(
                     seed=args.seed_base + kind_index * 10_000 + batch,
@@ -196,6 +204,7 @@ def main() -> None:
         "seed_base": args.seed_base,
         "behavior_checkpoint": str(args.checkpoint),
         "behavior_checkpoint_sha256": hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
+        "include_blocker_state_observation": include_blocker_state_observation,
     }
     args.metadata_output.parent.mkdir(parents=True, exist_ok=True)
     args.metadata_output.write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n")

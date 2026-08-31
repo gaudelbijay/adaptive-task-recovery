@@ -88,6 +88,22 @@ def test_official_ppo_nominal_config_is_pinned_and_three_seed():
     assert task["env_kwargs"]["intervention_probability"] == 0.0
 
 
+def test_v2_nominal_contingency_fixes_only_audited_official_parity_gaps():
+    config = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v2_official_parity.json").read_text()
+    )
+    assert config["status"] == "preregistered_before_v2_training_or_outcomes"
+    assert config["seeds"] == [84293, 90123, 61777]
+    assert config["target_kl"] == 0.1
+    task = config["experiments"][0]
+    assert task["total_timesteps"] == 250_000_000
+    assert task["env_kwargs"]["intervention_probability"] == 0.0
+    assert task["env_kwargs"]["include_blocker_state_observation"] is False
+    trainer = (ROOT / "scripts/train_manipulation_ppo.py").read_text()
+    assert 'approximate_kl = ((ratio - 1.0) - logratio).mean()' in trainer
+    assert 'approximate_kl > float(target_kl)' in trainer
+
+
 def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention():
     audit = (ROOT / "scripts/evaluate_external_peg_ppo.py").read_text()
     assert 'default=421_000_000' in audit
