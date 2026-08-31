@@ -175,6 +175,7 @@ def test_external_v2_gate_holds_real_negative_physics_out_of_training():
     assert "train &= ~physical_heldout" in trainer
     assert "validation &= ~physical_heldout" in trainer
     assert "test |= physical_heldout" in trainer
+    assert '"calibration_status": "no_prediction_reached_search_floor"' in trainer
     audit = (ROOT / "scripts/audit_temporal_composition_router.py").read_text()
     assert '"physical_heldout_option_accuracy"' in audit
 

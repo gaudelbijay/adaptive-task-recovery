@@ -126,6 +126,14 @@ def calibrate(probability: torch.Tensor, target: torch.Tensor, heldout_option: i
         observed = target != heldout_option
         probability = probability[observed]
         target = target[observed]
+    if len(target) == 0:
+        return {
+            "threshold": 1.001,
+            "selective_error": 0.0,
+            "coverage": 0.0,
+            "class_thresholds_99_precision": [1.001] * probability.shape[1],
+            "calibration_status": "no_nonheldout_validation_rows",
+        }
     confidence, prediction = probability.max(1)
     candidates = []
     for threshold in torch.linspace(0.5, 0.99, 50):
@@ -135,6 +143,14 @@ def calibrate(probability: torch.Tensor, target: torch.Tensor, heldout_option: i
         coverage = float(selected.float().mean())
         candidates.append((error <= 0.01, coverage, -error, float(threshold), error))
     passing = [x for x in candidates if x[0]]
+    if not candidates:
+        return {
+            "threshold": 1.001,
+            "selective_error": 0.0,
+            "coverage": 0.0,
+            "class_thresholds_99_precision": [1.001] * probability.shape[1],
+            "calibration_status": "no_prediction_reached_search_floor",
+        }
     chosen = max(passing or candidates, key=lambda x: (x[1] if x[0] else x[2], x[2]))
     class_thresholds = []
     for option in range(probability.shape[1]):
