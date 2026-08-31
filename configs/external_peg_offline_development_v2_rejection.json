@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "rejected_on_421m_development_only_before_selection_or_confirmation",
+  "gate": "configs/a_plus_external_peg_insertion_gate_v3_physics_calibrated.json",
+  "experiment_root": "results/router/external_peg_offline_development_v2_hole_frame",
+  "jobs": {
+    "collection": 1150466,
+    "merge": 1150471,
+    "three_seed_fit": 1150472,
+    "fail_on_reject_audit": 1150473
+  },
+  "data_contract": {
+    "rows": 64512,
+    "simulator_batch_groups": 120,
+    "counterfactual_reflection_rows": 10752,
+    "current_centered_geometry_dim": 12,
+    "real_negative_ejection_split": "physical_heldout test-only",
+    "heldout_option_cross_entropy": false
+  },
+  "controller_snapshot_sha256": {
+    "seed_1788": "ff747cff1ae79d78d131b0c1481cbaf39b50c033d28bb4b401354372238148ed",
+    "seed_4796": "84ec5aa71e70743aaa662950331b6699da8e0dea6c249f148f6719f10126fd87",
+    "seed_9351": "890d55f1a266f818a27d766d765e7c31a6c0de0a84f2d0c485f11469cecb0d8a"
+  },
+  "physical_heldout_option_accuracy_by_training_seed": {
+    "causal_gru": [0.0205896124, 0.0201216657, 0.0222274214],
+    "static_mlp": [0.0, 0.0, 0.0],
+    "unstructured_gru": [0.0, 0.0, 0.0]
+  },
+  "causal_physical_heldout_factor_accuracy_by_training_seed": {
+    "event": [0.1654188186, 0.1726719737, 0.2927000523],
+    "direction": [0.0474964902, 0.0421151146, 0.0404773057],
+    "readiness": [0.9319139123, 0.9368273020, 0.9499298334]
+  },
+  "checks": {
+    "training_seed_count": true,
+    "static_heldout_shortcut_absent": true,
+    "causal_heldout_accuracy_at_least_0_85": false
+  },
+  "diagnosis": "Readiness transfers, but direction does not. Exact reflected positive prefixes have the intended negative label, yet the five-step physical impulse is dominated by contact, friction, and behavior-policy motion: onset-local signed displacement is only 55.9% positive for factual positive ejection and 53.2% negative for real held-out ejection. The physical mechanism therefore does not supply a reliably directional causal signal under the collected behavior distribution.",
+  "authorized_next_step": "On 421M development seeds only, test lower-force longer-duration symmetric hole-frame disturbances under the unchanged safety audit, then recollect a small signed-trajectory probe before any full router fit.",
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  }
+}

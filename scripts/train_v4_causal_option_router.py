@@ -71,12 +71,31 @@ def evaluate(model, tensors, mask, device, geometry_dim=0, heldout_option=None):
     indices = torch.from_numpy(np.flatnonzero(mask))
     loader = DataLoader(TensorDataset(indices), batch_size=512)
     probabilities, targets, conditions, lengths = [], [], [], []
+    factor_predictions = {
+        "event": [], "direction": [], "block_status": [], "readiness": [],
+    }
     model.eval()
     for (index,) in loader:
         sequence = tensors["sequence"][index].to(device)
         length = tensors["length"][index].to(device)
         sequence = current_centered_sequence(sequence, length, geometry_dim)
-        probabilities.append(option_logp(model, sequence, length).exp().cpu())
+        output = model(sequence, length)
+        log_probability = (
+            output.option_log_probability
+            if hasattr(output, "option_log_probability") else output
+        )
+        probabilities.append(log_probability.exp().cpu())
+        if hasattr(output, "event_logits"):
+            factor_predictions["event"].append(output.event_logits.argmax(1).cpu())
+            factor_predictions["direction"].append(
+                output.direction_logits.argmax(1).cpu()
+            )
+            factor_predictions["block_status"].append(
+                output.block_status_logits.argmax(1).cpu()
+            )
+            factor_predictions["readiness"].append(
+                output.readiness_logits.argmax(1).cpu()
+            )
         targets.append(tensors["option"][index])
         conditions.append(tensors["condition"][index])
         lengths.append(length.cpu())
@@ -121,6 +140,23 @@ def evaluate(model, tensors, mask, device, geometry_dim=0, heldout_option=None):
             result["physical_heldout_option_accuracy"] = float(
                 (prediction[physical_heldout] == target[physical_heldout]).float().mean()
             ) if bool(physical_heldout.any()) else None
+            if bool(physical_heldout.any()) and factor_predictions["event"]:
+                predicted_factors = {
+                    name: torch.cat(values)
+                    for name, values in factor_predictions.items()
+                }
+                factor_targets = {
+                    "event": tensors["event"][indices],
+                    "direction": tensors["direction"][indices],
+                    "readiness": (target != 5).long(),
+                }
+                result["physical_heldout_factor_accuracy"] = {
+                    name: float(
+                        (predicted_factors[name][physical_heldout]
+                         == factor_target[physical_heldout]).float().mean()
+                    )
+                    for name, factor_target in factor_targets.items()
+                }
     return result, probability, target
 
 

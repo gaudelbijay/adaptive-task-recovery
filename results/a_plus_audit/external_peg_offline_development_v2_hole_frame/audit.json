@@ -1,0 +1,59 @@
+{
+  "checks": {
+    "causal_heldout_reverse_accuracy": false,
+    "static_heldout_reverse_shortcut_absent": true,
+    "training_seed_count": true
+  },
+  "gate": "configs/a_plus_external_peg_insertion_gate_v3_physics_calibrated.json",
+  "methods": {
+    "causal_gru": {
+      "all_option_accuracy_by_seed": [
+        0.6735491156578064,
+        0.6730925440788269,
+        0.6768973469734192
+      ],
+      "all_option_accuracy_mean": 0.6745130022366842,
+      "heldout_option_accuracy_by_seed": [
+        0.020589612424373627,
+        0.02012166567146778,
+        0.022227421402931213
+      ],
+      "heldout_option_accuracy_mean": 0.020979566499590874
+    },
+    "static_mlp": {
+      "all_option_accuracy_by_seed": [
+        0.6560978293418884,
+        0.6568080186843872,
+        0.6474736332893372
+      ],
+      "all_option_accuracy_mean": 0.6534598271052042,
+      "heldout_option_accuracy_by_seed": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "heldout_option_accuracy_mean": 0.0
+    },
+    "unstructured_gru": {
+      "all_option_accuracy_by_seed": [
+        0.639711856842041,
+        0.6328125,
+        0.6334720253944397
+      ],
+      "all_option_accuracy_mean": 0.6353321274121603,
+      "heldout_option_accuracy_by_seed": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "heldout_option_accuracy_mean": 0.0
+    }
+  },
+  "offline_gate_pass": false,
+  "schema_version": 1,
+  "summaries": [
+    "results/router/external_peg_offline_development_v2_hole_frame/fit/summary_seed0.json",
+    "results/router/external_peg_offline_development_v2_hole_frame/fit/summary_seed1.json",
+    "results/router/external_peg_offline_development_v2_hole_frame/fit/summary_seed2.json"
+  ]
+}
