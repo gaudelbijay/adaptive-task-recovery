@@ -65,6 +65,22 @@ def test_external_peg_gate_is_distinct_matched_and_untouched():
     assert gate["pass_criteria"]["confirmation_must_be_untouched"] is True
 
 
+def test_v5_preserves_the_primary_gate_and_uses_fresh_seed_families():
+    v4 = json.loads((ROOT / "configs/a_plus_recovery_gate_v4_nominal_state.json").read_text())
+    v5 = json.loads((ROOT / "configs/a_plus_recovery_gate_v5_selected_nominal.json").read_text())
+    assert v5["status"] == "preregistered_before_v5_full_selection_or_evaluation"
+    assert v5["representation"] == v4["representation"]
+    assert v5["pass_criteria"] == v4["pass_criteria"]
+    assert v5["ood_axes"] == v4["ood_axes"]
+    assert v5["shared_option_controller"]["unchanged_safe_hold_until_step"] == 36
+    assert len(v5["shared_option_controller"]["checkpoint_sha256"]) == 64
+    assert v5["selection_seed_base"] == 330_000_000
+    assert v5["confirmation_seed_base"] == 334_000_000
+    assert v5["confirmation_seed_base"] not in {
+        v4["selection_seed_base"], v4["confirmation_seed_base"],
+    }
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

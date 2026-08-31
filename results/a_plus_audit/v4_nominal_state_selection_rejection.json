@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "candidate": "V4 nominal state PPO",
+  "gate": "configs/a_plus_recovery_gate_v4_nominal_state.json",
+  "status": "rejected_before_confirmation",
+  "training_job": "1147529",
+  "training_seed_best_success": {"9351": 0.0, "1788": 0.46484375, "4796": 0.0},
+  "selected_checkpoint": "results/manipulation_ppo/learned_recovery_v4_nominal_state_v1/nominal_v4_state_ppo/seed_1788/best.pt",
+  "selected_checkpoint_sha256": "2ca650695edcbfeccd647633ccf5c56d6e9eaa2b4ea229c3e8c338323b72b7bd",
+  "selection_seed_base": 329000000,
+  "selection_episodes": 192,
+  "selection_successes": 100,
+  "selection_safe_successes": 100,
+  "selection_safe_success_rate": 0.5208333333333334,
+  "selection_violations": 0,
+  "required_worst_condition_safe_success": 0.82,
+  "failed_checks": ["worst_condition_safe_success"],
+  "confirmation_seed_base": 333000000,
+  "confirmation_opened": false
+}

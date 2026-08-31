@@ -107,3 +107,20 @@ checkpoint is shared by every router baseline. The 57-dimensional temporal
 representation, specialists, router calibration, 36-step safe hold, OOD axes,
 and every numerical threshold remain unchanged. V4 uses `329000000` for
 selection and reserves `333000000` for a once-only untouched confirmation.
+
+### V4 selection rejection and V5 controller selection
+
+V4 is rejected before confirmation. Two of its three state PPO seeds learned
+0% nominal success; the best seed's frozen checkpoint achieved only 100/192
+(52.08%) safe successes on the `329000000` nominal selection episodes. There
+were zero violations, but the 82% condition floor failed decisively. The
+reserved `333000000` family remains untouched.
+
+The same selection family was used for a declared five-way screen of the
+existing shared nominal controller. V19 seed 9351 achieved 166/192 (86.46%)
+safe successes, compared with 135/192 and 152/192 for the other individual
+seeds, 150/192 for the mean ensemble, and 145/192 for the median ensemble. V5
+freezes seed 9351's exact checkpoint and hash in
+`configs/a_plus_recovery_gate_v5_selected_nominal.json`. It changes no router,
+specialist, representation, hold, or numerical threshold, and uses fresh
+`330000000` selection and untouched `334000000` confirmation families.

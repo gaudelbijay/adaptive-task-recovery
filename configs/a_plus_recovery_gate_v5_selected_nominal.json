@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v5_full_selection_or_evaluation",
+  "supersedes": "configs/a_plus_recovery_gate_v4_nominal_state.json",
+  "supersession_reason": "V4 was rejected on selection: the best of three nominal state PPO seeds achieved only 100/192 (52.08%) safe successes on the 329000000 nominal selection tasks, so confirmation 333000000 remains untouched. A declared five-way controller screen on that selection family found the previously trained V19 seed-9351 controller strongest at 166/192 (86.46%), versus 135/192 and 152/192 for the other seeds, 150/192 for mean ensemble, and 145/192 for median ensemble. V5 freezes that checkpoint and uses fresh full-selection and confirmation families.",
+  "research_question": "Can causal memory and factorized physical supervision compose an unseen recovery option under input-matched routing and a selection-qualified shared nominal controller?",
+  "primary_endpoint": "episode_success_without_constraint_violation",
+  "representation": {
+    "name": "complete_current_centered_causal_motion",
+    "geometry_dimensions": 57,
+    "centered_feature_groups": ["actor_goal_relative", "mechanism_cube_relative", "tcp_task_relative"],
+    "definition": "At each decision, subtract the current 57-D task geometry from every geometry frame in the causal prefix; the final geometry is identically zero for every method.",
+    "runtime_causality": "Uses only stored observations at or before the current decision.",
+    "heldout_option_label": "reverse",
+    "heldout_option_index": 2,
+    "forbidden_training_signal": "reverse option cross-entropy",
+    "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"]
+  },
+  "shared_option_controller": {
+    "options": ["nominal", "temporary_block_after_clearance"],
+    "checkpoint": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/event_reward_dual_specialist_dagger_visual_ppo/seed_9351/best.pt",
+    "checkpoint_sha256": "b03dea7b9dc958347c09301199308e1e566e3f185b0de56017a48ed3383c1ac3",
+    "selection_screen_candidates": ["seed_9351", "seed_4796", "seed_1788", "three_seed_mean", "three_seed_median"],
+    "matching_rule": "The exact checkpoint is shared by causal, static, unstructured, heuristic, and oracle routers.",
+    "unchanged_safe_hold_until_step": 36
+  },
+  "methods": ["causal_factorized_gru", "static_factorized_mlp", "temporal_unstructured_gru", "heuristic_v28_router", "oracle_mechanism_router_upper_bound"],
+  "selection_seed_base": 330000000,
+  "confirmation_seed_base": 334000000,
+  "episodes_per_condition_per_seed": 64,
+  "training_seeds": 3,
+  "evaluation_seeds": 3,
+  "conditions": ["nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection"],
+  "ood_axes": {"force": [0.65, 1.35], "onset_steps": [12, 36], "temporary_return_delay_steps": [18, 48], "control_delay_steps": [4, 12]},
+  "pass_criteria": {
+    "closed_loop_safe_success_min": 0.9,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "worst_condition_safe_success_min": 0.82,
+    "heldout_reverse_safe_success_min": 0.85,
+    "static_heldout_reverse_offline_accuracy_max": 0.4,
+    "causal_heldout_reverse_offline_accuracy_min": 0.9,
+    "ood_safe_success_min": 0.75,
+    "external_reboot_macro_auroc_min": 0.82,
+    "external_gain_over_static_min": 0.2,
+    "external_gain_over_moment_min": 0.08,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "anti_shortcut_audits": ["all_57_final_geometry_values_are_exactly_zero", "heldout_option_absent_from_option_loss", "group_disjoint_train_validation_test", "pre_action_prefix_alignment", "time_only_probe", "current_frame_probe", "shuffled_history_ablation", "matched_feature_tensor_hash"],
+  "readme_release_rule": "Promote the primary V5 result only if every primary, OOD, external, seed-count, and anti-shortcut criterion passes on untouched 334000000. An A/A+ general-method claim additionally requires configs/a_plus_external_peg_insertion_gate_v1.json to pass."
+}
