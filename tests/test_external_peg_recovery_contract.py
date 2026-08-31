@@ -72,6 +72,8 @@ def test_fail_fast_smoke_covers_every_frozen_condition():
     ):
         assert f'"{condition}"' in smoke
     assert "ejection_observed_rate" in smoke
+    assert "commanded_ejection_observed_rate" in smoke
+    assert "directional_window_end" in smoke
     assert "world_to_local" in smoke
     assert "maximum_hole_frame_lateral_shift_mean" in smoke
     assert "maximum_peg_y_shift_mean" not in smoke

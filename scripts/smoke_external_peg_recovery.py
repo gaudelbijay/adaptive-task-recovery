@@ -34,6 +34,7 @@ def run_condition(
     blocker_home_offset: float,
     blocker_target_peg_length_scale: float,
     blocker_return_position_gain: float,
+    minimum_commanded_ejection_observed_rate: float,
 ):
     env = gym.make(
         "PegInsertionRecovery-v1",
@@ -79,6 +80,7 @@ def run_condition(
         maximum_lateral_shift = torch.zeros(
             num_envs, device=initial_lateral.device,
         )
+        maximum_commanded_lateral_shift = torch.zeros_like(maximum_lateral_shift)
         minimum_peg_z = obs["extra"]["peg_pose"][:, 2].clone()
         maximum_peg_xy_radius = torch.linalg.vector_norm(
             obs["extra"]["peg_pose"][:, :2], dim=1,
@@ -97,7 +99,15 @@ def run_condition(
             (num_envs,) + env.single_action_space.shape,
             device=initial_lateral.device,
         )
-        for _ in range(steps):
+        commanded_sign = {
+            "positive_lateral_peg_ejection": 1.0,
+            "negative_lateral_peg_ejection": -1.0,
+        }.get(condition, 0.0)
+        # The impulse starts at step two. Score its directed response only in
+        # a bounded post-impulse window, before unrelated episode drift can
+        # masquerade as intervention observability.
+        directional_window_end = 2 + ejection_steps + 5
+        for episode_step in range(steps):
             obs, _, _, _, info = env.step(action)
             peg_to_hole = (
                 obs["extra"]["peg_pose"][:, :3]
@@ -108,6 +118,11 @@ def run_condition(
             )[:, 1]
             shift = (lateral - initial_lateral).abs()
             maximum_lateral_shift = torch.maximum(maximum_lateral_shift, shift)
+            if commanded_sign and episode_step < directional_window_end:
+                commanded_shift = commanded_sign * (lateral - initial_lateral)
+                maximum_commanded_lateral_shift = torch.maximum(
+                    maximum_commanded_lateral_shift, commanded_shift,
+                )
             minimum_peg_z = torch.minimum(
                 minimum_peg_z, obs["extra"]["peg_pose"][:, 2],
             )
@@ -139,6 +154,12 @@ def run_condition(
             "ejection_observed_rate": float(
                 (maximum_lateral_shift > 0.01).float().mean()
             ),
+            "commanded_ejection_shift_mean": float(
+                maximum_commanded_lateral_shift.mean()
+            ),
+            "commanded_ejection_observed_rate": float(
+                (maximum_commanded_lateral_shift > 0.01).float().mean()
+            ),
             "peg_below_floor_rate": float((minimum_peg_z < -0.02).float().mean()),
             "peg_out_of_bounds_rate": float(
                 (maximum_peg_xy_radius > 0.8).float().mean()
@@ -156,8 +177,14 @@ def run_condition(
         }
         if not result["finite_observation"]:
             raise RuntimeError(f"non-finite state in {condition}")
-        if "ejection" in condition and result["ejection_observed_rate"] < 0.9:
-            raise RuntimeError(f"ejection force did not move the peg: {result}")
+        if (
+            "ejection" in condition
+            and result["commanded_ejection_observed_rate"]
+            < minimum_commanded_ejection_observed_rate
+        ):
+            raise RuntimeError(
+                f"ejection force lacked directed bounded response: {result}"
+            )
         if "ejection" in condition and result["constraint_violation_rate"] > 0.1:
             raise RuntimeError(f"ejection is not physically recoverable: {result}")
         if condition in ("permanent_hole_block", "temporary_hole_block"):
@@ -196,6 +223,9 @@ def main():
     parser.add_argument("--blocker-target-peg-length-scale", type=float, default=0.0)
     parser.add_argument("--blocker-return-position-gain", type=float, default=120.0)
     parser.add_argument(
+        "--minimum-commanded-ejection-observed-rate", type=float, default=0.9,
+    )
+    parser.add_argument(
         "--conditions", nargs="+", choices=default_conditions,
         default=list(default_conditions),
     )
@@ -220,6 +250,7 @@ def main():
             args.blocker_home_offset,
             args.blocker_target_peg_length_scale,
             args.blocker_return_position_gain,
+            args.minimum_commanded_ejection_observed_rate,
         )
         for index, condition in enumerate(conditions)
     ]
