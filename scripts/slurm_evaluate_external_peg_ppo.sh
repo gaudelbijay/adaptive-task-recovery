@@ -11,12 +11,15 @@
 
 set -euo pipefail
 mkdir -p results/slurm results/a_plus_audit/external_peg_nominal_ppo_v1
-seeds=(9351 4796 1788)
+read -r -a seeds <<< "${ATR_PEG_TRAINING_SEEDS:-9351 4796 1788}"
 seed="${seeds[${SLURM_ARRAY_TASK_ID}]}"
-run_dir="results/manipulation_ppo/external_peg_nominal_ppo_v1/official_state_ppo_nominal/seed_${seed}"
+run_root="${ATR_PEG_RUN_ROOT:-results/manipulation_ppo/external_peg_nominal_ppo_v1/official_state_ppo_nominal}"
+audit_dir="${ATR_PEG_AUDIT_DIR:-results/a_plus_audit/external_peg_nominal_ppo_v1}"
+mkdir -p "${audit_dir}"
+run_dir="${run_root}/seed_${seed}"
 .venv/bin/python scripts/evaluate_external_peg_ppo.py \
   --checkpoint "${run_dir}/${ATR_PEG_CHECKPOINT_NAME:-best.pt}" \
   --episodes "${ATR_PEG_EVAL_EPISODES:-192}" \
   --num-envs "${ATR_PEG_EVAL_NUM_ENVS:-64}" \
   --seed-base "${ATR_PEG_EVAL_SEED_BASE:-421000000}" \
-  --output "results/a_plus_audit/external_peg_nominal_ppo_v1/seed_${seed}.json"
+  --output "${audit_dir}/seed_${seed}.json"

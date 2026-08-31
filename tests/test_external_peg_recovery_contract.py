@@ -113,6 +113,8 @@ def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention()
     assert 'info["constraint_violated"]' in audit
     wrapper = (ROOT / "scripts/slurm_evaluate_external_peg_ppo.sh").read_text()
     assert "#SBATCH --array=0-2" in wrapper
+    assert "ATR_PEG_TRAINING_SEEDS" in wrapper
+    assert "ATR_PEG_RUN_ROOT" in wrapper
     summary = (ROOT / "scripts/summarize_external_peg_ppo_competence.py").read_text()
     assert 'criteria["minimum_three_seed_mean_safe_success"]' in summary
     assert 'criteria["minimum_per_seed_safe_success"]' in summary
