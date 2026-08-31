@@ -31,6 +31,7 @@ fi
   --task-index "${SLURM_ARRAY_TASK_ID}" \
   --router-checkpoint "${ATR_ROUTER_CHECKPOINT:?set ATR_ROUTER_CHECKPOINT}" \
   --router-metadata "${ATR_ROUTER_METADATA:-results/router/v4_option_prefixes_train_v1.json}" \
+  --permanent-state-checkpoint "${ATR_PERMANENT_CHECKPOINT:-results/manipulation_ppo/learned_recovery_v4_delayed_permanent_transfer/delayed_permanent_state_transfer/seed_9351/delayed_frozen_iter24.pt}" \
   --reverse-state-checkpoint "${ATR_REVERSE_CHECKPOINT:-results/learned_recovery_v4/learned_recovery_v4_reverse_state_pilot/reverse_ejection_state_specialist/seed_9351/reverse_frozen_iter424.pt}" \
   --forward-state-checkpoint "${ATR_FORWARD_CHECKPOINT:-results/learned_recovery/learned_recovery_ppo_v11_strict_removal/event_reward_strict_removal_state_ppo/seed_9351/best.pt}" \
   --output-dir "${ATR_ROUTER_EVAL_OUTPUT:-results/v4_learned_router_development}" \

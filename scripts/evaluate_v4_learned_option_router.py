@@ -19,6 +19,7 @@ import atr.envs.learned_recovery_v4  # noqa: F401
 import atr.envs.learned_recovery_v4_ood  # noqa: F401
 from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
+    current_centered_sequence,
 )
 from collect_v4_option_router_data import POSE_KEYS, SNAPSHOTS, extract_features
 from evaluate_v19_on_v4 import CONDITIONS, SEEDS
@@ -45,8 +46,13 @@ def load_router(checkpoint_path: Path, metadata_path: Path, device):
 
 
 @torch.inference_mode()
-def router_probability(model, history):
+def router_probability(model, history, geometry_dim=0):
     sequence = torch.stack(history, dim=1)
+    length = torch.full(
+        (sequence.shape[0],), sequence.shape[1], dtype=torch.long,
+        device=sequence.device,
+    )
+    sequence = current_centered_sequence(sequence, length, geometry_dim)
     output = model(sequence)
     logp = output.option_log_probability if hasattr(output, "option_log_probability") else output
     return logp.exp()
@@ -117,6 +123,7 @@ def main():
     env = ManiSkillVectorEnv(env, args.num_envs, ignore_terminations=True, record_metrics=False)
     device = torch.device("cuda")
     router, router_checkpoint = load_router(Path(args.router_checkpoint), Path(args.router_metadata), device)
+    current_centered_geometry_dim = int(router_checkpoint.get("current_centered_geometry_dim", 0))
     router_metadata = json.loads(Path(args.router_metadata).read_text())
     router_horizon = max(int(step) for step in router_metadata["snapshots"])
     first, _ = env.reset(seed=args.seed_base + int(task["seed"]) * 100_000)
@@ -187,7 +194,9 @@ def main():
                     previous_positions = positions
                     history.append(feature)
                 if args.fixed_option is None and step in SNAPSHOTS:
-                    probability = router_probability(router, history)
+                    probability = router_probability(
+                        router, history, current_centered_geometry_dim,
+                    )
                     confidence, proposed = probability.max(1)
                     proposed = torch.where(
                         confidence >= class_thresholds[proposed], proposed,
@@ -274,6 +283,8 @@ def main():
         "router_checkpoint": args.router_checkpoint,
         "router_checkpoint_sha256": hashlib.sha256(Path(args.router_checkpoint).read_bytes()).hexdigest(),
         "feature_metadata_sha256": router_checkpoint["feature_metadata_sha256"],
+        "current_centered_geometry_dim": current_centered_geometry_dim,
+        "heldout_option": router_checkpoint.get("heldout_option"),
         "forbidden_runtime_inputs": ["mechanism ID", "intervention target", "critic_goal_resolved", "future observation"],
     }
     output = Path(args.output_dir) / f"router{router_checkpoint['seed']}_policy{task['seed']}_{condition}.json"

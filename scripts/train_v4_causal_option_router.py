@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
-    causal_safe_targets,
+    causal_safe_targets, current_centered_sequence,
 )
 
 
@@ -41,11 +41,18 @@ def option_logp(model, sequence, length):
     return output.option_log_probability if hasattr(output, "option_log_probability") else output
 
 
-def loss_for(model, batch, structured: bool):
+def loss_for(model, batch, structured: bool, geometry_dim: int, heldout_option: int | None):
     sequence, length, option, event, direction, block = batch
+    sequence = current_centered_sequence(sequence, length, geometry_dim)
     output = model(sequence, length)
     logp = output.option_log_probability if structured else output
-    loss = F.nll_loss(logp, option)
+    supervised = torch.ones_like(option, dtype=torch.bool)
+    if heldout_option is not None:
+        supervised &= option != heldout_option
+    if not bool(supervised.any()):
+        loss = logp.sum() * 0.0
+    else:
+        loss = F.nll_loss(logp[supervised], option[supervised])
     if structured:
         readiness = (option != 5).long()
         loss = loss + 0.35 * F.cross_entropy(output.readiness_logits, readiness)
@@ -60,7 +67,7 @@ def loss_for(model, batch, structured: bool):
 
 
 @torch.inference_mode()
-def evaluate(model, tensors, mask, device):
+def evaluate(model, tensors, mask, device, geometry_dim=0, heldout_option=None):
     indices = torch.from_numpy(np.flatnonzero(mask))
     loader = DataLoader(TensorDataset(indices), batch_size=512)
     probabilities, targets, conditions, lengths = [], [], [], []
@@ -68,6 +75,7 @@ def evaluate(model, tensors, mask, device):
     for (index,) in loader:
         sequence = tensors["sequence"][index].to(device)
         length = tensors["length"][index].to(device)
+        sequence = current_centered_sequence(sequence, length, geometry_dim)
         probabilities.append(option_logp(model, sequence, length).exp().cpu())
         targets.append(tensors["option"][index])
         conditions.append(tensors["condition"][index])
@@ -96,10 +104,23 @@ def evaluate(model, tensors, mask, device):
                 result["by_condition_horizon"][f"{condition_value}:{length_value}"] = float(
                     (prediction[selected] == target[selected]).float().mean()
                 )
+    if heldout_option is not None:
+        observed = target != heldout_option
+        result["observed_option_nll"] = float(F.nll_loss(
+            probability[observed].clamp_min(1e-9).log(), target[observed],
+        ))
+        heldout = ~observed
+        result["heldout_option_accuracy"] = float(
+            (prediction[heldout] == target[heldout]).float().mean()
+        ) if bool(heldout.any()) else None
     return result, probability, target
 
 
-def calibrate(probability: torch.Tensor, target: torch.Tensor):
+def calibrate(probability: torch.Tensor, target: torch.Tensor, heldout_option: int | None = None):
+    if heldout_option is not None:
+        observed = target != heldout_option
+        probability = probability[observed]
+        target = target[observed]
     confidence, prediction = probability.max(1)
     candidates = []
     for threshold in torch.linspace(0.5, 0.99, 50):
@@ -123,6 +144,8 @@ def calibrate(probability: torch.Tensor, target: torch.Tensor):
         passing_rows = [row for row in rows if row[0]]
         selected_row = max(passing_rows, key=lambda row: row[1]) if passing_rows else None
         class_thresholds.append(selected_row[3] if selected_row else 1.001)
+    if heldout_option is not None:
+        class_thresholds[heldout_option] = chosen[3]
     return {
         "threshold": chosen[3], "selective_error": chosen[4],
         "coverage": chosen[1], "class_thresholds_99_precision": class_thresholds,
@@ -138,6 +161,8 @@ def main():
     parser.add_argument("--hidden-dim", type=int, default=96)
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--batch-size", type=int, default=256)
+    parser.add_argument("--current-centered-geometry-dim", type=int, default=0)
+    parser.add_argument("--heldout-option", type=int, choices=range(6))
     parser.add_argument(
         "--models", nargs="+",
         choices=("causal_gru", "static_mlp", "unstructured_gru"),
@@ -155,7 +180,10 @@ def main():
     train, validation, test = group_split(raw["group_id"])
     valid_steps = []
     for sequence, length in zip(raw["sequence"][train], raw["length"][train]):
-        valid_steps.append(sequence[:length])
+        prefix = sequence[:length].copy()
+        if args.current_centered_geometry_dim:
+            prefix[:, :args.current_centered_geometry_dim] -= prefix[-1:, :args.current_centered_geometry_dim]
+        valid_steps.append(prefix)
     valid_steps = np.concatenate(valid_steps)
     mean = torch.from_numpy(valid_steps.mean(0)).float()
     scale = torch.from_numpy(valid_steps.std(0)).float().clamp_min(1e-5)
@@ -179,15 +207,28 @@ def main():
             for batch in loader:
                 batch = tuple(item.to(device) for item in batch)
                 optimizer.zero_grad(set_to_none=True)
-                loss = loss_for(model, batch, name != "unstructured_gru")
+                loss = loss_for(
+                    model, batch, name != "unstructured_gru",
+                    args.current_centered_geometry_dim, args.heldout_option,
+                )
                 loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0); optimizer.step()
-            validation_metrics, validation_probability, validation_target = evaluate(model, tensors, validation, device)
-            candidate = (validation_metrics["nll"], epoch, {k: v.detach().cpu() for k, v in model.state_dict().items()})
+            validation_metrics, validation_probability, validation_target = evaluate(
+                model, tensors, validation, device,
+                args.current_centered_geometry_dim, args.heldout_option,
+            )
+            selection_nll = validation_metrics.get("observed_option_nll", validation_metrics["nll"])
+            candidate = (selection_nll, epoch, {k: v.detach().cpu() for k, v in model.state_dict().items()})
             if best is None or candidate[0] < best[0]: best = candidate
         model.load_state_dict(best[2])
-        validation_metrics, validation_probability, validation_target = evaluate(model, tensors, validation, device)
-        calibration = calibrate(validation_probability, validation_target)
-        test_metrics, test_probability, test_target = evaluate(model, tensors, test, device)
+        validation_metrics, validation_probability, validation_target = evaluate(
+            model, tensors, validation, device,
+            args.current_centered_geometry_dim, args.heldout_option,
+        )
+        calibration = calibrate(validation_probability, validation_target, args.heldout_option)
+        test_metrics, test_probability, test_target = evaluate(
+            model, tensors, test, device,
+            args.current_centered_geometry_dim, args.heldout_option,
+        )
         confidence, prediction = test_probability.max(1)
         selected = confidence >= calibration["threshold"]
         test_metrics["selective"] = {
@@ -198,6 +239,8 @@ def main():
         checkpoint = {
             "schema_version": 1, "model": name, "seed": args.seed,
             "input_dim": int(raw["sequence"].shape[-1]), "hidden_dim": args.hidden_dim,
+            "current_centered_geometry_dim": args.current_centered_geometry_dim,
+            "heldout_option": args.heldout_option,
             "state_dict": model.state_dict(), "calibration": calibration,
             "data_sha256": hashlib.sha256(Path(args.data).read_bytes()).hexdigest(),
             "feature_metadata_sha256": hashlib.sha256(Path(args.metadata).read_bytes()).hexdigest(),

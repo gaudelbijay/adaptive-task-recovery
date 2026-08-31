@@ -72,6 +72,17 @@ def main() -> None:
 
     gate = json.loads(args.gate.read_text())
     criteria = gate["pass_criteria"]
+    success_min = criteria.get(
+        "closed_loop_success_min", criteria.get("closed_loop_safe_success_min"),
+    )
+    violation_max = criteria.get(
+        "closed_loop_violation_max", criteria.get("violation_rate_max"),
+    )
+    worst_min = criteria.get(
+        "worst_condition_success_min", criteria.get("worst_condition_safe_success_min"),
+    )
+    if success_min is None or violation_max is None or worst_min is None:
+        raise RuntimeError("gate is missing a closed-loop success, violation, or worst-condition threshold")
     methods = {name: aggregate(load_manifests(directory)) for name, directory in args.method}
     if args.candidate not in methods:
         raise RuntimeError(f"candidate {args.candidate!r} was not supplied")
@@ -81,11 +92,11 @@ def main() -> None:
         if name != args.candidate and name not in set(args.oracle)
     }
     checks = {
-        "closed_loop_success": candidate["safe_success_rate"] >= criteria["closed_loop_success_min"],
-        "violation_rate": candidate["violation_rate"] <= criteria["closed_loop_violation_max"],
+        "closed_loop_success": candidate["safe_success_rate"] >= success_min,
+        "violation_rate": candidate["violation_rate"] <= violation_max,
         "worst_condition": min(
             row["safe_success_rate"] for row in methods[args.candidate]["conditions"].values()
-        ) >= criteria["worst_condition_success_min"],
+        ) >= worst_min,
     }
     comparison = None
     if competitors:

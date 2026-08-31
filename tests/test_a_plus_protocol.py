@@ -12,6 +12,28 @@ def test_confirmation_seeds_are_distinct_and_frozen():
     assert gate["readme_release_rule"].startswith("Do not replace")
 
 
+def test_v2_temporal_composition_gate_is_frozen_and_label_disjoint():
+    gate = json.loads(
+        (ROOT / "configs/a_plus_recovery_gate_v2_temporal_composition.json").read_text()
+    )
+    assert gate["status"] == "preregistered_before_v2_training_or_evaluation"
+    assert gate["representation"]["geometry_dimensions"] == 42
+    assert gate["representation"]["heldout_option_index"] == 2
+    assert gate["selection_seed_base"] != gate["confirmation_seed_base"]
+    assert gate["pass_criteria"]["confirmation_must_be_untouched"] is True
+    assert gate["pass_criteria"]["gain_over_strongest_non_oracle_min_pp"] >= 5
+
+
+def test_v3_centers_the_complete_named_geometry_contract():
+    gate = json.loads((ROOT / "configs/a_plus_recovery_gate_v3_full_geometry.json").read_text())
+    assert gate["status"] == "preregistered_before_v3_training_or_evaluation"
+    assert gate["representation"]["geometry_dimensions"] == 24 + 18 + 15
+    assert gate["pass_criteria"] == json.loads(
+        (ROOT / "configs/a_plus_recovery_gate_v2_temporal_composition.json").read_text()
+    )["pass_criteria"]
+    assert gate["selection_seed_base"] != gate["confirmation_seed_base"]
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

@@ -74,6 +74,25 @@ def _last_valid(sequence: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
     return sequence[torch.arange(sequence.shape[0], device=sequence.device), index]
 
 
+def current_centered_sequence(
+    sequence: torch.Tensor, lengths: torch.Tensor, geometry_dim: int,
+) -> torch.Tensor:
+    """Express every causal geometry frame relative to the current frame.
+
+    The transform is causal at deployment because ``lengths - 1`` is the
+    current observation, never a future frame. The current geometry becomes
+    exactly zero, preventing a static model from recovering absolute pose.
+    """
+    if geometry_dim == 0:
+        return sequence
+    if geometry_dim < 0 or geometry_dim > sequence.shape[-1]:
+        raise ValueError("geometry_dim must be within the feature width")
+    current = _last_valid(sequence[..., :geometry_dim], lengths)
+    centered = sequence.clone()
+    centered[..., :geometry_dim] -= current[:, None, :]
+    return centered
+
+
 class _FactorizedHeads(nn.Module):
     def __init__(self, hidden_dim: int):
         super().__init__()

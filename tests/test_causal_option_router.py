@@ -2,7 +2,7 @@ import torch
 
 from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
-    causal_safe_targets,
+    causal_safe_targets, current_centered_sequence,
 )
 
 
@@ -56,3 +56,27 @@ def test_normalization_rejects_wrong_feature_contract():
         pass
     else:
         raise AssertionError("wrong normalization shape was accepted")
+
+
+def test_current_centered_geometry_is_causal_and_zero_at_current_frame():
+    sequence = torch.tensor([
+        [[1.0, 3.0, 10.0], [4.0, 5.0, 11.0], [8.0, 9.0, 12.0]],
+        [[2.0, 4.0, 20.0], [7.0, 8.0, 21.0], [99.0, 99.0, 99.0]],
+    ])
+    lengths = torch.tensor([3, 2])
+    centered = current_centered_sequence(sequence, lengths, geometry_dim=2)
+    assert torch.equal(centered[0, 2, :2], torch.zeros(2))
+    assert torch.equal(centered[1, 1, :2], torch.zeros(2))
+    assert torch.equal(centered[0, :, 2], sequence[0, :, 2])
+    assert torch.equal(centered[1, :2, :2], torch.tensor([[-5.0, -4.0], [0.0, 0.0]]))
+
+
+def test_current_centering_ignores_padded_future_when_length_is_shorter():
+    prefix = torch.randn(2, 4, 5)
+    a = torch.cat((prefix, torch.zeros(2, 3, 5)), dim=1)
+    b = torch.cat((prefix, 100 * torch.randn(2, 3, 5)), dim=1)
+    lengths = torch.full((2,), 4)
+    assert torch.equal(
+        current_centered_sequence(a, lengths, 3)[:, :4],
+        current_centered_sequence(b, lengths, 3)[:, :4],
+    )

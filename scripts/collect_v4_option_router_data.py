@@ -28,7 +28,7 @@ from train_visual_recovery_dual_teacher_ppo import (
 
 
 KINDS = ("nominal", "ejection", "permanent_block", "temporary_block", "reverse_ejection")
-SNAPSHOTS = (1, 2, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96)
+SNAPSHOTS = (1, 2, 3, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96)
 POSE_KEYS = (
     "critic_red_cube_pose", "critic_blue_cube_pose",
     "critic_red_sweeper_pose", "critic_blue_sweeper_pose",
