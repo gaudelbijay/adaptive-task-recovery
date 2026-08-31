@@ -131,6 +131,20 @@ def test_v7_evidence_release_is_matched_causal_and_fresh():
     assert v7["confirmation_seed_base"] == 340_000_000
 
 
+def test_v8_natural_termination_and_ensemble_are_matched_and_fresh():
+    v7 = json.loads((ROOT / "configs/a_plus_recovery_gate_v7_evidence_release.json").read_text())
+    v8 = json.loads((ROOT / "configs/a_plus_recovery_gate_v8_terminal_ensemble.json").read_text())
+    assert v8["status"] == "preregistered_before_v8_selection_or_evaluation"
+    assert v8["representation"] == v7["representation"]
+    assert v8["pass_criteria"] == v7["pass_criteria"]
+    assert v8["ood_axes"] == v7["ood_axes"]
+    assert v8["episode_resolution"]["same_rule_for_all_methods"] is True
+    assert v8["episode_resolution"]["post_resolution_actions_scored"] is False
+    assert v8["shared_option_controllers"]["nominal_policy_indices"] == [0, 1, 2]
+    assert v8["selection_seed_base"] == 337_000_000
+    assert v8["confirmation_seed_base"] == 341_000_000
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
@@ -197,3 +211,14 @@ def test_evidence_conditioned_hold_release_uses_only_router_acceptance():
     assert "critic_intervention_mechanism" not in runtime
     wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
     assert "ATR_RELEASE_SAFE_HOLD_ON_CONFIRMED_NOMINAL" in wrapper
+
+
+def test_optional_terminal_scoring_masks_post_resolution_actions():
+    source = (ROOT / "scripts/evaluate_v4_learned_option_router.py").read_text()
+    assert '"--terminate-score-on-first-resolution"' in source
+    assert "resolved = success | violation" in source
+    assert "torch.where(resolved[:, None], torch.zeros_like(action), action)" in source
+    assert 'info["success"].bool() & active' in source
+    wrapper = (ROOT / "scripts/slurm_evaluate_v4_learned_option_router.sh").read_text()
+    assert "ATR_TERMINATE_SCORE_ON_FIRST_RESOLUTION" in wrapper
+    assert "ATR_ROUTER_STEPS" in wrapper

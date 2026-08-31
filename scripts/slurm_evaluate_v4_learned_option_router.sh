@@ -29,6 +29,10 @@ RELEASE_HOLD_ARGS=()
 if [[ "${ATR_RELEASE_SAFE_HOLD_ON_CONFIRMED_NOMINAL:-0}" == "1" ]]; then
   RELEASE_HOLD_ARGS+=(--release-safe-hold-on-confirmed-nominal)
 fi
+TERMINAL_SCORING_ARGS=()
+if [[ "${ATR_TERMINATE_SCORE_ON_FIRST_RESOLUTION:-0}" == "1" ]]; then
+  TERMINAL_SCORING_ARGS+=(--terminate-score-on-first-resolution)
+fi
 if [[ -n "${ATR_NOMINAL_POLICY_INDEX:-}" ]]; then
   POLICY_MEMBER_ARGS+=(--nominal-policy-index "${ATR_NOMINAL_POLICY_INDEX}")
 fi
@@ -45,6 +49,7 @@ fi
   --output-dir "${ATR_ROUTER_EVAL_OUTPUT:-results/v4_learned_router_development}" \
   --seed-base "${ATR_ROUTER_EVAL_SEED_BASE:-310000000}" \
   --episodes "${ATR_ROUTER_EPISODES:-128}" \
+  --steps "${ATR_ROUTER_STEPS:-240}" \
   --confirmation-steps "${ATR_CONFIRMATION_STEPS:-2}" \
   --force-scale "${ATR_ROUTER_FORCE_SCALE:-1.0}" \
   --onset-step "${ATR_ROUTER_ONSET_STEP:-0}" \
@@ -53,6 +58,7 @@ fi
   --safe-hold-until-step "${ATR_ROUTER_SAFE_HOLD_UNTIL_STEP:-0}" \
   "${NOMINAL_STATE_ARGS[@]}" \
   "${RELEASE_HOLD_ARGS[@]}" \
+  "${TERMINAL_SCORING_ARGS[@]}" \
   "${FIXED_OPTION_ARGS[@]}" \
   "${ENSEMBLE_ARGS[@]}" \
   "${POLICY_MEMBER_ARGS[@]}"

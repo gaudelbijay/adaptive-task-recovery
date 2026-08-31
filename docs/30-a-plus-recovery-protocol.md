@@ -159,3 +159,22 @@ which achieved 167/192 (86.98%) nominal safe successes and 893/960 (93.02%)
 across all conditions in the causal development run. V7 is frozen for fresh
 `336000000` selection and untouched `340000000` confirmation in
 `configs/a_plus_recovery_gate_v7_evidence_release.json`.
+
+### V7 selection rejection and V8 natural termination
+
+V7 is rejected before confirmation. It passed overall success, violation,
+gain, uncertainty, held-out reverse, and every recovery condition, but nominal
+safe success was 464/576 (80.56%) on `336000000`. Its reserved `340000000`
+confirmation family remains untouched.
+
+Nine nominal episodes had reached native success and then violated only because
+the fixed-size vector evaluator continued issuing and scoring actions after the
+environment's natural terminal boundary. V8 freezes first-resolution scoring:
+an episode ends at its first success or constraint violation, simultaneous
+success/violation remains unsafe, and later masked simulator steps are not
+scored. This rule is identical for all methods and does not provide a router
+input. V8 also freezes the predeclared mean of all three nominal controllers;
+temporary option 4 remains seed 1788. On opened development data this reached
+886/960 (92.29%) safe successes, 10 violations, and 162/192 (84.38%) in each
+weakest condition. `configs/a_plus_recovery_gate_v8_terminal_ensemble.json`
+uses fresh `337000000` selection and untouched `341000000` confirmation.

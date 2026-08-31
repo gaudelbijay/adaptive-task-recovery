@@ -109,6 +109,15 @@ def main():
             "nominal execution; later observed events can still revise it."
         ),
     )
+    parser.add_argument(
+        "--terminate-score-on-first-resolution",
+        action="store_true",
+        help=(
+            "End scoring for an environment at its first success or safety "
+            "violation, matching natural episodic termination while the "
+            "fixed-size vector simulator continues stepping masked actions."
+        ),
+    )
     parser.add_argument("--env-id", default="LearnedRecovery-v4")
     parser.add_argument("--visual-domain-profile")
     parser.add_argument("--fixed-option", type=int, choices=range(6))
@@ -291,9 +300,18 @@ def main():
                 )
                 stacked = torch.stack(actions, dim=1)
                 action = stacked[torch.arange(args.num_envs, device=device), effective_option]
+                if args.terminate_score_on_first_resolution:
+                    resolved = success | violation
+                    action = torch.where(resolved[:, None], torch.zeros_like(action), action)
                 option_histogram += torch.bincount(effective_option, minlength=6)
                 obs, _, _, _, info = env.step(action)
-                success |= info["success"].bool(); violation |= info["constraint_violated"].bool()
+                if args.terminate_score_on_first_resolution:
+                    active = ~(success | violation)
+                    success |= info["success"].bool() & active
+                    violation |= info["constraint_violated"].bool() & active
+                else:
+                    success |= info["success"].bool()
+                    violation |= info["constraint_violated"].bool()
             successes += int(success.sum()); safe_successes += int((success & ~violation).sum()); violations += int(violation.sum())
             truth = {"nominal": 0, "ejection": 1, "reverse_ejection": 2, "permanent_block": 3, "temporary_block": 4}[condition]
             decisions += args.num_envs; correct_decisions += int((selected_option == truth).sum())
@@ -312,6 +330,9 @@ def main():
         "safe_hold_until_step": args.safe_hold_until_step,
         "release_safe_hold_on_confirmed_nominal": (
             args.release_safe_hold_on_confirmed_nominal
+        ),
+        "terminate_score_on_first_resolution": (
+            args.terminate_score_on_first_resolution
         ),
         "return_delay": args.return_delay, "control_delay": args.control_delay,
         "environment": args.env_id, "visual_domain_profile": args.visual_domain_profile or "nominal",
