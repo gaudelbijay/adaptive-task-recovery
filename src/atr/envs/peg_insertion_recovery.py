@@ -229,6 +229,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         info.update({
             "constraint_violated": self._constraint_violated,
             "critic_intervention_mechanism": mechanism,
+            "critic_intervention_onset_step": self._onset_step,
             "critic_physical_unavailable": physical_unavailable,
             "blocker_engaged": self._blocker_engaged,
             "temporary_cleared": self._temporary_cleared,
@@ -236,6 +237,16 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             "critic_blocker_target_distance": torch.linalg.vector_norm(
                 self.hole_blocker.pose.p - self._blocker_target, dim=1,
             ),
+            # Physical task geometry used by the state-based router. The
+            # intervention identity and feasibility labels above are never
+            # included in this tensor. Each 7-D block is position followed by
+            # quaternion, matching ManiSkill's native state observation.
+            "router_task_geometry": torch.cat((
+                self.peg.pose.raw_pose,
+                self.box_hole_pose.raw_pose,
+                self.hole_blocker.pose.raw_pose,
+                self.agent.tcp.pose.raw_pose,
+            ), dim=1),
         })
         return info
 

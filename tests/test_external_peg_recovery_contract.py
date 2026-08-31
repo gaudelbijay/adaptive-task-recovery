@@ -29,6 +29,19 @@ def test_heldout_direction_and_matched_reversible_control_exist():
     assert '"critic_physical_unavailable"' in SOURCE
 
 
+def test_router_geometry_is_physical_and_excludes_mechanism_labels():
+    geometry = SOURCE.split('"router_task_geometry"', 1)[1].split("),\n        })", 1)[0]
+    for entity in (
+        "self.peg.pose.raw_pose",
+        "self.box_hole_pose.raw_pose",
+        "self.hole_blocker.pose.raw_pose",
+        "self.agent.tcp.pose.raw_pose",
+    ):
+        assert entity in geometry
+    assert "_intervention_mechanism" not in geometry
+    assert "_physical_unavailable" not in geometry
+
+
 def test_fail_fast_smoke_covers_every_frozen_condition():
     smoke = (ROOT / "scripts/smoke_external_peg_recovery.py").read_text()
     for condition in (
@@ -79,3 +92,16 @@ def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention()
     assert 'criteria["minimum_three_seed_mean_safe_success"]' in summary
     assert 'criteria["minimum_per_seed_safe_success"]' in summary
     assert 'criteria["maximum_constraint_violation_rate"]' in summary
+
+
+def test_external_router_collection_is_causal_group_disjoint_and_heldout():
+    collector = (ROOT / "scripts/collect_external_peg_router_data.py").read_text()
+    assert '"router_task_geometry"' in collector
+    assert 'current_centered_geometry_dim": 12' in collector
+    assert '"heldout_option": 2' in collector
+    assert '"heldout_option_cross_entropy": False' in collector
+    assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
+    assert '"split_unit": "entire vectorized simulator reset batch"' in collector
+    feature_section = collector.split("def relative_geometry", 1)[0]
+    assert "critic_intervention_mechanism" not in feature_section
+    assert "critic_physical_unavailable" not in feature_section

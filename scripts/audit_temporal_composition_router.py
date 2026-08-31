@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -15,6 +16,7 @@ def main() -> None:
     ))
     parser.add_argument("--summary-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--fail-on-reject", action="store_true")
     args = parser.parse_args()
     gate = json.loads(args.gate.read_text())
     paths = sorted(args.summary_dir.glob("summary_seed*.json"))
@@ -33,15 +35,25 @@ def main() -> None:
             "all_option_accuracy_mean": sum(observed) / len(observed),
         }
     criteria = gate["pass_criteria"]
+    causal_min = criteria.get(
+        "causal_heldout_reverse_offline_accuracy_min",
+        criteria.get("causal_heldout_offline_accuracy_min"),
+    )
+    static_max = criteria.get(
+        "static_heldout_reverse_offline_accuracy_max",
+        criteria.get("static_heldout_offline_accuracy_max"),
+    )
+    if causal_min is None or static_max is None:
+        raise RuntimeError("gate omits held-out causal/static offline thresholds")
     checks = {
         "training_seed_count": len(paths) >= expected_seeds,
         "causal_heldout_reverse_accuracy": (
             methods["causal_gru"]["heldout_option_accuracy_mean"]
-            >= criteria["causal_heldout_reverse_offline_accuracy_min"]
+            >= causal_min
         ),
         "static_heldout_reverse_shortcut_absent": (
             methods["static_mlp"]["heldout_option_accuracy_mean"]
-            <= criteria["static_heldout_reverse_offline_accuracy_max"]
+            <= static_max
         ),
     }
     payload = {
@@ -55,6 +67,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(json.dumps(payload, indent=2, sort_keys=True))
+    if args.fail_on_reject and not payload["offline_gate_pass"]:
+        sys.exit(2)
 
 
 if __name__ == "__main__":

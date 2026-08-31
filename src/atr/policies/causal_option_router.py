@@ -28,6 +28,25 @@ def causal_safe_targets(tensors: dict[str, torch.Tensor]) -> tuple[torch.Tensor,
     onset = tensors["onset"]
     safe_option = torch.full_like(tensors["option"], 5)
     pre_event = length < onset + 2
+    if "option_ready" in tensors:
+        # Some task families expose a causal physical readiness predicate at
+        # collection time (for example, blocker contact or completed return).
+        # It is a training target only, never a router input. This avoids a
+        # task-specific fixed wait while preserving the original V4 behavior
+        # for datasets that do not contain the field.
+        ready = tensors["option_ready"].bool()
+        safe_option[pre_event] = 0
+        safe_option[condition == 0] = 0
+        safe_option[ready] = tensors["option"][ready]
+        original_block = tensors["block_status"]
+        block_status = torch.where(
+            original_block == 1, torch.zeros_like(original_block),
+            torch.where(
+                original_block == 2, torch.ones_like(original_block),
+                torch.full_like(original_block, -100),
+            ),
+        )
+        return safe_option, block_status
     sweep_mature = length >= onset + 2
     safe_option[pre_event] = 0
     safe_option[condition == 0] = 0

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -22,6 +23,7 @@ def main() -> None:
         "--output", type=Path,
         default=Path("results/a_plus_audit/external_peg_nominal_ppo_v1.json"),
     )
+    parser.add_argument("--fail-on-reject", action="store_true")
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     records = [
@@ -79,6 +81,8 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result, indent=2, sort_keys=True))
+    if args.fail_on_reject and not result["competence_gate_pass"]:
+        sys.exit(2)
 
 
 if __name__ == "__main__":

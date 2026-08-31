@@ -44,6 +44,10 @@ def main() -> None:
         raise ValueError("input dataset has an unaligned prefix timestamp")
     if any(item.get("hand_engineered_temporal_features") is not False for item in metadata):
         raise ValueError("input dataset contains unaudited temporal feature summaries")
+    for key in ("current_centered_geometry_dim", "heldout_option", "heldout_option_cross_entropy"):
+        values = {item.get(key) for item in metadata}
+        if len(values) != 1:
+            raise ValueError(f"input metadata disagree on {key}: {sorted(values, key=str)}")
 
     total_rows = sum(int(array["length"].shape[0]) for array in arrays)
     total_groups = sum(int(item["simulator_batch_groups"]) for item in metadata)
@@ -111,6 +115,9 @@ def main() -> None:
         "absolute_pose_features": False,
         "hand_engineered_temporal_features": False,
         "training_only_targets": metadata[0]["training_only_targets"],
+        "current_centered_geometry_dim": metadata[0].get("current_centered_geometry_dim"),
+        "heldout_option": metadata[0].get("heldout_option"),
+        "heldout_option_cross_entropy": metadata[0].get("heldout_option_cross_entropy"),
         "sources": source_manifest,
     }
     args.metadata_output.parent.mkdir(parents=True, exist_ok=True)

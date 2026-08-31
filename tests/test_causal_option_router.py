@@ -19,6 +19,21 @@ def test_delayed_targets_never_encode_a_future_event():
     assert option.tolist() == [0, 1, 5, 3, 4]
 
 
+def test_task_specific_readiness_is_training_only_and_causal():
+    tensors = {
+        "condition": torch.tensor([0, 1, 1, 2, 3]),
+        "length": torch.tensor([20, 12, 16, 30, 70]),
+        "onset": torch.tensor([12, 12, 12, 12, 12]),
+        "option": torch.tensor([0, 1, 1, 3, 4]),
+        "option_ready": torch.tensor([True, False, True, True, True]),
+        "temporary_cleared": torch.tensor([False, False, False, False, True]),
+        "block_status": torch.tensor([-100, -100, -100, 1, 2]),
+    }
+    option, block = causal_safe_targets(tensors)
+    assert option.tolist() == [0, 0, 1, 3, 4]
+    assert block.tolist() == [-100, -100, -100, 0, 1]
+
+
 def test_factorized_router_is_normalized_and_finite():
     model = CausalOptionRouter(11, hidden_dim=16, layers=1).eval()
     output = model(torch.randn(7, 9, 11))
