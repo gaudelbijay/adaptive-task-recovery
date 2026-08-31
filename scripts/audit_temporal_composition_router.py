@@ -26,7 +26,13 @@ def main() -> None:
     summaries = [json.loads(path.read_text()) for path in paths]
     methods = {}
     for name in ("causal_gru", "static_mlp", "unstructured_gru"):
-        heldout = [run["models"][name]["test"]["heldout_option_accuracy"] for run in summaries]
+        heldout = [
+            run["models"][name]["test"].get(
+                "physical_heldout_option_accuracy",
+                run["models"][name]["test"]["heldout_option_accuracy"],
+            )
+            for run in summaries
+        ]
         observed = [run["models"][name]["test"]["accuracy"] for run in summaries]
         methods[name] = {
             "heldout_option_accuracy_by_seed": heldout,

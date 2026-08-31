@@ -113,6 +113,11 @@ def evaluate(model, tensors, mask, device, geometry_dim=0, heldout_option=None):
         result["heldout_option_accuracy"] = float(
             (prediction[heldout] == target[heldout]).float().mean()
         ) if bool(heldout.any()) else None
+        if "physical_heldout" in tensors:
+            physical_heldout = tensors["physical_heldout"][indices].bool()
+            result["physical_heldout_option_accuracy"] = float(
+                (prediction[physical_heldout] == target[physical_heldout]).float().mean()
+            ) if bool(physical_heldout.any()) else None
     return result, probability, target
 
 
@@ -178,6 +183,11 @@ def main():
     # data-collection envelope, not selected on control outcomes.
     tensors["option"], tensors["block_status"] = causal_safe_targets(tensors)
     train, validation, test = group_split(raw["group_id"])
+    if "physical_heldout" in raw.files:
+        physical_heldout = raw["physical_heldout"].astype(bool)
+        train &= ~physical_heldout
+        validation &= ~physical_heldout
+        test |= physical_heldout
     valid_steps = []
     for sequence, length in zip(raw["sequence"][train], raw["length"][train]):
         prefix = sequence[:length].copy()

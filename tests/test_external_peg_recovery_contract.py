@@ -146,6 +146,10 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     assert 'current_centered_geometry_dim": 12' in collector
     assert '"heldout_option": 2' in collector
     assert '"heldout_option_cross_entropy": False' in collector
+    assert '"physical_heldout"' in collector
+    assert '"counterfactual_reflection"' in collector
+    assert 'reflected["sequence"][:, :, [1, 4, 7, 10]] *= -1' in collector
+    assert 'reflected["option"].fill(2)' in collector
     assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
     assert '"split_unit": "entire vectorized simulator reset batch"' in collector
     feature_section = collector.split("def relative_geometry", 1)[0]
@@ -155,6 +159,24 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     assert "ATR_PEG_TRAINING_SEEDS" in wrapper
     assert "ATR_PEG_RUN_ROOT" in wrapper
     assert "ATR_PEG_ROUTER_DATA_ROOT" in wrapper
+
+
+def test_external_v2_gate_holds_real_negative_physics_out_of_training():
+    v1 = json.loads((ROOT / "configs/a_plus_external_peg_insertion_gate_v1.json").read_text())
+    v2 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v2_counterfactual_direction.json").read_text()
+    )
+    assert v2["status"] == "preregistered_before_external_router_data_or_outcomes"
+    assert v2["pass_criteria"] == v1["pass_criteria"]
+    assert v2["selection_seed_base"] == v1["selection_seed_base"]
+    assert v2["confirmation_seed_base"] == v1["confirmation_seed_base"]
+    assert "reserved for test" in v2["interventions"]["heldout_real_trajectory_rule"]
+    trainer = (ROOT / "scripts/train_v4_causal_option_router.py").read_text()
+    assert "train &= ~physical_heldout" in trainer
+    assert "validation &= ~physical_heldout" in trainer
+    assert "test |= physical_heldout" in trainer
+    audit = (ROOT / "scripts/audit_temporal_composition_router.py").read_text()
+    assert '"physical_heldout_option_accuracy"' in audit
 
 
 def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():

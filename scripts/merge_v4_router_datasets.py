@@ -118,6 +118,16 @@ def main() -> None:
         "current_centered_geometry_dim": metadata[0].get("current_centered_geometry_dim"),
         "heldout_option": metadata[0].get("heldout_option"),
         "heldout_option_cross_entropy": metadata[0].get("heldout_option_cross_entropy"),
+        "real_negative_ejection_split": metadata[0].get("real_negative_ejection_split"),
+        "counterfactual_reflection": {
+            "source": "positive_lateral_peg_ejection factual prefixes",
+            "shared_group_with_factual": True,
+            "option_cross_entropy": False,
+            "rows": sum(
+                int(item.get("counterfactual_reflection", {}).get("rows", 0))
+                for item in metadata
+            ),
+        } if any("counterfactual_reflection" in item for item in metadata) else None,
         "sources": source_manifest,
     }
     args.metadata_output.parent.mkdir(parents=True, exist_ok=True)

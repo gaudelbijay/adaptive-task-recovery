@@ -109,7 +109,7 @@ def main() -> None:
     rows = {key: [] for key in (
         "sequence", "length", "option", "event", "direction", "block_status",
         "temporary_cleared", "option_ready", "onset", "return_delay",
-        "group_id", "condition",
+        "group_id", "condition", "physical_heldout", "counterfactual_reflection",
     )}
     for kind_index, kind in enumerate(KINDS):
         for batch in range(args.batches_per_kind):
@@ -166,6 +166,12 @@ def main() -> None:
                         rows["condition"].append(np.full(
                             args.num_envs, kind_index, dtype=np.int64,
                         ))
+                        rows["physical_heldout"].append(np.full(
+                            args.num_envs, kind_index == 4, dtype=np.bool_,
+                        ))
+                        rows["counterfactual_reflection"].append(np.zeros(
+                            args.num_envs, dtype=np.bool_,
+                        ))
                     action = torch.clamp(
                         agent.get_action(observation, deterministic=True),
                         action_low, action_high,
@@ -175,6 +181,20 @@ def main() -> None:
                 env.close()
 
     packed = {name: np.concatenate(parts) for name, parts in rows.items()}
+    positive = (packed["condition"] == 1) & ~packed["physical_heldout"]
+    reflected = {name: value[positive].copy() for name, value in packed.items()}
+    # Feature layout is four relative xyz vectors plus normalized time. A
+    # reflection across the task's lateral y-axis negates indices 1,4,7,10.
+    reflected["sequence"][:, :, [1, 4, 7, 10]] *= -1
+    reflected["option"].fill(2)
+    post_event = reflected["direction"] >= 0
+    reflected["direction"][post_event] = 1
+    reflected["counterfactual_reflection"].fill(True)
+    reflected["physical_heldout"].fill(False)
+    packed = {
+        name: np.concatenate((value, reflected[name]))
+        for name, value in packed.items()
+    }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(args.output, **packed)
     metadata = {
@@ -195,6 +215,14 @@ def main() -> None:
         ],
         "heldout_option": 2,
         "heldout_option_cross_entropy": False,
+        "real_negative_ejection_split": "physical_heldout test-only",
+        "counterfactual_reflection": {
+            "source": "positive_lateral_peg_ejection factual prefixes",
+            "reflected_feature_indices": [1, 4, 7, 10],
+            "shared_group_with_factual": True,
+            "option_cross_entropy": False,
+            "rows": int(packed["counterfactual_reflection"].sum()),
+        },
         "prefix_timestamp": "pre_action_observation_matching_deployment",
         "split_unit": "entire vectorized simulator reset batch",
         "snapshots": [step for step in SNAPSHOTS if step <= args.horizon],
