@@ -104,6 +104,25 @@ def test_v2_nominal_contingency_fixes_only_audited_official_parity_gaps():
     assert 'approximate_kl > float(target_kl)' in trainer
 
 
+def test_v2_is_rejected_and_v3_restores_native_episode_horizon():
+    rejection = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v2_rejection.json").read_text()
+    )
+    assert rejection["status"] == "rejected_before_competence_evaluation"
+    assert rejection["reserved_external_seed_status"]["selection_425000000"] == "untouched"
+    v3 = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v3_native_horizon.json").read_text()
+    )
+    assert v3["status"] == "preregistered_before_v3_training_or_outcomes"
+    assert v3["seeds"] == [31415, 27182, 16180]
+    task = v3["experiments"][0]
+    assert task["num_steps"] == task["num_eval_steps"] == 100
+    assert task["env_kwargs"]["max_episode_steps"] == 100
+    assert task["eval_env_kwargs"]["max_episode_steps"] == 100
+    wrapper = (ROOT / "scripts/slurm_evaluate_external_peg_ppo.sh").read_text()
+    assert '"${ATR_PEG_EVAL_STEPS:-160}"' in wrapper
+
+
 def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention():
     audit = (ROOT / "scripts/evaluate_external_peg_ppo.py").read_text()
     assert 'default=421_000_000' in audit

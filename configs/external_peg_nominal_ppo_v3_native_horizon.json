@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v3_training_or_outcomes",
+  "name": "external_peg_nominal_ppo_v3_native_horizon",
+  "supersedes": "configs/external_peg_nominal_ppo_v2_official_parity.json",
+  "supersession_reason": "V2 produced empty evaluation metrics because its 100-step evaluator did not reach the custom environment's 160-step TimeLimit. V3 fixes the environment TimeLimit to the native official 100 steps for both training and competence evaluation; all optimization settings remain unchanged.",
+  "source_baseline": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "implementation": "examples/baselines/ppo/ppo.py",
+    "official_peg_command": "1024 environments, 8 update epochs, 32 minibatches, 250M transitions, 100-step rollouts/evaluation",
+    "parity_contract": [
+      "target_kl=0.1",
+      "100-step native episode TimeLimit",
+      "100-step rollout and evaluation horizon",
+      "custom blocker pose excluded from low-level policy observation",
+      "interventions disabled"
+    ]
+  },
+  "seeds": [31415, 27182, 16180],
+  "experiments": [
+    {
+      "method": "official_state_ppo_nominal_native_horizon",
+      "env_id": "PegInsertionRecovery-v1",
+      "registration_module": "atr.envs.peg_insertion_recovery",
+      "total_timesteps": 250000000,
+      "num_envs": 1024,
+      "num_steps": 100,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      },
+      "eval_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "num_eval_envs": 64,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 10,
+  "checkpoint_freq": 10,
+  "learning_rate": 0.0003,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "target_kl": 0.1,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "claim_boundary": "This establishes only the shared low-level nominal controller. It cannot open 425M selection or 429M confirmation by itself."
+}

@@ -107,6 +107,7 @@ def main() -> None:
         "checkpoint_iteration": int(checkpoint["iteration"]),
         "checkpoint_global_step": int(checkpoint["global_step"]),
         "episodes": args.episodes,
+        "steps_per_episode": args.steps,
         "safe_successes": successes,
         "safe_success_rate": successes / args.episodes,
         "violations": violations,

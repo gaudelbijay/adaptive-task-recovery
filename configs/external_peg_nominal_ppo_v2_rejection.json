@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "rejected_before_competence_evaluation",
+  "candidate": "external_peg_nominal_ppo_v2_official_parity",
+  "job_id": 1150242,
+  "observed_global_steps_per_seed": 921600,
+  "failure": "The evaluator ran for 100 steps while PegInsertionRecovery-v1 retained a 160-step TimeLimit, producing no final_info episodes and empty evaluation metrics for all three seeds.",
+  "consequence": "No valid best checkpoint could be selected; all V2 training and dependent jobs were cancelled before any competence, router, selection, or confirmation evaluation.",
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  }
+}
