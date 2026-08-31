@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "rejected_during_development_before_reserved_selection",
+  "name": "external_peg_nominal_ppo_v3_native_horizon_rejection",
+  "rejected_config": "configs/external_peg_nominal_ppo_v3_native_horizon.json",
+  "reason": "The custom recovery environment was not nominally equivalent when intervention_probability was zero. Its dynamic blocker was still reset and force-held directly on the unobserved insertion axis, contaminating the nominal controller task.",
+  "trainer_audit": {
+    "official_repository": "https://github.com/haosulab/ManiSkill",
+    "official_commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "result": "No material mismatch in network, optimizer, action clipping, GAE, advantage normalization, or PPO loss was found.",
+    "diagnosis": "environment_geometry_confound"
+  },
+  "observed_before_rejection": {
+    "training_job": "1150254",
+    "training_steps_range": [54169600, 69529600],
+    "deterministic_success_range": [0.0, 0.0]
+  },
+  "corrective_action": "Park unused blockers outside the task workspace at reset and train the nominal policy on the exact official PegInsertionSide-v1 environment.",
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  }
+}

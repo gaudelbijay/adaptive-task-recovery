@@ -164,7 +164,22 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             # the randomized hole diameter but short enough for a bounded
             # servo to converge uniformly across heterogeneous GPU scenes.
             local_home[:, 0] -= self.blocker_home_offset
-            home = (hole_pose * Pose.create_from_pq(local_home)).p
+            axial_home = (hole_pose * Pose.create_from_pq(local_home)).p
+            # Only the two blocking mechanisms may stage on the insertion
+            # axis.  Parking an unused blocker there creates an unobserved
+            # obstacle even when intervention_probability=0 and therefore
+            # breaks nominal equivalence with PegInsertionSide-v1.  Non-block
+            # episodes instead park it well outside the task workspace.  This
+            # remains a reset-only pose assignment; runtime motion is physical.
+            local_park = local_home.clone()
+            local_park[:, 1] += 0.30
+            local_park[:, 2] += 0.30
+            parked_home = (hole_pose * Pose.create_from_pq(local_park)).p
+            block_episode = (
+                (self._intervention_mechanism[env_idx] == PERMANENT_BLOCK)
+                | (self._intervention_mechanism[env_idx] == TEMPORARY_BLOCK)
+            )
+            home = torch.where(block_episode[:, None], axial_home, parked_home)
             self._blocker_home[env_idx] = home
             self._blocker_target[env_idx] = target
             self.hole_blocker.set_pose(Pose.create_from_pq(home))

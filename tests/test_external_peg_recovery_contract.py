@@ -137,6 +137,33 @@ def test_v2_is_rejected_and_v3_restores_native_episode_horizon():
     assert '"${ATR_PEG_EVAL_STEPS:-160}"' in wrapper
 
 
+def test_v3_is_rejected_and_v4_uses_exact_official_training_environment():
+    rejection = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v3_rejection.json").read_text()
+    )
+    assert rejection["trainer_audit"]["diagnosis"] == "environment_geometry_confound"
+    assert rejection["reserved_external_seed_status"]["selection_425000000"] == "untouched"
+    v4 = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v4_official_environment.json").read_text()
+    )
+    task = v4["experiments"][0]
+    assert task["env_id"] == "PegInsertionSide-v1"
+    assert task["env_kwargs"] == task["eval_env_kwargs"] == {}
+    assert task["competence_env_id"] == "PegInsertionRecovery-v1"
+    assert task["competence_env_kwargs"]["intervention_probability"] == 0.0
+    assert task["competence_env_kwargs"]["include_blocker_state_observation"] is False
+
+
+def test_unused_blocker_is_parked_off_the_insertion_axis_at_reset():
+    initialize = SOURCE.split("def _initialize_episode", 1)[1].split(
+        "def _apply_batched_force", 1
+    )[0]
+    assert "local_park[:, 1] += 0.30" in initialize
+    assert "local_park[:, 2] += 0.30" in initialize
+    assert "block_episode" in initialize
+    assert "torch.where(block_episode[:, None], axial_home, parked_home)" in initialize
+
+
 def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention():
     audit = (ROOT / "scripts/evaluate_external_peg_ppo.py").read_text()
     assert 'default=421_000_000' in audit

@@ -41,10 +41,18 @@ def main() -> None:
     device = torch.device("cuda")
     checkpoint = torch.load(args.checkpoint, map_location=device, weights_only=False)
     task = checkpoint["task"]
-    if task.get("registration_module"):
-        importlib.import_module(task["registration_module"])
-    if float(task.get("env_kwargs", {}).get("intervention_probability", 1.0)) != 0.0:
-        raise ValueError("competence checkpoint was not trained with interventions disabled")
+    competence_registration = task.get(
+        "competence_registration_module", task.get("registration_module")
+    )
+    if competence_registration:
+        importlib.import_module(competence_registration)
+    competence_env_id = task.get("competence_env_id", task["env_id"])
+    competence_kwargs = task.get(
+        "competence_env_kwargs",
+        task.get("eval_env_kwargs", task.get("env_kwargs", {})),
+    )
+    if float(competence_kwargs.get("intervention_probability", 1.0)) != 0.0:
+        raise ValueError("competence environment does not disable interventions")
 
     env_kwargs = {
         "obs_mode": task.get("obs_mode", "state"),
@@ -52,14 +60,14 @@ def main() -> None:
         "sim_backend": "physx_cuda",
         "control_mode": task["control_mode"],
         "reward_mode": task.get("reward_mode", "normalized_dense"),
-        **task.get("eval_env_kwargs", task.get("env_kwargs", {})),
+        **competence_kwargs,
     }
     env_kwargs.update({
         "intervention_probability": 0.0,
         "intervention_types": ("positive_lateral_peg_ejection",),
     })
     env = gym.make(
-        task["env_id"], num_envs=args.num_envs, reconfiguration_freq=1,
+        competence_env_id, num_envs=args.num_envs, reconfiguration_freq=1,
         **env_kwargs,
     )
     if isinstance(env.action_space, gym.spaces.Dict):
@@ -99,7 +107,8 @@ def main() -> None:
     result = {
         "schema_version": 1,
         "audit": "official_ppo_nominal_competence",
-        "environment": task["env_id"],
+        "training_environment": task["env_id"],
+        "environment": competence_env_id,
         "training_seed": int(task["seed"]),
         "evaluation_seed_base": args.seed_base,
         "checkpoint": str(args.checkpoint),

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v4_training_or_outcomes",
+  "name": "external_peg_nominal_ppo_v4_official_environment",
+  "supersedes": "configs/external_peg_nominal_ppo_v3_native_horizon.json",
+  "supersession_reason": "V3 retained an unobserved custom blocker on the insertion axis even with interventions disabled. V4 trains on the exact official environment and audits transfer into the corrected no-intervention recovery extension.",
+  "source_baseline": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "implementation": "examples/baselines/ppo/ppo.py",
+    "official_peg_command": "PegInsertionSide-v1, 1024 environments, 8 update epochs, 32 minibatches, 250M transitions, 100-step rollouts/evaluation",
+    "parity_contract": [
+      "exact official PegInsertionSide-v1 training environment",
+      "target_kl=0.1",
+      "100-step native episode TimeLimit",
+      "100-step rollout and evaluation horizon",
+      "no recovery actor or privileged recovery state during training"
+    ]
+  },
+  "seeds": [73129, 50411, 99277],
+  "experiments": [
+    {
+      "method": "official_state_ppo_nominal_exact_environment",
+      "env_id": "PegInsertionSide-v1",
+      "total_timesteps": 250000000,
+      "num_envs": 1024,
+      "num_steps": 100,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {},
+      "eval_env_kwargs": {},
+      "competence_env_id": "PegInsertionRecovery-v1",
+      "competence_registration_module": "atr.envs.peg_insertion_recovery",
+      "competence_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "num_eval_envs": 64,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 10,
+  "checkpoint_freq": 10,
+  "learning_rate": 0.0003,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "target_kl": 0.1,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "This establishes only the shared low-level nominal controller and transfer compatibility. It cannot open 425M selection or 429M confirmation by itself."
+}
