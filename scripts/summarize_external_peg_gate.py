@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""Aggregate matched PegInsertion closed-loop manifests against the frozen gate."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from collections import defaultdict
+from pathlib import Path
+
+
+def wilson(successes: int, trials: int, z: float = 1.959963984540054):
+    p = successes / trials
+    denominator = 1 + z * z / trials
+    center = (p + z * z / (2 * trials)) / denominator
+    radius = z * math.sqrt(p * (1 - p) / trials + z * z / (4 * trials * trials)) / denominator
+    return center - radius, center + radius
+
+
+def parse_method(value: str):
+    name, separator, directory = value.partition("=")
+    if not separator:
+        raise argparse.ArgumentTypeError("method must be NAME=DIRECTORY")
+    return name, Path(directory)
+
+
+def load(directory: Path):
+    records = [json.loads(path.read_text()) for path in sorted(directory.glob("*.json"))]
+    if not records:
+        raise RuntimeError(f"no manifests in {directory}")
+    return records
+
+
+def aggregate(records):
+    by_condition = defaultdict(
+        lambda: {"episodes": 0, "successes": 0, "safe_abstentions": 0, "safe_successes": 0, "violations": 0}
+    )
+    for record in records:
+        row = by_condition[record["condition"]]
+        for key in row:
+            row[key] += int(record[key])
+    overall = {key: sum(row[key] for row in by_condition.values()) for key in next(iter(by_condition.values()))}
+    for row in [*by_condition.values(), overall]:
+        row["safe_success_rate"] = row["safe_successes"] / row["episodes"]
+        row["violation_rate"] = row["violations"] / row["episodes"]
+        row["safe_success_wilson_95"] = wilson(row["safe_successes"], row["episodes"])
+    return {"overall": overall, "conditions": dict(sorted(by_condition.items()))}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--gate", type=Path, required=True)
+    parser.add_argument("--method", action="append", type=parse_method, required=True)
+    parser.add_argument("--candidate", default="causal")
+    parser.add_argument("--oracle", action="append", default=["oracle"])
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    gate = json.loads(args.gate.read_text())
+    criteria = gate["pass_criteria"]
+    grouped = defaultdict(list)
+    for name, directory in args.method:
+        grouped[name].extend(load(directory))
+    methods = {name: aggregate(records) for name, records in grouped.items()}
+    candidate = methods[args.candidate]
+    overall = candidate["overall"]
+    conditions = candidate["conditions"]
+    checks = {
+        "closed_loop_safe_recovery": overall["safe_success_rate"] >= criteria["closed_loop_safe_recovery_min"],
+        "native_nominal_success": conditions["nominal"]["safe_success_rate"] >= criteria["native_nominal_success_min"],
+        "heldout_ejection_safe_recovery": conditions["negative_lateral_peg_ejection"]["safe_success_rate"] >= criteria["heldout_ejection_safe_recovery_min"],
+        "permanent_safe_abstention": conditions["permanent_hole_block"]["safe_success_rate"] >= criteria["permanent_safe_abstention_min"],
+        "violation_rate": overall["violation_rate"] <= criteria["violation_rate_max"],
+    }
+    router_seeds = {
+        record["router_seed"] for record in grouped[args.candidate]
+        if record.get("router_seed") is not None
+    }
+    checks["training_seed_count"] = len(router_seeds) >= criteria["minimum_independent_training_seeds"]
+    competitors = {
+        name: method for name, method in methods.items()
+        if name != args.candidate and name not in set(args.oracle)
+    }
+    strongest_name, strongest = max(
+        competitors.items(), key=lambda item: item[1]["overall"]["safe_success_rate"],
+    )
+    baseline = strongest["overall"]
+    gain = overall["safe_success_rate"] - baseline["safe_success_rate"]
+    difference_ci = (
+        overall["safe_success_wilson_95"][0] - baseline["safe_success_wilson_95"][1],
+        overall["safe_success_wilson_95"][1] - baseline["safe_success_wilson_95"][0],
+    )
+    checks["gain_over_strongest_non_oracle"] = gain >= criteria["gain_over_strongest_non_oracle_min_pp"] / 100
+    checks["gain_newcombe_lower"] = difference_ci[0] > criteria["gain_newcombe_95_lower_min_pp"] / 100
+    result = {
+        "schema_version": 1,
+        "gate": str(args.gate),
+        "candidate": args.candidate,
+        "methods": methods,
+        "comparison": {
+            "strongest_non_oracle": strongest_name,
+            "gain": gain,
+            "newcombe_95": difference_ci,
+        },
+        "checks": checks,
+        "external_gate_pass": all(checks.values()),
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()

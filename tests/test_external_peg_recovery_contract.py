@@ -114,3 +114,34 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     feature_section = collector.split("def relative_geometry", 1)[0]
     assert "critic_intervention_mechanism" not in feature_section
     assert "critic_physical_unavailable" not in feature_section
+
+
+def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
+    evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
+    for method in (
+        "causal_gru", "static_mlp", "unstructured_gru", "heuristic", "oracle",
+    ):
+        assert f'"{method}"' in evaluator
+    assert 'current_centered_sequence(sequence, length, geometry_dim)' in evaluator
+    assert 'args.forward_checkpoint or args.nominal_checkpoint' in evaluator
+    assert 'args.reverse_checkpoint or args.nominal_checkpoint' in evaluator
+    assert 'safe_abstention |= abstained' in evaluator
+    assert 'available_success &= info["intervention_finished"].bool()' in evaluator
+    assert 'blocker_protected & (peg_head_blocker_distance < blocker_clearance)' in SOURCE
+    learned_runtime = evaluator.split("def learned_option", 1)[1].split(
+        "def heuristic_option", 1
+    )[0]
+    assert "critic_intervention_mechanism" not in learned_runtime
+    assert "critic_physical_unavailable" not in learned_runtime
+
+
+def test_external_gate_summarizer_enforces_every_frozen_endpoint():
+    summary = (ROOT / "scripts/summarize_external_peg_gate.py").read_text()
+    for key in (
+        "closed_loop_safe_recovery_min", "native_nominal_success_min",
+        "heldout_ejection_safe_recovery_min", "permanent_safe_abstention_min",
+        "violation_rate_max", "gain_over_strongest_non_oracle_min_pp",
+        "gain_newcombe_95_lower_min_pp", "minimum_independent_training_seeds",
+    ):
+        assert f'criteria["{key}"]' in summary
+    assert 'name not in set(args.oracle)' in summary
