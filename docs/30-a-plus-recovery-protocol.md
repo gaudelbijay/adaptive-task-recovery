@@ -124,3 +124,20 @@ freezes seed 9351's exact checkpoint and hash in
 `configs/a_plus_recovery_gate_v5_selected_nominal.json`. It changes no router,
 specialist, representation, hold, or numerical threshold, and uses fresh
 `330000000` selection and untouched `334000000` confirmation families.
+
+### V5 confirmation rejection and V6 option-specific library
+
+V5 was opened once on `334000000`. It achieved 2623/2880 (91.08%) safe
+successes and beat the matched unstructured model by 7.57 points with a 95%
+Newcombe interval of [5.16, 9.96] points. It is nevertheless rejected: 87/2880
+violations is 3.0208%, one episode beyond the 3.00% cap, and temporary recovery
+was 468/576 (81.25%), five episodes below the 82% condition floor. These are
+not rounded into passes, and no V5 OOD confirmation is run.
+
+V6 freezes an option-specific shared controller library in
+`configs/a_plus_recovery_gate_v6_option_specific_nominal.json`. Nominal option
+0 keeps V5's selected seed-9351 controller; temporary post-clearance option 4
+uses the seed-1788 controller that was stronger on that recovery role. The
+library is identical for every router. V6 changes no routing model, specialist,
+feature, calibration, hold, or numerical criterion. It uses `335000000` for
+selection and reserves `339000000` for once-only confirmation.

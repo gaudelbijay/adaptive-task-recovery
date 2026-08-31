@@ -102,6 +102,22 @@ def test_v5_frozen_candidate_precedes_confirmation_and_marks_external_gap():
     assert "necessary but not sufficient" in manifest["claim_boundary"]
 
 
+def test_v6_uses_matched_option_specific_controllers_and_fresh_seeds():
+    v5 = json.loads((ROOT / "configs/a_plus_recovery_gate_v5_selected_nominal.json").read_text())
+    v6 = json.loads((ROOT / "configs/a_plus_recovery_gate_v6_option_specific_nominal.json").read_text())
+    assert v6["status"] == "preregistered_before_v6_selection_or_evaluation"
+    assert v6["representation"] == v5["representation"]
+    assert v6["pass_criteria"] == v5["pass_criteria"]
+    assert v6["ood_axes"] == v5["ood_axes"]
+    library = v6["shared_option_library"]
+    assert library["nominal_policy_index"] == 0
+    assert library["temporary_policy_index"] == 2
+    assert "shared by causal, static, unstructured" in library["matching_rule"]
+    assert v6["selection_seed_base"] == 335_000_000
+    assert v6["confirmation_seed_base"] == 339_000_000
+    assert v6["confirmation_seed_base"] != v5["confirmation_seed_base"]
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]
