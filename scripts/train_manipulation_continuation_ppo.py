@@ -252,9 +252,13 @@ def main():
             initialization_path, map_location=device, weights_only=False,
         )
         source_task = initialization.get("task", {})
-        for key in ("env_id", "control_mode"):
-            if source_task.get(key) != task.get(key):
-                raise ValueError(f"state initializer {key} mismatch")
+        compatible_init_env_ids = set(
+            task.get("compatible_init_env_ids", (task["env_id"],))
+        )
+        if source_task.get("env_id") not in compatible_init_env_ids:
+            raise ValueError("state initializer env_id mismatch")
+        if source_task.get("control_mode") != task.get("control_mode"):
+            raise ValueError("state initializer control_mode mismatch")
         agent.load_state_dict(initialization["agent"], strict=True)
         initialization_record = {
             "checkpoint": str(initialization_path),
@@ -382,12 +386,20 @@ def main():
         b_returns = returns.reshape(-1)
         indices = np.arange(batch_size)
         agent.train()
+        target_kl = config.get("target_kl")
+        stop_update = False
         for _ in range(int(config["update_epochs"])):
             np.random.shuffle(indices)
             for start in range(0, batch_size, minibatch_size):
                 mb = indices[start:start + minibatch_size]
                 _, new_logprob, entropy, new_value = agent.get_action_and_value(b_obs[mb], b_actions[mb])
-                ratio = (new_logprob - b_logprobs[mb]).exp()
+                logratio = new_logprob - b_logprobs[mb]
+                ratio = logratio.exp()
+                with torch.no_grad():
+                    approximate_kl = ((ratio - 1.0) - logratio).mean()
+                if target_kl is not None and approximate_kl > float(target_kl):
+                    stop_update = True
+                    break
                 adv = b_advantages[mb]
                 adv = (adv - adv.mean()) / (adv.std() + 1e-8)
                 pg_loss = torch.maximum(
@@ -404,6 +416,8 @@ def main():
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), 0.5)
                 optimizer.step()
+            if stop_update:
+                break
 
         should_save = (
             iteration % int(config["checkpoint_freq"]) == 0

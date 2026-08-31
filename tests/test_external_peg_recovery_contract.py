@@ -185,6 +185,36 @@ def test_ppo_competence_audit_uses_fresh_development_seeds_and_no_intervention()
     assert 'criteria["maximum_constraint_violation_rate"]' in summary
 
 
+def test_official_nominal_checkpoints_use_recovery_observation_contract():
+    collector = (ROOT / "scripts/collect_external_peg_router_data.py").read_text()
+    evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
+    for source in (collector, evaluator):
+        assert '"competence_env_kwargs"' in source
+        assert '"include_blocker_state_observation"' in source
+
+
+def test_external_specialists_are_required_and_initialized_from_nominal():
+    config = json.loads(
+        (ROOT / "configs/external_peg_specialists_v1_directed_servo.json").read_text()
+    )
+    assert config["status"] == "preregistered_before_specialist_training_or_outcomes"
+    assert len(config["seeds"]) == 3
+    assert len(config["experiments"]) == 2
+    assert {
+        experiment["env_kwargs"]["intervention_types"][0]
+        for experiment in config["experiments"]
+    } == {"positive_lateral_peg_ejection", "negative_lateral_peg_ejection"}
+    for experiment in config["experiments"]:
+        assert experiment["compatible_init_env_ids"] == ["PegInsertionSide-v1"]
+        assert experiment["env_kwargs"]["include_blocker_state_observation"] is False
+        assert experiment["env_kwargs"]["ejection_target_displacement"] == 0.06
+    trainer = (ROOT / "scripts/train_manipulation_continuation_ppo.py").read_text()
+    assert 'compatible_init_env_ids' in trainer
+    assert 'source_task.get("env_id") not in compatible_init_env_ids' in trainer
+    assert 'approximate_kl = ((ratio - 1.0) - logratio).mean()' in trainer
+    assert 'approximate_kl > float(target_kl)' in trainer
+
+
 def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     collector = (ROOT / "scripts/collect_external_peg_router_data.py").read_text()
     assert '"router_task_geometry"' in collector
@@ -278,8 +308,10 @@ def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
     ):
         assert f'"{method}"' in evaluator
     assert 'current_centered_sequence(sequence, length, geometry_dim)' in evaluator
-    assert 'args.forward_checkpoint or args.nominal_checkpoint' in evaluator
-    assert 'args.reverse_checkpoint or args.nominal_checkpoint' in evaluator
+    assert 'for path in args.forward_checkpoint' in evaluator
+    assert 'for path in args.reverse_checkpoint' in evaluator
+    assert '"--forward-checkpoint", action="append", type=Path, required=True' in evaluator
+    assert '"--reverse-checkpoint", action="append", type=Path, required=True' in evaluator
     assert 'safe_abstention |= abstained' in evaluator
     assert '"episode_safe_outcome": safe_outcome.cpu().tolist()' in evaluator
     assert 'available_success &= info["intervention_finished"].bool()' in evaluator

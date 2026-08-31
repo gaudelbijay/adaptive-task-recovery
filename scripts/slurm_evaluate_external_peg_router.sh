@@ -17,19 +17,15 @@ for checkpoint in "${nominal_checkpoints[@]}"; do
   NOMINAL_ARGS+=(--nominal-checkpoint "${checkpoint}")
 done
 FORWARD_ARGS=()
-if [[ -n "${ATR_PEG_FORWARD_CHECKPOINTS:-}" ]]; then
-  IFS=':' read -r -a forward_checkpoints <<< "${ATR_PEG_FORWARD_CHECKPOINTS}"
-  for checkpoint in "${forward_checkpoints[@]}"; do
-    FORWARD_ARGS+=(--forward-checkpoint "${checkpoint}")
-  done
-fi
+IFS=':' read -r -a forward_checkpoints <<< "${ATR_PEG_FORWARD_CHECKPOINTS:?set ATR_PEG_FORWARD_CHECKPOINTS}"
+for checkpoint in "${forward_checkpoints[@]}"; do
+  FORWARD_ARGS+=(--forward-checkpoint "${checkpoint}")
+done
 REVERSE_ARGS=()
-if [[ -n "${ATR_PEG_REVERSE_CHECKPOINTS:-}" ]]; then
-  IFS=':' read -r -a reverse_checkpoints <<< "${ATR_PEG_REVERSE_CHECKPOINTS}"
-  for checkpoint in "${reverse_checkpoints[@]}"; do
-    REVERSE_ARGS+=(--reverse-checkpoint "${checkpoint}")
-  done
-fi
+IFS=':' read -r -a reverse_checkpoints <<< "${ATR_PEG_REVERSE_CHECKPOINTS:?set ATR_PEG_REVERSE_CHECKPOINTS}"
+for checkpoint in "${reverse_checkpoints[@]}"; do
+  REVERSE_ARGS+=(--reverse-checkpoint "${checkpoint}")
+done
 ROUTER_ARGS=()
 if [[ -n "${ATR_PEG_ROUTER_CHECKPOINT:-}" ]]; then
   ROUTER_ARGS+=(

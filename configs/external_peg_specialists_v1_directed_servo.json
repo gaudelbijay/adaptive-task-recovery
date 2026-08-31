@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_specialist_training_or_outcomes",
+  "name": "external_peg_specialists_v1_directed_servo",
+  "source_nominal_config": "configs/external_peg_nominal_ppo_v4_official_environment.json",
+  "physics_contract": "configs/a_plus_external_peg_insertion_gate_v4_directed_servo.json",
+  "seeds": [73129, 50411, 99277],
+  "experiments": [
+    {
+      "method": "positive_ejection_recovery_specialist",
+      "env_id": "PegInsertionRecovery-v1",
+      "compatible_init_env_ids": ["PegInsertionSide-v1"],
+      "registration_module": "atr.envs.peg_insertion_recovery",
+      "init_checkpoint": "results/manipulation_ppo/external_peg_nominal_ppo_v4_official_environment/official_state_ppo_nominal_exact_environment/seed_{seed}/best.pt",
+      "total_timesteps": 75000000,
+      "num_envs": 1024,
+      "num_steps": 100,
+      "num_eval_steps": 160,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {
+        "max_episode_steps": 160,
+        "intervention_probability": 1.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "onset_step_range": [18, 42],
+        "include_blocker_state_observation": false,
+        "ejection_force": 12.0,
+        "ejection_steps": 30,
+        "ejection_target_displacement": 0.06,
+        "ejection_position_gain": 160.0,
+        "ejection_velocity_gain": 10.0
+      },
+      "eval_env_kwargs": {}
+    },
+    {
+      "method": "negative_ejection_recovery_specialist",
+      "env_id": "PegInsertionRecovery-v1",
+      "compatible_init_env_ids": ["PegInsertionSide-v1"],
+      "registration_module": "atr.envs.peg_insertion_recovery",
+      "init_checkpoint": "results/manipulation_ppo/external_peg_nominal_ppo_v4_official_environment/official_state_ppo_nominal_exact_environment/seed_{seed}/best.pt",
+      "total_timesteps": 75000000,
+      "num_envs": 1024,
+      "num_steps": 100,
+      "num_eval_steps": 160,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {
+        "max_episode_steps": 160,
+        "intervention_probability": 1.0,
+        "intervention_types": ["negative_lateral_peg_ejection"],
+        "onset_step_range": [18, 42],
+        "include_blocker_state_observation": false,
+        "ejection_force": 12.0,
+        "ejection_steps": 30,
+        "ejection_target_displacement": 0.06,
+        "ejection_position_gain": 160.0,
+        "ejection_velocity_gain": 10.0
+      },
+      "eval_env_kwargs": {}
+    }
+  ],
+  "num_eval_envs": 64,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 10,
+  "checkpoint_freq": 10,
+  "learning_rate": 0.0001,
+  "anneal_lr": true,
+  "entropy_coefficient": 0.0,
+  "value_coefficient": 0.5,
+  "selection_failure_penalty": 2.0,
+  "gamma": 0.8,
+  "gae_lambda": 0.9,
+  "target_kl": 0.1,
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "Specialist development is released only after the three-seed nominal competence gate passes. Specialists receive the same non-privileged policy observation as the nominal controller and cannot establish routing performance by themselves."
+}

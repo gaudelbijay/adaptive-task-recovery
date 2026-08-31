@@ -123,8 +123,12 @@ def main() -> None:
     parser.add_argument("--router-checkpoint", type=Path)
     parser.add_argument("--router-metadata", type=Path)
     parser.add_argument("--nominal-checkpoint", action="append", type=Path, required=True)
-    parser.add_argument("--forward-checkpoint", action="append", type=Path)
-    parser.add_argument("--reverse-checkpoint", action="append", type=Path)
+    parser.add_argument(
+        "--forward-checkpoint", action="append", type=Path, required=True,
+    )
+    parser.add_argument(
+        "--reverse-checkpoint", action="append", type=Path, required=True,
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed-base", type=int, default=425_000_000)
     parser.add_argument("--episodes", type=int, default=64)
@@ -145,7 +149,11 @@ def main() -> None:
         for path in args.nominal_checkpoint
     ]
     blocker_observation_flags = {
-        bool(task.get("env_kwargs", {}).get("include_blocker_state_observation", True))
+        bool(
+            task.get("competence_env_kwargs", task.get("env_kwargs", {})).get(
+                "include_blocker_state_observation", True,
+            )
+        )
         for task in nominal_tasks
     }
     if len(blocker_observation_flags) != 1:
@@ -172,8 +180,14 @@ def main() -> None:
     action_low = torch.as_tensor(env.single_action_space.low, device=device)
     action_high = torch.as_tensor(env.single_action_space.high, device=device)
     nominal = [load_agent(path, observation_dim, action_dim, device)[0] for path in args.nominal_checkpoint]
-    forward = [load_agent(path, observation_dim, action_dim, device)[0] for path in (args.forward_checkpoint or args.nominal_checkpoint)]
-    reverse = [load_agent(path, observation_dim, action_dim, device)[0] for path in (args.reverse_checkpoint or args.nominal_checkpoint)]
+    forward = [
+        load_agent(path, observation_dim, action_dim, device)[0]
+        for path in args.forward_checkpoint
+    ]
+    reverse = [
+        load_agent(path, observation_dim, action_dim, device)[0]
+        for path in args.reverse_checkpoint
+    ]
     router = router_checkpoint = None
     geometry_dim = 12
     router_seed = None
@@ -309,8 +323,8 @@ def main() -> None:
         "router_checkpoint_sha256": sha256(args.router_checkpoint) if args.router_checkpoint else None,
         "router_metadata_sha256": sha256(args.router_metadata) if args.router_metadata else None,
         "nominal_checkpoint_sha256": [sha256(path) for path in args.nominal_checkpoint],
-        "forward_checkpoint_sha256": [sha256(path) for path in (args.forward_checkpoint or args.nominal_checkpoint)],
-        "reverse_checkpoint_sha256": [sha256(path) for path in (args.reverse_checkpoint or args.nominal_checkpoint)],
+        "forward_checkpoint_sha256": [sha256(path) for path in args.forward_checkpoint],
+        "reverse_checkpoint_sha256": [sha256(path) for path in args.reverse_checkpoint],
         "include_blocker_state_observation": include_blocker_state_observation,
         "forbidden_runtime_inputs": [
             "intervention kind", "intervention target", "future observation",

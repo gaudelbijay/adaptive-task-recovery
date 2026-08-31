@@ -317,6 +317,7 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
             | ((mechanism == TEMPORARY_BLOCK) & self._temporary_cleared)
         )
         info.update({
+            "fail": self._constraint_violated,
             "constraint_violated": self._constraint_violated,
             "critic_intervention_mechanism": mechanism,
             "critic_intervention_onset_step": self._onset_step,

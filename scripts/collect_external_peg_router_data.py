@@ -112,8 +112,11 @@ def main() -> None:
     if not torch.cuda.is_available():
         raise RuntimeError("external Peg prefix collection requires CUDA")
     checkpoint = torch.load(args.checkpoint, map_location="cuda", weights_only=False)
+    recovery_kwargs = checkpoint["task"].get(
+        "competence_env_kwargs", checkpoint["task"].get("env_kwargs", {})
+    )
     include_blocker_state_observation = bool(
-        checkpoint["task"].get("env_kwargs", {}).get(
+        recovery_kwargs.get(
             "include_blocker_state_observation", True,
         )
     )
