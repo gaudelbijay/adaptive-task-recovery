@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_after_corrected_development_physics_before_router_production_or_reserved_outcomes",
+  "supersedes": "configs/a_plus_external_peg_insertion_gate_v3_physics_calibrated.json",
+  "supersession_reason": "Removing the hidden insertion-axis blocker revealed that V3's maximum-absolute-shift oracle was non-specific and its fixed impulse coupled directional observability to unsafe travel. V4 requires commanded hole-frame motion in a bounded response window and uses the safest development candidate with 100% directed observability.",
+  "inherited_contract": "All task, method, outcome, split, pass-criteria, cost-reporting, and release fields are inherited unchanged from V3 unless explicitly replaced below.",
+  "physics_calibration": {
+    "development_seed_family": "421M only",
+    "selection_seed_status": "425M untouched",
+    "confirmation_seed_status": "429M untouched",
+    "unused_blocker_reset_rule": "Only block episodes stage on the insertion axis; nominal and ejection episodes park the blocker 0.30 m off-axis and 0.30 m out-of-plane.",
+    "ejection_controller": "bounded hole-frame position servo",
+    "ejection_force_limit_newtons": 12.0,
+    "positive_negative_force_scale": 1.0,
+    "ejection_target_displacement_meters": 0.06,
+    "ejection_steps": 30,
+    "ejection_position_gain": 160.0,
+    "ejection_velocity_gain": 10.0,
+    "development_directional_observability": "768/768 across both directions and three fresh seeds",
+    "development_ejection_violation_range": [0.0, 0.015625],
+    "rejected_candidates": [
+      "fixed 1.0-1.4 N: only 38.3-73.4% directed observability",
+      "fixed 1.7 N: 91.4% directed observability but 5.5-6.3% negative-direction violations",
+      "12 N / 0.08 m: 2.34% negative-direction violations",
+      "16 N servos: up to 11.7% violations"
+    ],
+    "blocker_force_newtons": 5.0,
+    "blocker_position_gain": 40.0,
+    "blocker_velocity_gain": 4.0,
+    "blocker_gravity_compensation_newtons": 0.12,
+    "blocker_target_peg_length_scale": 0.0,
+    "blocker_return_position_gain": 120.0,
+    "blocker_home_offset_meters": 0.05,
+    "smoke_contract": "Require >=90% displacement exceeding 1 cm in the commanded randomized-hole-frame direction during onset+actuation+5 steps, >=90% blocker engagement/temporary clearance, and <=10% zero-action ejection violations."
+  },
+  "pass_criteria": {
+    "closed_loop_safe_recovery_min": 0.8,
+    "native_nominal_success_min": 0.75,
+    "heldout_ejection_safe_recovery_min": 0.75,
+    "permanent_safe_abstention_min": 0.8,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "causal_heldout_offline_accuracy_min": 0.85,
+    "static_heldout_offline_accuracy_max": 0.4,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "development_seed_base": 421000000,
+  "selection_seed_base": 425000000,
+  "confirmation_seed_base": 429000000,
+  "release_rule": "An A/A+ method claim requires both the LearnedRecovery-v4 gate and this external task-family gate to pass."
+}

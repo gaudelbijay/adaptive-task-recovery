@@ -31,11 +31,13 @@ def test_heldout_direction_and_matched_reversible_control_exist():
     assert "self.box_hole_pose.q" in SOURCE
     assert "_local_vector_to_world" in SOURCE
     assert "blocker_gravity_compensation" in SOURCE
-    assert "ejection_force: float = 1.7" in SOURCE
+    assert "ejection_force: float = 12.0" in SOURCE
+    assert "ejection_steps: int = 30" in SOURCE
     assert "negative_ejection_force_scale: float = 1.0" in SOURCE
     assert "blocker_target_peg_length_scale: float = 0.0" in SOURCE
     assert "blocker_return_position_gain: float = 120.0" in SOURCE
     assert "ejection_target_displacement" in SOURCE
+    assert "ejection_target_displacement: float = 0.06" in SOURCE
     assert "_world_vector_to_local" in SOURCE
 
 
@@ -250,6 +252,23 @@ def test_external_v3_gate_freezes_development_calibrated_physics_only():
     assert physics["blocker_gravity_compensation_newtons"] == 0.12
     assert physics["blocker_target_peg_length_scale"] == 0.0
     assert physics["blocker_return_position_gain"] == 120.0
+
+
+def test_external_v4_gate_requires_directed_bounded_ejection():
+    v4 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v4_directed_servo.json").read_text()
+    )
+    physics = v4["physics_calibration"]
+    assert physics["selection_seed_status"] == "425M untouched"
+    assert physics["confirmation_seed_status"] == "429M untouched"
+    assert physics["ejection_controller"] == "bounded hole-frame position servo"
+    assert physics["ejection_force_limit_newtons"] == 12.0
+    assert physics["ejection_target_displacement_meters"] == 0.06
+    assert physics["ejection_steps"] == 30
+    v3 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v3_physics_calibrated.json").read_text()
+    )
+    assert v4["pass_criteria"] == v3["pass_criteria"]
 
 
 def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
