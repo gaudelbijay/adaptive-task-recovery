@@ -157,6 +157,15 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         else:
             actor.apply_force(force[0].detach().cpu().numpy().astype(np.float32))
 
+    @staticmethod
+    def _local_vector_to_world(vector: torch.Tensor, quaternion_wxyz: torch.Tensor):
+        scalar = quaternion_wxyz[:, :1]
+        quaternion_vector = quaternion_wxyz[:, 1:]
+        cross = 2.0 * torch.linalg.cross(quaternion_vector, vector, dim=1)
+        return vector + scalar * cross + torch.linalg.cross(
+            quaternion_vector, cross, dim=1,
+        )
+
     def _before_simulation_step(self):
         step = self._elapsed_steps
         started = step >= self._onset_step
@@ -165,11 +174,14 @@ class PegInsertionRecoveryEnv(PegInsertionSideEnv):
         )
         positive = self._intervention_mechanism == POSITIVE_EJECTION
         negative = self._intervention_mechanism == NEGATIVE_EJECTION
-        peg_force = torch.zeros((self.num_envs, 3), device=self.device)
-        peg_force[:, 1] = self.ejection_force * (
+        local_peg_force = torch.zeros((self.num_envs, 3), device=self.device)
+        local_peg_force[:, 1] = self.ejection_force * (
             (ejection_active & positive).float()
             - self.negative_ejection_force_scale
             * (ejection_active & negative).float()
+        )
+        peg_force = self._local_vector_to_world(
+            local_peg_force, self.box_hole_pose.q,
         )
         self._apply_batched_force(self.peg, peg_force)
 

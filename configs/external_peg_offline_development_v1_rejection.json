@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "rejected_on_development_offline_gate",
+  "data_seed_base": 421300000,
+  "selection_425000000": "untouched",
+  "confirmation_429000000": "untouched",
+  "causal_physical_heldout_accuracy_by_seed": [0.01317614410072565, 0.006934812758117914, 0.006241331342607737],
+  "causal_physical_heldout_accuracy_mean": 0.008784096067150434,
+  "static_physical_heldout_accuracy_mean": 0.0,
+  "unstructured_physical_heldout_accuracy_mean": 0.0,
+  "frozen_causal_threshold": 0.85,
+  "root_cause": "Peg ejection force was applied along fixed world-Y while hole yaw is randomized. The physical direction label therefore was not a consistent hole-frame factor, whereas the counterfactual representation was correctly hole-local.",
+  "next_change": "Apply positive/negative ejection along the randomized hole frame's local lateral-y axis; retain every numerical external gate and both reserved seed families."
+}

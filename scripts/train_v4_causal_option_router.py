@@ -114,7 +114,10 @@ def evaluate(model, tensors, mask, device, geometry_dim=0, heldout_option=None):
             (prediction[heldout] == target[heldout]).float().mean()
         ) if bool(heldout.any()) else None
         if "physical_heldout" in tensors:
-            physical_heldout = tensors["physical_heldout"][indices].bool()
+            physical_heldout = (
+                tensors["physical_heldout"][indices].bool()
+                & (target == heldout_option)
+            )
             result["physical_heldout_option_accuracy"] = float(
                 (prediction[physical_heldout] == target[physical_heldout]).float().mean()
             ) if bool(physical_heldout.any()) else None

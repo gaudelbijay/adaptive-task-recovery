@@ -27,6 +27,9 @@ def test_heldout_direction_and_matched_reversible_control_exist():
     assert '"permanent_hole_block"' in SOURCE
     assert '"temporary_hole_block"' in SOURCE
     assert '"critic_physical_unavailable"' in SOURCE
+    assert "local_peg_force[:, 1]" in SOURCE
+    assert "self.box_hole_pose.q" in SOURCE
+    assert "_local_vector_to_world" in SOURCE
 
 
 def test_router_geometry_is_physical_and_excludes_mechanism_labels():
@@ -179,6 +182,7 @@ def test_external_v2_gate_holds_real_negative_physics_out_of_training():
     assert "train &= ~physical_heldout" in trainer
     assert "validation &= ~physical_heldout" in trainer
     assert "test |= physical_heldout" in trainer
+    assert "& (target == heldout_option)" in trainer
     assert '"calibration_status": "no_prediction_reached_search_floor"' in trainer
     audit = (ROOT / "scripts/audit_temporal_composition_router.py").read_text()
     assert '"physical_heldout_option_accuracy"' in audit
