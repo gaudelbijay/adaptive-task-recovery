@@ -88,6 +88,20 @@ def test_primary_summarizer_enforces_heldout_and_training_seed_gates():
     assert 'conditions"].get("reverse_ejection")' in source
 
 
+def test_v5_frozen_candidate_precedes_confirmation_and_marks_external_gap():
+    manifest = json.loads(
+        (ROOT / "configs/temporal_composition_v5_frozen_candidate.json").read_text()
+    )
+    gate = json.loads(
+        (ROOT / "configs/a_plus_recovery_gate_v5_selected_nominal.json").read_text()
+    )
+    assert manifest["status"] == "frozen_before_confirmation"
+    assert manifest["confirmation_seed_base"] == gate["confirmation_seed_base"]
+    assert manifest["nominal_policy_index"] == 0
+    assert manifest["selection_evidence"]["pooled_ood_safe_success"] >= gate["pass_criteria"]["ood_safe_success_min"]
+    assert "necessary but not sufficient" in manifest["claim_boundary"]
+
+
 def test_reboot_snapshot_is_pinned_and_object_disjoint_capable():
     config = json.loads((ROOT / "configs/reboot_external_benchmark_v1.json").read_text())
     rows = config["repositories"]

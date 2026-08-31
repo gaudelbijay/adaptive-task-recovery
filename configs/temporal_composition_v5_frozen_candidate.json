@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_confirmation",
+  "gate": "configs/a_plus_recovery_gate_v5_selected_nominal.json",
+  "gate_sha256": "569871497497b27f90ffd4c050e167abcab347349fb659dc2663b2262f92b5b2",
+  "code_commit": "c697d34c61ba8f4acd14e19604ec54ee9adb552a",
+  "selection_seed_base": 330000000,
+  "confirmation_seed_base": 334000000,
+  "episodes_per_condition_per_evaluation_lineage": 64,
+  "router_training_seeds": [0, 1, 2],
+  "router_query_steps": [1, 2, 3, 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96],
+  "confirmation_steps": 1,
+  "safe_hold_until_step": 36,
+  "current_centered_geometry_dim": 57,
+  "heldout_option": 2,
+  "nominal_policy_index": 0,
+  "temporary_policy_index": 0,
+  "nominal_ensemble": false,
+  "artifacts": {
+    "training_data": {"path": "results/router/v6_instant96_dagger_full.npz", "sha256": "05bfa5c469d1d4f23fd3fb492d4e79c559cbc3dc0d8936ee925cd2bf8f55a456"},
+    "feature_metadata": {"path": "results/router/v6_instant96_dagger_full.json", "sha256": "c845ee9221ac78fc6108cf9fdc5e3f1d509ac5f43b84a41ce8d78ef113d886cf"},
+    "causal_routers": [
+      {"path": "results/router/v17_full_geometry_composition/causal_gru_seed0.pt", "sha256": "64baa2840a21ed4e887fb0f741aaa406b73c37c37b6f8ae4819b08c66b5fca68"},
+      {"path": "results/router/v17_full_geometry_composition/causal_gru_seed1.pt", "sha256": "d86cf8d9e16460d4960320da2fb2534a722abb3ae0a4bc8b1c8a57963a2285c8"},
+      {"path": "results/router/v17_full_geometry_composition/causal_gru_seed2.pt", "sha256": "40c05defa899d3a61522ac2114be19cbbc201fadffaf7b96c9dbe78625b40f5e"}
+    ],
+    "unstructured_routers": [
+      {"path": "results/router/v17_full_geometry_composition/unstructured_gru_seed0.pt", "sha256": "6e66ed897b4c17d8922ffe19e2619fb4d4505a5583af03abe100408ae0496a54"},
+      {"path": "results/router/v17_full_geometry_composition/unstructured_gru_seed1.pt", "sha256": "8c471eae1d1bdcb34638b40789796715bce3ed8fb27786174144480fa6e8a51d"},
+      {"path": "results/router/v17_full_geometry_composition/unstructured_gru_seed2.pt", "sha256": "29056288b41041bc1fd1cc2861ab56fe2c42335760e986f2b195779f2e0f8abc"}
+    ],
+    "forward_policy": {"path": "results/learned_recovery/learned_recovery_ppo_v11_strict_removal/event_reward_strict_removal_state_ppo/seed_84293/best.pt", "sha256": "2ebdeef71af33132fa1146af22f2d0e5676778f74d2a6ca234fed5dd6701c527"},
+    "reverse_policy": {"path": "results/manipulation_ppo/learned_recovery_v4_reverse_handoff_continuation_v2/reverse_ejection_state_handoff_continuation_v2/seed_4796/selection_iter150.pt", "sha256": "5f23553c9145073b624a9487595f35bd62eb3900474256ba6999cd457e13c233"},
+    "permanent_policy": {"path": "results/manipulation_ppo/learned_recovery_v4_delayed_permanent_transfer/delayed_permanent_state_transfer/seed_9351/delayed_frozen_iter24.pt", "sha256": "b4a42a557959bdc4be325cf76a55a1199308894d0341cb0e35ffcb3ad7d26552"},
+    "nominal_and_temporary_policy": {"path": "results/visual_recovery_ppo/visual_recovery_dual_specialist_dagger_v19/event_reward_dual_specialist_dagger_visual_ppo/seed_9351/best.pt", "sha256": "b03dea7b9dc958347c09301199308e1e566e3f185b0de56017a48ed3383c1ac3"},
+    "external_reboot_aggregate": {"path": "results/a_plus_audit/reboot_v2_aggregate.json", "sha256": "35d2cc5224877429dace354b562b67c6d6479b5f72b52547197c827feadddc6e"},
+    "external_peg_physics_audit": {"path": "results/a_plus_audit/external_peg_recovery_physics_smoke_v1.json", "sha256": "3612ce9a8d173965124f8cd04635d2b0f69d49a417859782140bd3a1d24c7654"}
+  },
+  "selection_evidence": {
+    "causal_safe_success_by_router_seed": [0.9177083333333333, 0.9322916666666666, 0.9322916666666666],
+    "unstructured_safe_success_by_router_seed": [0.8354166666666667, 0.8458333333333333, 0.8458333333333333],
+    "pooled_causal_safe_success": 0.9274305555555555,
+    "pooled_causal_violations": 51,
+    "pooled_unstructured_safe_success": 0.8423611111111111,
+    "pooled_gain": 0.08506944444444442,
+    "pooled_newcombe_95": [0.06216298988767888, 0.10774926326384449],
+    "worst_condition_safe_success": 0.8541666666666666,
+    "heldout_reverse_safe_success": 0.9791666666666666,
+    "pooled_ood_safe_success": 0.8180989583333333,
+    "pooled_ood_violation_rate": 0.026302083333333334,
+    "ood_safe_success_by_axis": {"force_0.65": 0.8927083333333333, "force_1.35": 0.9114583333333334, "onset_12": 0.840625, "onset_36": 0.8072916666666666, "return_18": 0.9145833333333333, "return_48": 0.9104166666666667, "delay_4": 0.740625, "delay_12": 0.5270833333333333},
+    "external_reboot_macro_auroc": 0.8353336244266308
+  },
+  "claim_boundary": "This manifest freezes the primary LearnedRecovery candidate only. Passing its confirmation is necessary but not sufficient for an A/A+ general-method claim; the separately preregistered PegInsertion closed-loop gate remains incomplete."
+}
