@@ -36,6 +36,30 @@ class MomentMLP(nn.Module):
         return self.net(torch.cat((mean, variance.sqrt()), dim=1)).squeeze(1), None
 
 
+class EndpointPairMLP(nn.Module):
+    """Ladder rung 2: the current frame plus one earlier frame, no sequence model.
+
+    REBOOT prefixes are not current-centered, so unlike LearnedRecovery-v4 the
+    final frame alone already carries signal (that is `StaticMLP`). The
+    matching rung-2 control here is therefore the *pair* of endpoints: what a
+    model can tell from where the trajectory started and where it is now,
+    without any temporal encoder or summary over the frames between.
+    """
+
+    def __init__(self, width, hidden=96):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(2 * width, hidden), nn.SiLU(),
+            nn.Linear(hidden, hidden), nn.SiLU(), nn.Linear(hidden, 1),
+        )
+
+    def forward(self, sequence, length):
+        index = torch.arange(len(sequence), device=sequence.device)
+        final = sequence[index, length - 1]
+        first = sequence[:, 0]
+        return self.net(torch.cat((first, final), dim=1)).squeeze(1), None
+
+
 class TemporalGRU(nn.Module):
     def __init__(self, width, hidden=96, dynamics=False):
         super().__init__(); self.dynamics = dynamics
@@ -51,6 +75,7 @@ class TemporalGRU(nn.Module):
 def make_model(name, width):
     if name == "static_mlp": return StaticMLP(width)
     if name == "moment_mlp": return MomentMLP(width)
+    if name == "endpoint_pair_mlp": return EndpointPairMLP(width)
     if name == "unstructured_gru": return TemporalGRU(width, dynamics=False)
     if name == "causal_dynamics_gru": return TemporalGRU(width, dynamics=True)
     raise ValueError(name)
@@ -82,6 +107,11 @@ def predict(model, sequence, indices, horizon, mean, scale, device):
 def fit_one(name, sequence, label, train_mask, validation_mask, seed, args, device):
     mean_np, scale_np = normalize(sequence, train_mask)
     mean = torch.from_numpy(mean_np).to(device); scale = torch.from_numpy(scale_np).to(device)
+    # Seed per (method, fold) before constructing the model. Without this, weight
+    # initialisation draws from the global RNG, so adding or reordering a method
+    # silently changes the initialisation of every method after it and the arms
+    # stop being comparable.
+    torch.manual_seed(hash((name, seed)) % (2**31))
     model = make_model(name, sequence.shape[-1]).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
     train_indices = np.flatnonzero(train_mask)
@@ -164,7 +194,10 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     raw = np.load(args.data); sequence = raw["sequence"]; label = raw["label"]; object_id = raw["object_id"]
     audit = json.loads(Path(args.audit).read_text()); object_names = audit["objects"]
-    methods = ("static_mlp", "moment_mlp", "unstructured_gru", "causal_dynamics_gru")
+    methods = (
+        "static_mlp", "endpoint_pair_mlp", "moment_mlp",
+        "unstructured_gru", "causal_dynamics_gru",
+    )
     fold_results = []
     for test_object in sorted(np.unique(object_id)):
         validation_object = (test_object + 1) % len(object_names)

@@ -10,7 +10,12 @@ from pathlib import Path
 import numpy as np
 
 
-METHODS = ("static_mlp", "moment_mlp", "unstructured_gru", "causal_dynamics_gru")
+METHODS = (
+    # Ordered as control-ladder rungs: single frame, endpoint pair, whole-prefix
+    # summary, then the two recurrent models.
+    "static_mlp", "endpoint_pair_mlp", "moment_mlp",
+    "unstructured_gru", "causal_dynamics_gru",
+)
 
 
 def object_bootstrap(values: np.ndarray, seed: int, samples: int) -> list[float]:
