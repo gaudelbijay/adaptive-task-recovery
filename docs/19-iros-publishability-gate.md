@@ -230,3 +230,44 @@ unstructured GRU (-0.0068, [-0.0249, 0.0119]). External evidence for the
 architecture is absent rather than supportive, and on PegInsertion, the one
 benchmark without a shortcut, it reaches 0.0199 on genuinely observed held-out
 prefixes. The method claim is weak; the audit claim is what this work supports.
+
+## Task difficulty, and what it does to the generalization claim
+
+`LearnedRecovery-v4` is an easy manipulation task. The cubes are 5 cm, the
+placement tolerance is 4 cm in XY with no orientation requirement, the goal pads
+are 9 cm, and the colours are trivially separable. It is the PickCube primitive
+performed twice, and this repository's own PickCube-v1 policy reaches 98.31%
+using that primitive. The additional difficulty comes from the ordering
+constraint, the 1.5 cm protected-object tolerance, and the step budget, not from
+the manipulation.
+
+This matters because of which benchmark the audit flags:
+
+| Benchmark | Character | Verdict |
+|---|---|---|
+| LearnedRecovery-v4 | easy, custom, scripted step-0 interventions | shortcut |
+| PegInsertionSide-v1 | contact-rich, official ManiSkill base | none |
+| REBOOT | real robot, real failures | none |
+
+The only benchmark with a shortcut is the simple one built here. The two
+harder, externally grounded benchmarks do not have one. The evidence therefore
+does not support "recovery benchmarks admit shortcuts" as a general claim, and
+points instead at something narrower: a simple task with scripted exogenous
+events and current-centered features admits a shortcut, while a contact-rich
+task and real-robot failure data do not.
+
+A second limitation compounds this. The interventions here are scripted
+exogenous events with known mechanisms, fired at step 0. Recovery in this
+benchmark means recognizing that a goal is gone and completing the other one,
+which is goal filtering rather than recovery from execution failure in the
+sense used by RecoveryChaining or REFLECT. `02-background-and-related-work.md`
+already draws that distinction; it should be stated as a limitation rather than
+only as a difference.
+
+The consequences for a submission are concrete. The audit is a real
+contribution and the shortcut in this benchmark is a real finding, but the
+generalization must be stated at the width the evidence supports, which is one
+benchmark. A benchmark this easy is also unlikely to be adopted by others,
+which is the usual requirement for a benchmark contribution to carry a paper.
+Strengthening this would mean a harder task or non-scripted failures, not more
+seeds or more router candidates.
