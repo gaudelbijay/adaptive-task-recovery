@@ -73,6 +73,52 @@ def router_output(model, history, geometry_dim=0):
     return output, logp.exp()
 
 
+def _render_frame(env):
+    image = env.render()
+    if hasattr(image, "cpu"):
+        image = image.cpu().numpy()
+    image = np.asarray(image)
+    if image.ndim == 4:
+        image = image[0]
+    return image.astype(np.uint8)
+
+
+def _write_capture(args, condition, frames, options, router_checkpoint, success, violation):
+    """Write the episode video plus a provenance record beside it."""
+    import imageio.v2 as imageio
+
+    from atr.policies.option_router import OPTION_NAMES
+
+    output = Path(args.capture_video)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    stem = output.with_suffix("")
+    video = Path(f"{stem}_{condition}.mp4")
+    imageio.mimsave(video, frames, fps=args.fps_capture, macro_block_size=2)
+    record = {
+        "schema_version": 1,
+        "env_id": args.env_id,
+        "condition": condition,
+        "method": router_checkpoint["model"],
+        "router_seed": router_checkpoint["seed"],
+        "router_checkpoint": str(args.router_checkpoint),
+        "router_checkpoint_sha256": hashlib.sha256(
+            Path(args.router_checkpoint).read_bytes()
+        ).hexdigest(),
+        "seed_base": args.seed_base,
+        "capture_env_index": args.capture_env_index,
+        "frames": len(frames),
+        "steps": len(options),
+        "safe_success": bool(success and not violation),
+        "constraint_violated": bool(violation),
+        "factorized_sweep_dispatch": bool(args.factorized_sweep_dispatch),
+        "selected_option_by_step": options,
+        "option_names": list(OPTION_NAMES),
+        "video": str(video),
+    }
+    Path(f"{stem}_{condition}.json").write_text(json.dumps(record, indent=2) + "\n")
+    print(f"captured {video} ({len(frames)} frames, safe_success={record['safe_success']})")
+
+
 def retreat_action(observation, initial_qpos, action_shape):
     action = torch.zeros((initial_qpos.shape[0],) + action_shape, device=initial_qpos.device)
     arm_width = min(7, action.shape[1], initial_qpos.shape[1])
@@ -84,6 +130,16 @@ def retreat_action(observation, initial_qpos, action_shape):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task-index", type=int, required=True)
+    parser.add_argument(
+        "--capture-video",
+        help=(
+            "Write an mp4 of one environment's episode plus a per-step record "
+            "of the router's selected option. Rendering is the only change; "
+            "the rollout is the evaluated one."
+        ),
+    )
+    parser.add_argument("--capture-env-index", type=int, default=0)
+    parser.add_argument("--fps-capture", type=int, default=20)
     parser.add_argument("--router-checkpoint", required=True)
     parser.add_argument("--router-metadata", default="results/router/v4_option_prefixes_train_v1.json")
     parser.add_argument("--output-dir", default="results/v4_learned_router_development")
@@ -206,6 +262,8 @@ def main():
     if args.env_id == "LearnedRecovery-v4-OOD":
         if not args.visual_domain_profile: raise ValueError("OOD environment requires a profile")
         kwargs["visual_domain_profile"] = args.visual_domain_profile
+    if args.capture_video:
+        kwargs["render_mode"] = "rgb_array"
     env = gym.make(args.env_id, num_envs=args.num_envs, reconfiguration_freq=1, max_episode_steps=args.steps, **kwargs)
     if isinstance(env.action_space, gym.spaces.Dict): env = FlattenActionSpaceWrapper(env)
     env = ManiSkillVectorEnv(env, args.num_envs, ignore_terminations=True, record_metrics=False)
@@ -310,6 +368,9 @@ def main():
             last_action = torch.zeros(
                 (args.num_envs,) + env.single_action_space.shape, device=device,
             )
+            captured_frames, captured_options = [], []
+            if args.capture_video:
+                captured_frames.append(_render_frame(env))
             for step in range(1, args.steps + 1):
                 if args.fixed_option is None and step <= router_horizon:
                     feature, positions = extract_features(
@@ -377,6 +438,10 @@ def main():
                     torch.full_like(selected_option, 5),
                     selected_option,
                 )
+                if args.capture_video:
+                    captured_options.append(
+                        int(effective_option[args.capture_env_index])
+                    )
                 abstentions += int((effective_option == 5).sum())
                 v4_state = reconstruct_v4_state_teacher_observation(obs); v3_state = reconstruct_state_teacher_observation(obs)
                 if args.nominal_state_checkpoint:
@@ -443,6 +508,8 @@ def main():
                 last_action = action.clone()
                 option_histogram += torch.bincount(effective_option, minlength=6)
                 obs, _, _, _, info = env.step(action)
+                if args.capture_video:
+                    captured_frames.append(_render_frame(env))
                 if args.terminate_score_on_first_resolution:
                     active = ~(success | violation)
                     success |= info["success"].bool() & active
@@ -450,6 +517,13 @@ def main():
                 else:
                     success |= info["success"].bool()
                     violation |= info["constraint_violated"].bool()
+            if args.capture_video:
+                _write_capture(
+                    args, condition, captured_frames, captured_options,
+                    router_checkpoint,
+                    bool(success[args.capture_env_index]),
+                    bool(violation[args.capture_env_index]),
+                )
             successes += int(success.sum()); safe_successes += int((success & ~violation).sum()); violations += int(violation.sum())
             truth = {"nominal": 0, "ejection": 1, "reverse_ejection": 2, "permanent_block": 3, "temporary_block": 4}[condition]
             decisions += args.num_envs; correct_decisions += int((selected_option == truth).sum())

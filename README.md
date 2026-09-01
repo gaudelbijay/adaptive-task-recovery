@@ -68,19 +68,24 @@ identification needs no memory; persistence disambiguation does.
 ## The task family
 
 <p align="center">
-  <img src="media/demos/learned-recovery-montage.gif" width="820" alt="Three frozen-policy ManiSkill recordings of the earlier restricted-RGB controller on LearnedRecovery-v3: recovery after the first requested cube is physically removed, recovery after the second is removed, and nominal completion of both ordered goals.">
+  <img src="media/demos/v4-router-montage.gif" width="900" alt="Three LearnedRecovery-v4 episodes under the frozen router, each labelled with the option the router has committed to. Reverse ejection commits at step 2; temporary blockage at step 38; permanent blockage at step 52. All three are verified safe successes.">
 </p>
 
 <p align="center"><sub>
-What an irreversible change looks like. These are recordings of the earlier
-restricted-RGB controller on <code>LearnedRecovery-v3</code>, seed 4796, at
-96,657,408 steps: one frozen policy across both removal orderings and a nominal
-two-goal episode, force-driven interventions, zero teleport calls.
-<b>They are illustrative of the problem, not of the results above.</b> The
-ladder and the confusion-pair findings use <code>LearnedRecovery-v4</code>,
-which adds permanent and temporary blockage and reverse ejection — mechanisms
-this footage does not contain — and a router rather than this controller.
+The frozen router on <code>LearnedRecovery-v4</code>, one panel per mechanism,
+labelled with the option it has committed to at each step. It settles on
+<b>reverse ejection at step 2</b> — the mechanism a memoryless model also
+identifies perfectly — but keeps observing for <b>38 and 52 steps</b> before
+committing on temporary and permanent blockage. All three are verified safe
+successes with zero privileged input; provenance in
+<code>results/v4_capture/</code>.
 </sub></p>
+
+Deferring is the behaviour the confusion pair demands, and it is why memory
+matters here: whether an obstruction will clear is not visible when it appears.
+The earlier restricted-RGB footage on `LearnedRecovery-v3` is retained in
+[`media/demos/learned-recovery-montage.gif`](media/demos/learned-recovery-montage.gif);
+that environment has no blockage mechanisms, so it does not show this.
 
 Runtime routing is temporally causal — it reads only observations at or before
 the current step — and excludes intervention identity, future state, oracle
