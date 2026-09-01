@@ -1,9 +1,9 @@
 import pytest
 import torch
 
-from atr.policies.causal_option_router import (
-    OPTION_NAMES, CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
-    causal_safe_targets, current_centered_sequence,
+from atr.policies.option_router import (
+    OPTION_NAMES, FactorizedOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
+    deployable_option_targets, current_centered_sequence,
 )
 from atr.policies.peg_router_features import relative_geometry, world_to_local
 
@@ -17,7 +17,7 @@ def test_delayed_targets_never_encode_a_future_event():
         "temporary_cleared": torch.tensor([False, False, False, False, True]),
         "block_status": torch.full((5,), -100, dtype=torch.long),
     }
-    option, _ = causal_safe_targets(tensors)
+    option, _ = deployable_option_targets(tensors)
     assert option.tolist() == [0, 1, 5, 3, 4]
 
 
@@ -31,13 +31,13 @@ def test_task_specific_readiness_is_training_only_and_causal():
         "temporary_cleared": torch.tensor([False, False, False, False, True]),
         "block_status": torch.tensor([-100, -100, -100, 1, 2]),
     }
-    option, block = causal_safe_targets(tensors)
+    option, block = deployable_option_targets(tensors)
     assert option.tolist() == [0, 0, 1, 3, 4]
     assert block.tolist() == [-100, -100, -100, 0, 1]
 
 
 def test_factorized_router_is_normalized_and_finite():
-    model = CausalOptionRouter(11, hidden_dim=16, layers=1).eval()
+    model = FactorizedOptionRouter(11, hidden_dim=16, layers=1).eval()
     output = model(torch.randn(7, 9, 11))
     assert torch.isfinite(output.option_log_probability).all()
     assert torch.allclose(
@@ -47,7 +47,7 @@ def test_factorized_router_is_normalized_and_finite():
 
 def test_router_is_causal_for_explicit_prefix_lengths():
     torch.manual_seed(4)
-    model = CausalOptionRouter(6, hidden_dim=12, layers=1).eval()
+    model = FactorizedOptionRouter(6, hidden_dim=12, layers=1).eval()
     prefix = torch.randn(3, 5, 6)
     future_a = torch.cat((prefix, torch.randn(3, 4, 6)), dim=1)
     future_b = torch.cat((prefix, 100 * torch.randn(3, 4, 6)), dim=1)
@@ -67,7 +67,7 @@ def test_matched_baselines_accept_identical_contract():
 
 def test_external_static_baseline_is_parameter_matched():
     models = {
-        "causal": CausalOptionRouter(13, hidden_dim=96, layers=2),
+        "causal": FactorizedOptionRouter(13, hidden_dim=96, layers=2),
         "static": StaticOptionRouter(13, hidden_dim=288),
         "unstructured": UnstructuredOptionGRU(13, hidden_dim=96, layers=2),
     }
@@ -80,7 +80,7 @@ def test_external_static_baseline_is_parameter_matched():
 
 
 def test_normalization_rejects_wrong_feature_contract():
-    model = CausalOptionRouter(4, hidden_dim=8, layers=1)
+    model = FactorizedOptionRouter(4, hidden_dim=8, layers=1)
     try:
         model.set_normalization(torch.zeros(5), torch.ones(5))
     except ValueError:
@@ -130,7 +130,7 @@ def test_peg_router_vectors_are_rotated_into_randomized_hole_frame():
 
 def test_static_offset_router_reads_a_past_frame_not_the_zeroed_current_one():
     """The current frame is zero after centering; an earlier frame is not."""
-    from atr.policies.causal_option_router import StaticOffsetRouter
+    from atr.policies.option_router import StaticOffsetRouter
 
     raw = torch.zeros(1, 8, 6)
     raw[0, :4, :] = 0.05
@@ -142,12 +142,12 @@ def test_static_offset_router_reads_a_past_frame_not_the_zeroed_current_one():
     assert first._select(centered, lengths).abs().max() > 0.0
 
     zeroed = StaticOptionRouter(6, 16)
-    from atr.policies.causal_option_router import _last_valid
+    from atr.policies.option_router import _last_valid
     assert _last_valid(centered, lengths).abs().max() == 0.0
 
 
 def test_static_offset_router_offset_is_clamped_to_the_prefix_start():
-    from atr.policies.causal_option_router import StaticOffsetRouter
+    from atr.policies.option_router import StaticOffsetRouter
 
     sequence = torch.arange(24, dtype=torch.float32).reshape(1, 8, 3)
     lengths = torch.tensor([4])
@@ -158,14 +158,14 @@ def test_static_offset_router_offset_is_clamped_to_the_prefix_start():
 
 
 def test_static_offset_router_rejects_a_non_past_offset():
-    from atr.policies.causal_option_router import StaticOffsetRouter
+    from atr.policies.option_router import StaticOffsetRouter
 
     with pytest.raises(ValueError):
         StaticOffsetRouter(3, 8, 0)
 
 
 def test_static_offset_router_emits_the_factorized_head_contract():
-    from atr.policies.causal_option_router import StaticOffsetRouter
+    from atr.policies.option_router import StaticOffsetRouter
 
     model = StaticOffsetRouter(6, 16, None)
     output = model(torch.randn(4, 8, 6), torch.tensor([8, 8, 8, 8]))

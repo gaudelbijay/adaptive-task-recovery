@@ -17,8 +17,8 @@ from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 import mani_skill.envs  # noqa: F401
 import atr.envs.learned_recovery_v4  # noqa: F401
 import atr.envs.learned_recovery_v4_ood  # noqa: F401
-from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+from atr.policies.option_router import (
+    FactorizedOptionRouter, StaticOffsetRouter, StaticOptionRouter,
     UnstructuredOptionGRU, current_centered_sequence,
 )
 from atr.policies.heuristic_option_router import HeuristicMotionRouter
@@ -38,7 +38,9 @@ def load_router(checkpoint_path: Path, metadata_path: Path, device):
     if checkpoint["feature_metadata_sha256"] != metadata_hash:
         raise ValueError("router feature metadata hash mismatch")
     name = checkpoint["model"]
-    if name == "causal_gru": model = CausalOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
+    # "causal_gru" is the frozen persisted identifier for FactorizedOptionRouter;
+    # existing checkpoints and gate manifests store it. Not renamed on purpose.
+    if name == "causal_gru": model = FactorizedOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
     elif name == "static_mlp": model = StaticOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"])
     elif name == "unstructured_gru": model = UnstructuredOptionGRU(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
     elif name.startswith("static_offset_"):

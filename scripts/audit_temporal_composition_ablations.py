@@ -12,8 +12,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from atr.policies.causal_option_router import (
-    CausalOptionRouter, causal_safe_targets, current_centered_sequence,
+from atr.policies.option_router import (
+    FactorizedOptionRouter, deployable_option_targets, current_centered_sequence,
 )
 from train_v4_causal_option_router import group_split
 
@@ -40,7 +40,7 @@ def main() -> None:
     if geometry_dim != 57:
         raise RuntimeError("checkpoint does not use the complete 57-D geometry contract")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = CausalOptionRouter(
+    model = FactorizedOptionRouter(
         checkpoint["input_dim"], checkpoint["hidden_dim"], 2,
     ).to(device)
     model.load_state_dict(checkpoint["state_dict"])
@@ -48,7 +48,7 @@ def main() -> None:
 
     raw = np.load(args.data)
     tensors = {key: torch.from_numpy(raw[key]) for key in raw.files}
-    tensors["option"], _ = causal_safe_targets(tensors)
+    tensors["option"], _ = deployable_option_targets(tensors)
     _, _, test = group_split(raw["group_id"])
     selected = np.flatnonzero(test & (tensors["option"].numpy() == 2))
     loader = DataLoader(TensorDataset(torch.from_numpy(selected)), batch_size=args.batch_size)

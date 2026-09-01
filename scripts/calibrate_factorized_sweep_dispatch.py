@@ -11,10 +11,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from atr.policies.causal_option_router import (
-    CausalOptionRouter,
+from atr.policies.option_router import (
+    FactorizedOptionRouter,
     StaticOptionRouter,
-    causal_safe_targets,
+    deployable_option_targets,
     current_centered_sequence,
 )
 from train_v4_causal_option_router import group_split
@@ -22,7 +22,7 @@ from train_v4_causal_option_router import group_split
 
 def load_model(checkpoint: dict, device: torch.device):
     if checkpoint["model"] == "causal_gru":
-        model = CausalOptionRouter(
+        model = FactorizedOptionRouter(
             checkpoint["input_dim"], checkpoint["hidden_dim"], 2,
         )
     elif checkpoint["model"] == "static_mlp":
@@ -51,7 +51,7 @@ def main() -> None:
         raise ValueError("router metadata hash mismatch")
     raw = np.load(args.data)
     tensors = {key: torch.from_numpy(raw[key]) for key in raw.files}
-    safe_option, _ = causal_safe_targets(tensors)
+    safe_option, _ = deployable_option_targets(tensors)
     _, validation, _ = group_split(raw["group_id"])
     indices = torch.from_numpy(np.flatnonzero(validation))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

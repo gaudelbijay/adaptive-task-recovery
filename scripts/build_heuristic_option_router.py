@@ -16,7 +16,7 @@ from pathlib import Path
 
 import torch
 
-from atr.policies.causal_option_router import OPTION_NAMES
+from atr.policies.option_router import OPTION_NAMES
 from atr.policies.heuristic_option_router import MOTION_THRESHOLD, HeuristicMotionRouter
 
 

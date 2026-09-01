@@ -1,26 +1,35 @@
-"""Causal, factorized belief model for recovery-option selection.
+"""Factorized belief models for recovery-option selection.
 
-The router deliberately contains no environment names, intervention IDs, or
-geometry thresholds.  It maps a prefix of matched physical observations to a
-distribution over recovery options.  Its factorization separates event type,
-sweep direction, and blocker persistence so each component can be audited.
+The routers deliberately contain no environment names, intervention IDs, or
+geometry thresholds.  Each maps a prefix of matched physical observations to a
+distribution over recovery options.  :class:`FactorizedOptionRouter` separates
+event type, sweep direction, and blocker persistence into distinct heads so
+each component can be audited; :class:`UnstructuredOptionGRU` is the
+capacity-matched control with a single option head.
 
-**What "causal" does and does not mean here.**  It means *temporally causal*:
-at decision time the model reads only observations at or before the current
-step, never a future frame, and `current_centered_sequence` performs its
-centering against the current frame rather than the episode end.  That property
-is audited and holds.
+Every model here is *temporally causal*: at decision time it reads only
+observations at or before the current step, never a future frame, and
+:func:`current_centered_sequence` centers against the current frame rather than
+the episode end.  That property is audited and holds.
 
-It does **not** mean the model infers causal dynamics.  The preregistered
-history ablation (`scripts/audit_temporal_composition_ablations.py`) shows that
-removing the geometry history collapses held-out reverse accuracy to 0.000 on
-every seed, but *reversing* the prefix in time leaves it at 97.7%, 77.6%, and
-96.9%.  History is necessary; its temporal direction largely is not.  The
-supported mechanism is temporal aggregation of signed motion evidence.  Class
-and checkpoint names retain "causal" because frozen checkpoints, gate configs,
-and confirmation hashes key on those exact strings -- renaming them would break
-the provenance chain for an already-opened confirmation.  Prose claims should
-say what is supported, not repeat the identifier.
+These models do **not** infer causal dynamics, and the module was renamed away
+from "causal" to stop implying they do.  Two results constrain the mechanism.
+Reversing the prefix in time leaves held-out reverse accuracy at 97.7%, 77.6%,
+and 96.9%, so temporal *direction* is not used.  And a single-observation model
+reading one past frame (:class:`StaticOffsetRouter`) reaches 100% held-out
+reverse accuracy, so mechanism identification does not require history at all.
+What history buys is deciding whether an obstruction will clear: closed-loop,
+both non-recurrent arms fail that confusion pair in opposite directions while
+both recurrent arms solve it.  The supported claim is temporal aggregation of
+signed motion evidence with deferred commitment.
+
+**Wire-format identifiers are frozen.**  The `model` string stored inside a
+checkpoint -- `"causal_gru"` for :class:`FactorizedOptionRouter` -- is not
+renamed.  Frozen gate configs, `router_checkpoint_sha256` provenance for an
+already-opened once-only confirmation, result manifests, and the gate audit
+scripts all key on those exact strings.  Python identifiers describe the model;
+the persisted string identifies a specific frozen artifact, and the two are
+deliberately allowed to differ.
 """
 
 from __future__ import annotations
@@ -38,7 +47,7 @@ EVENT_NAMES = ("none", "sweep", "block")
 BLOCK_STATUS_NAMES = ("permanent", "cleared")
 
 
-def causal_safe_targets(tensors: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
+def deployable_option_targets(tensors: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
     """Create deployable option targets without labels from future events."""
     condition = tensors["condition"]
     length = tensors["length"]
@@ -174,7 +183,7 @@ class _FactorizedHeads(nn.Module):
         )
 
 
-class CausalOptionRouter(nn.Module):
+class FactorizedOptionRouter(nn.Module):
     """GRU belief state with an auditable physical-event factorization."""
 
     def __init__(self, input_dim: int, hidden_dim: int = 96, layers: int = 2):

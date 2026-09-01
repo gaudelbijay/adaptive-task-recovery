@@ -186,8 +186,8 @@ Key entry points:
   mechanism-diverse custom recovery environment.
 - [`src/atr/envs/peg_insertion_recovery.py`](src/atr/envs/peg_insertion_recovery.py):
   no-teleport extension of official ManiSkill PegInsertion.
-- [`src/atr/policies/causal_option_router.py`](src/atr/policies/causal_option_router.py):
-  learned temporally-causal and matched router models.
+- [`src/atr/policies/option_router.py`](src/atr/policies/option_router.py):
+  learned factorized and matched-baseline router models.
 - [`src/atr/policies/heuristic_option_router.py`](src/atr/policies/heuristic_option_router.py):
   hand-written V28 motion-threshold baseline over the same matched tensor.
 - [`scripts/evaluate_external_peg_router.py`](scripts/evaluate_external_peg_router.py):

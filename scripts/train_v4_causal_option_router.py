@@ -14,9 +14,9 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOffsetRouter, StaticOptionRouter,
-    UnstructuredOptionGRU, causal_safe_targets, current_centered_sequence,
+from atr.policies.option_router import (
+    FactorizedOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+    UnstructuredOptionGRU, deployable_option_targets, current_centered_sequence,
 )
 
 
@@ -30,7 +30,10 @@ def group_split(group_id: np.ndarray):
 
 
 def make_model(name: str, input_dim: int, hidden_dim: int):
-    if name == "causal_gru": return CausalOptionRouter(input_dim, hidden_dim, 2)
+    # "causal_gru" is the frozen persisted identifier, not a claim: it is the
+    # model string inside existing checkpoints and gate manifests. See
+    # atr.policies.option_router for why the wire format is not renamed.
+    if name == "causal_gru": return FactorizedOptionRouter(input_dim, hidden_dim, 2)
     if name == "static_mlp": return StaticOptionRouter(input_dim, hidden_dim)
     if name == "unstructured_gru": return UnstructuredOptionGRU(input_dim, hidden_dim, 2)
     # Single-observation baselines that read one past frame instead of the
@@ -249,7 +252,7 @@ def main():
     # Safe decision supervision: the target is DEFER until the causal prefix
     # contains enough post-onset evidence.  These cutoffs were frozen from the
     # data-collection envelope, not selected on control outcomes.
-    tensors["option"], tensors["block_status"] = causal_safe_targets(tensors)
+    tensors["option"], tensors["block_status"] = deployable_option_targets(tensors)
     train, validation, test = group_split(raw["group_id"])
     if "physical_heldout" in raw.files:
         physical_heldout = raw["physical_heldout"].astype(bool)
