@@ -37,20 +37,28 @@ baseline.
 
 ## Results
 
-Applied to three benchmarks, the audit returns one positive and two negatives.
+Applied to three benchmarks with a matched rung set:
 
-| Benchmark | Rung 2 | Rung 4 | Shortcut |
-|---|---:|---:|:---:|
-| `LearnedRecovery-v4` (this work) | 1.0000 | 1.0000 | yes |
-| `PegInsertionSide-v1` | 0.0909 | 0.4015 | no |
-| REBOOT (external, real robot) | 0.6080 | 0.8045 | no |
+| Benchmark | Rung 2 | Rung 2b | Rung 4 | Shortcut |
+|---|---:|---:|---:|:---:|
+| `LearnedRecovery-v4` (this work) | 1.0000 | pending | 1.0000 | yes |
+| `PegInsertionSide-v1` | 0.0909 | pending | 0.4015 | pending |
+| REBOOT (external, real robot) | 0.6080 | 0.7466 | 0.8045 | contested |
 
-REBOOT provides the negative control on data collected independently: 2,072
-real-robot trajectories across nine leave-one-object-out families. Its
-endpoint-pair control reaches 0.6080 macro-AUROC against 0.8045 for the
-recurrent model, a difference of 0.1966 with object-bootstrap 95% interval
-[0.1557, 0.2357]. The held-out object family there is not identifiable without
-temporal structure, so the audit does not report a shortcut indiscriminately.
+Rung 2b is an order-free control that reads the whole prefix as a mean and
+standard deviation. It matters because a verdict computed against a weak
+non-recurrent control is not robust. On REBOOT the endpoint-pair control
+reaches 0.6080, which reports no shortcut, but the order-free summary reaches
+0.7466 — 0.928 of the recurrent score, above the 0.9 threshold the audit uses.
+REBOOT is therefore recorded as contested rather than as a clean negative, and
+the matched control is being trained for the other two benchmarks so all three
+are scored identically.
+
+On REBOOT the recurrent factorized model also does not improve on the
+capacity-matched unstructured GRU: −0.0068, interval [−0.0249, 0.0119]. The
+unstructured GRU spans 0.7754 to 0.8506 across three optimizer seeds, a range
+wider than several of the differences discussed here. External evidence for the
+factorization is therefore absent rather than supportive.
 
 The positive result on `LearnedRecovery-v4` has a specific cause. Current-
 centering was introduced to remove an earlier shortcut in which instantaneous

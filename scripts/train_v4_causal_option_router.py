@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from atr.policies.option_router import (
-    FactorizedOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+    FactorizedOptionRouter, MomentSummaryRouter, StaticOffsetRouter, StaticOptionRouter,
     UnstructuredOptionGRU, deployable_option_targets, current_centered_sequence,
 )
 
@@ -39,6 +39,7 @@ def make_model(name: str, input_dim: int, hidden_dim: int):
     # Single-observation baselines that read one past frame instead of the
     # current frame, which centering forces to zero. "first" reads the earliest
     # valid frame; "offsetN" reads N steps back.
+    if name == "moment_summary": return MomentSummaryRouter(input_dim, hidden_dim)
     if name == "static_offset_first": return StaticOffsetRouter(input_dim, hidden_dim, None)
     if name.startswith("static_offset_"):
         return StaticOffsetRouter(input_dim, hidden_dim, int(name.rsplit("_", 1)[1]))
@@ -241,6 +242,7 @@ def main():
             # frame is exactly zero after centering, so `static_mlp` alone
             # cannot separate "history is required" from "given no input".
             "static_offset_first", "static_offset_16", "static_offset_48",
+            "moment_summary",
         ),
         default=("causal_gru", "static_mlp", "unstructured_gru"),
     )

@@ -307,6 +307,57 @@ class StaticOffsetRouter(nn.Module):
         return self.heads(self.encoder((frame - self.input_mean) / self.input_scale))
 
 
+class MomentSummaryRouter(nn.Module):
+    """Non-recurrent control that summarises the whole prefix.
+
+    The endpoint-pair and single-frame controls are weak: they read one or two
+    observations. This one reads every frame but has no sequence encoder and no
+    access to their order -- it takes the mean and standard deviation over the
+    valid prefix. It is therefore the strongest *order-free* control, and it is
+    the one that decides whether a ladder verdict is robust: a benchmark whose
+    held-out mechanism falls to an order-free summary is not testing temporal
+    composition, however far a single frame gets.
+
+    Included so every benchmark is scored against an identical rung set. It
+    mirrors the moment baseline already used on REBOOT.
+    """
+
+    def __init__(self, input_dim: int, hidden_dim: int = 96):
+        super().__init__()
+        self.input_dim = int(input_dim)
+        self.register_buffer("input_mean", torch.zeros(self.input_dim))
+        self.register_buffer("input_scale", torch.ones(self.input_dim))
+        self.encoder = nn.Sequential(
+            nn.Linear(2 * self.input_dim, hidden_dim), nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim), nn.SiLU(),
+        )
+        self.heads = _FactorizedHeads(hidden_dim)
+
+    def set_normalization(self, mean: torch.Tensor, scale: torch.Tensor) -> None:
+        if mean.shape != (self.input_dim,) or scale.shape != (self.input_dim,):
+            raise ValueError("normalization vectors do not match input_dim")
+        self.input_mean.copy_(mean)
+        self.input_scale.copy_(scale.clamp_min(1e-6))
+
+    def forward(
+        self, sequence: torch.Tensor, lengths: torch.Tensor | None = None,
+    ) -> RouterOutput:
+        if lengths is None:
+            lengths = torch.full(
+                (sequence.shape[0],), sequence.shape[1], dtype=torch.long,
+                device=sequence.device,
+            )
+        normalized = (sequence - self.input_mean) / self.input_scale
+        time = (
+            torch.arange(sequence.shape[1], device=sequence.device)[None]
+            < lengths.to(sequence.device)[:, None]
+        ).float()[:, :, None]
+        count = time.sum(1).clamp_min(1.0)
+        mean = (normalized * time).sum(1) / count
+        variance = (((normalized - mean[:, None]) ** 2) * time).sum(1) / count
+        return self.heads(self.encoder(torch.cat((mean, variance.sqrt()), dim=1)))
+
+
 class UnstructuredOptionGRU(nn.Module):
     """Capacity-matched temporal baseline without the causal factorization."""
 

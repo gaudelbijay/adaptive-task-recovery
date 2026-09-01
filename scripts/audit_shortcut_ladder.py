@@ -31,15 +31,19 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 from atr.policies.option_router import (
-    FactorizedOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+    FactorizedOptionRouter, MomentSummaryRouter, StaticOffsetRouter, StaticOptionRouter,
     UnstructuredOptionGRU, current_centered_sequence, deployable_option_targets,
 )
 from atr.policies.heuristic_option_router import (
     HeuristicMotionRouter, SignedAxisMotionRouter,
 )
 
+# Rung 2b is order-free but reads the whole prefix. It is the strongest
+# non-recurrent control and the one that decides whether a verdict is robust:
+# a weak rung-2 can make any benchmark look shortcut-free.
 RUNG = {
-    "instantaneous": 1, "one_past_frame": 2, "hand_written": 3, "recurrent": 4,
+    "instantaneous": 1, "one_past_frame": 2, "moment_summary": 2.5,
+    "hand_written": 3, "recurrent": 4,
 }
 
 
@@ -161,6 +165,7 @@ def main() -> None:
     families = {
         "instantaneous": ("static_mlp", StaticOptionRouter),
         "one_past_frame": ("static_offset_first", StaticOffsetRouter),
+        "moment_summary": ("moment_summary", MomentSummaryRouter),
         "recurrent_factorized": ("causal_gru", FactorizedOptionRouter),
         "recurrent_unstructured": ("unstructured_gru", UnstructuredOptionGRU),
     }
@@ -171,7 +176,9 @@ def main() -> None:
             if not path.exists():
                 continue
             checkpoint = torch.load(path, map_location=device, weights_only=False)
-            if factory is StaticOffsetRouter:
+            if factory is MomentSummaryRouter:
+                model = factory(checkpoint["input_dim"], checkpoint["hidden_dim"])
+            elif factory is StaticOffsetRouter:
                 model = factory(checkpoint["input_dim"], checkpoint["hidden_dim"], None)
             elif factory is StaticOptionRouter:
                 model = factory(checkpoint["input_dim"], checkpoint["hidden_dim"])
