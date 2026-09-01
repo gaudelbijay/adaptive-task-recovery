@@ -77,6 +77,10 @@ def main() -> None:
         "static_mlp": ["results/v10_confirmation_static_mlp_router*/*.json"],
         "heuristic_v28": ["results/v10_dev_heuristic_v28/*.json"],
         "oracle_upper_bound": ["results/v10_dev_oracle_upper/*.json"],
+        # Single-observation arm that reads a past frame rather than the
+        # zeroed current one. This is the arm that separates "history is
+        # required" from "the static arm was handed an all-zero input".
+        "static_offset": ["results/v10_dev_static_offset_router*/*.json"],
     }
     results = {name: collect(patterns) for name, patterns in arms.items()}
     results = {k: v for k, v in results.items() if v["overall"]["episodes"] > 0}

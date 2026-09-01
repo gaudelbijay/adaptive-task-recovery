@@ -159,3 +159,34 @@ The revised blocking weakness is therefore sharper than the original list: the
 benchmark's held-out mechanism is too easy to detect, so mechanism recognition
 cannot carry a method claim. Persistence disambiguation can, and that is the
 result the external PegInsertion gate should be designed to test.
+
+## Revised paper claim after the completed arm set
+
+The single-observation control changes what this work can claim, and sharpens
+it. A memoryless MLP reading one past frame reaches 100% held-out reverse
+accuracy offline and 97.40% closed-loop -- identical to the causal router and
+to the hand-written threshold rule. Held-out mechanism composition is therefore
+not a finding; three methods including a one-frame model solve it perfectly.
+
+What survives is a mechanism result with a clean ablation signature. The
+permanent/temporary confusion pair is the only place memory matters, and the
+two non-recurrent arms fail it in opposite directions: the threshold rule
+commits to permanent (100.00% / 0.00%), the one-frame model commits to
+temporary (0.00% / 84.38%). Both recurrent arms solve both sides. That is a
+falsifiable claim with a mechanism, not a leaderboard margin.
+
+The paper this supports is a benchmark-and-mechanism study, not a method paper:
+recovery benchmarks admit shortcuts at two levels -- instantaneous geometry
+identifies the mechanism, and a single past frame identifies it even after
+current-centering removes the first shortcut. What survives both is deciding
+whether an obstruction will clear, which requires deferring commitment under
+temporal evidence. Two of the five conditions in `LearnedRecovery-v4` are
+therefore load-bearing and three are not.
+
+This is a more useful contribution than the original framing and does not
+depend on the external Peg gate passing. Peg's value under this framing is to
+test whether the same shortcut structure recurs in a task built on an official
+ManiSkill base, and a negative answer there is publishable.
+
+Threshold, seed family, and rejection history are unchanged. Every result in
+this section is development evidence on an already-opened family.

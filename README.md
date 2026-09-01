@@ -38,41 +38,56 @@ The causal arm additionally ran a factorized sweep dispatch that no other arm
 can execute. It is reported separately rather than folded in, because only one
 arm could receive it.
 
-| Arm | n | Safe recovery | Violations | Held-out reverse |
-|---|---:|---:|---:|---:|
-| **Causal router (matched inputs)** | 2,880 | **88.99%** | **0.83%** | **97.40%** |
-| Unstructured GRU | 2,880 | 81.74% | 4.83% | 46.88% |
-| Hand-written V28 heuristic | 960 | 74.06% | 16.98% | 97.40% |
-| Static MLP | 2,880 | 0.00% | 0.00% | 0.00% |
-| Immediate oracle (privileged) | 960 | 89.79% | 1.87% | 90.10% |
-| *Causal + factorized dispatch* | *2,880* | *92.19%* | *0.83%* | *97.40%* |
+| Arm | Recurrent | n | Safe | Viol | permanent | temporary | held-out reverse |
+|---|:---:|---:|---:|---:|---:|---:|---:|
+| **Causal router (matched)** | yes | 2,880 | **88.99%** | **0.83%** | 97.40% | 84.38% | 97.40% |
+| Unstructured GRU | yes | 2,880 | 81.74% | 4.83% | 97.40% | 84.20% | 46.88% |
+| Hand-written V28 heuristic | no | 960 | 74.06% | 16.98% | **100.0%** | **0.00%** | 97.40% |
+| Static offset, one frame | no | 2,880 | 70.90% | 0.83% | **0.00%** | **84.38%** | 97.40% |
+| Static MLP, current frame | no | 2,880 | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% |
+| Immediate oracle (privileged) | — | 960 | 89.79% | 1.87% | 99.48% | 76.04% | 90.10% |
+| *Causal + factorized dispatch* | yes | *2,880* | *92.19%* | *0.83%* | *97.40%* | *84.38%* | *97.40%* |
 
 Matched-input gains, Newcombe 95%: **+7.26 points [+5.44, +9.07]** over the
 unstructured GRU and **+14.93 points [+12.00, +18.00]** over the heuristic. The
 causal router is statistically indistinguishable from the privileged immediate
 oracle (**−0.80 points [−2.93, +1.55]**) while using no privileged input.
 
-**Where the advantage actually comes from.** The hand-written heuristic solves
-four of the five mechanisms, *including the held-out reverse ejection at an
-identical 97.40%*. The held-out mechanism is therefore trivially detectable from
-motion features, and the large margin over the unstructured GRU is not by itself
-evidence of learned composition. The learned router's entire advantage over a
-hand-written baseline is concentrated in one place: deciding whether an
-obstruction is temporary or permanent, **+84.38 points [+80.63, +87.11]**, where
-the heuristic scores 0.00%. On forward ejection and permanent blockage the
-heuristic is slightly *better*. Accumulating evidence about whether an
-obstruction will clear is what the learned model buys; recognizing which
-mechanism fired is not.
+**What actually requires memory.** Mechanism *identification* requires none.
+The held-out reverse ejection is solved at an identical **97.40%** by the causal
+router, the hand-written threshold rule, and a single-observation MLP with no
+sequence encoder at all — three independent methods, one of them memoryless.
+Only the unstructured GRU fails it (46.88%). A held-out mechanism that a
+one-frame model identifies perfectly cannot support a composition claim.
+
+The discrimination lives entirely in one confusion pair: **permanent versus
+temporary obstruction**, where a wrong commitment is unrecoverable. Both
+non-recurrent arms fail it in *opposite* directions — the threshold rule calls
+everything permanent (100.0% / 0.00%), the one-frame model calls everything
+temporary (0.00% / 84.38%). Each solves one side and scores zero on the other.
+Both recurrent arms solve both. Against the one-frame model the causal router
+gains **+97.40 points [+95.62, +98.42]** on permanent blockage while being
+statistically identical on nominal, temporary, and held-out reverse, and
+*worse* on forward ejection (−7.12 points).
+
+The supported claim is therefore narrow and mechanistic: **temporal evidence is
+required to defer commitment on an obstruction whose persistence is not yet
+observable, and for nothing else in this benchmark.**
 
 The static MLP's 0.00% is structural, not a defeated baseline: current-centering
 makes the final geometry frame exactly zero (audited, `final_geometry_max_abs =
-0.0`), so a model that sees only that frame receives an all-zero input.
+0.0`), so a model that sees only that frame receives an all-zero input. The
+`static offset` arm replaces it with a real single-observation control that
+reads one earlier frame; offline it reaches **100%** held-out reverse accuracy,
+selected across 16-, 48-, and earliest-frame offsets by validation only.
 
-A history ablation on 4,544 held-out reverse prefixes per seed shows removing
-geometry history collapses held-out accuracy to **0.000** on all three seeds,
-but *reversing* the prefix leaves it at **97.7% / 77.6% / 96.9%**. History is
-required; its temporal direction largely is not. The supported mechanism is
-temporal aggregation of signed motion evidence, not causal dynamics inference.
+Two ablations constrain the mechanism further. Reversing the prefix in time
+leaves held-out accuracy at **97.7% / 77.6% / 96.9%**, so temporal *direction*
+is not used. And stripping history from a history-trained model drops it to
+**0.000** — but that measures degradation under distribution shift, not
+necessity, since a model *trained* on one frame reaches 100%. The supported
+mechanism is temporal aggregation of signed motion evidence with deferred
+commitment, not causal dynamics inference.
 
 The same frozen controller passed the registered pooled OOD gate at
 **6,369/7,680 — 82.93% safe recovery**, above its 75% floor, with **2.81%**

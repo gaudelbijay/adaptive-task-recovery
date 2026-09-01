@@ -460,6 +460,85 @@
           0.48554861949544353
         ]
       }
+    },
+    "static_offset": {
+      "manifests": 45,
+      "episodes": 2880,
+      "safe_successes": 2042,
+      "safe_success_rate": 0.7090277777777778,
+      "safe_success_wilson_95": [
+        0.6921694726123125,
+        0.7253292065597409
+      ],
+      "violations": 24,
+      "violation_rate": 0.008333333333333333,
+      "conditions": {
+        "nominal": {
+          "episodes": 576,
+          "safe_successes": 488,
+          "safe_success_rate": 0.8472222222222222,
+          "safe_success_wilson_95": [
+            0.8155482079727256,
+            0.8742955310594797
+          ],
+          "violation_rate": 0.03125
+        },
+        "ejection": {
+          "episodes": 576,
+          "safe_successes": 507,
+          "safe_success_rate": 0.8802083333333334,
+          "safe_success_wilson_95": [
+            0.8511395467967098,
+            0.9042393474435552
+          ],
+          "violation_rate": 0.0
+        },
+        "permanent_block": {
+          "episodes": 576,
+          "safe_successes": 0,
+          "safe_success_rate": 0.0,
+          "safe_success_wilson_95": [
+            4.3080772638772253e-19,
+            0.006625015793624098
+          ],
+          "violation_rate": 0.0
+        },
+        "temporary_block": {
+          "episodes": 576,
+          "safe_successes": 486,
+          "safe_success_rate": 0.84375,
+          "safe_success_wilson_95": [
+            0.8118314381705103,
+            0.8711138634713731
+          ],
+          "violation_rate": 0.010416666666666666
+        },
+        "reverse_ejection": {
+          "episodes": 576,
+          "safe_successes": 561,
+          "safe_success_rate": 0.9739583333333334,
+          "safe_success_wilson_95": [
+            0.9574806961716428,
+            0.9841560076073177
+          ],
+          "violation_rate": 0.0
+        }
+      },
+      "gain_over_baseline": {
+        "baseline": "unstructured_gru",
+        "difference": -0.10833333333333328,
+        "newcombe_95": [
+          -0.13004703342220755,
+          -0.08649586538807791
+        ]
+      },
+      "heldout_reverse_gain": {
+        "difference": 0.5052083333333334,
+        "newcombe_95": [
+          0.4611833300502081,
+          0.5468861935754679
+        ]
+      }
     }
   }
 }

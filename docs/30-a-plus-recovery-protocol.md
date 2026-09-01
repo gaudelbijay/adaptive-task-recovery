@@ -332,3 +332,47 @@ single-observation model with real information and no sequence encoder.
 Variants are trained at the earliest valid frame and at 16- and 48-step
 offsets, capacity-matched at hidden dimension 96, on the same data, seeds, and
 held-out option. Selection among offsets uses group-disjoint validation only.
+
+### Completed arm set: what memory is actually for
+
+The single-observation control resolves the question the original factorial
+could not. Offline, `static_offset_first` reaches 100% held-out reverse
+accuracy with no sequence encoder; the 16- and 48-step offsets reach 55.72% and
+82.17%, a monotone ordering in how far back the frame sits. Selection used
+group-disjoint validation only (97.43% / 94.57% / 84.30%).
+
+Closed-loop on `347000000`, per condition:
+
+| Arm | Recurrent | permanent | temporary | held-out reverse |
+|---|---|---:|---:|---:|
+| causal GRU (matched) | yes | 97.40% | 84.38% | 97.40% |
+| unstructured GRU | yes | 97.40% | 84.20% | 46.88% |
+| hand-written V28 heuristic | no | 100.00% | 0.00% | 97.40% |
+| static offset, one frame | no | 0.00% | 84.38% | 97.40% |
+
+Two conclusions follow, and both narrow the earlier claim.
+
+Mechanism identification requires no memory. Three independent methods reach an
+identical 97.40% on the held-out reverse ejection, one of them a memoryless
+MLP. The 50.52-point margin over the unstructured GRU measures that arm's
+single-option head failing at something otherwise trivial, not learned causal
+composition. No composition claim should be made from this benchmark.
+
+Memory is required for exactly one thing: the permanent/temporary confusion
+pair, where committing early to the wrong side is unrecoverable. Both
+non-recurrent arms fail it in opposite directions -- the threshold rule commits
+to permanent and scores 0.00% on temporary, the one-frame model commits to
+temporary and scores 0.00% on permanent. Both recurrent arms solve both sides.
+Against the one-frame control the causal router gains 97.40 points
+[95.62, 98.42] on permanent blockage, is statistically identical on nominal,
+temporary, and held-out reverse, and is 7.12 points worse on forward ejection.
+
+The defensible claim is therefore: temporal evidence is required to defer
+commitment on an obstruction whose persistence is not yet observable, and for
+nothing else this benchmark measures.
+
+This also revises the reading of the history ablation. Stripping history from a
+history-trained model dropping to 0.000 measures degradation under distribution
+shift, not necessity: a model trained on a single frame reaches 100%. Neither
+that ablation nor the static MLP's structural 0.00% was evidence that the task
+requires memory.
