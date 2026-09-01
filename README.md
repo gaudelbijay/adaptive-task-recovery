@@ -242,11 +242,9 @@ and [`docs/17-visual-training-ledger.md`](docs/17-visual-training-ledger.md).
 
 ## Publication status
 
-The completed custom-benchmark result and the REBOOT offline transfer are
-strong positive evidence, but they are not sufficient for a top-tier claim. The
-independently preregistered, no-teleport ManiSkill `PegInsertionSide-v1`
-closed-loop gate is still in progress. Its reserved `425000000` selection and
-`429000000` confirmation families remain unopened.
+The independently preregistered, no-teleport ManiSkill `PegInsertionSide-v1`
+closed-loop experiment is still in progress. Its reserved `425000000` selection
+and `429000000` confirmation families remain unopened.
 
 No running Peg result is reported above. Promotion requires all of the
 following without relaxing thresholds after seeing outcomes:
@@ -312,10 +310,10 @@ Do not substitute development seeds for reserved confirmation families.
 
 ## Scope
 
-ATR currently establishes simulation closed-loop recovery and offline transfer
-on real-robot trajectories. It does **not** claim real-robot closed-loop
-recovery, universal visual robustness, or an A/A+ general-method result before
-the external PegInsertion gate passes.
+ATR establishes closed-loop recovery in simulation and offline transfer on
+real-robot trajectories. All closed-loop control is simulated; the real-robot
+evidence is offline inference on recorded trajectories. Visual robustness holds
+within the declared camera and lighting distribution and degrades outside it.
 
 Detailed negative results are intentionally retained in [`docs/`](docs/) and
 [`results/`](results/) so that the concise README does not become selective
