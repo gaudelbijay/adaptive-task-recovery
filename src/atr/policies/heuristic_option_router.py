@@ -1,6 +1,6 @@
 """Hand-written motion-threshold router, the V28 baseline as a matched router.
 
-Unlike :mod:`atr.policies.causal_option_router`, this module intentionally
+Unlike :mod:`atr.policies.option_router`, this module intentionally
 contains environment feature names and a geometry threshold.  That is the
 point of the baseline: it is the hand-engineered state machine the learned
 routers must beat, expressed over the *same* matched observation tensor so the
@@ -18,7 +18,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from .causal_option_router import OPTION_NAMES
+from .option_router import OPTION_NAMES
 
 # Motion threshold in metres, taken unchanged from the frozen V28 controller
 # (`scripts/evaluate_v4_temporal_controller.py`, MOTION_THRESHOLD).
@@ -139,6 +139,95 @@ class HeuristicMotionRouter(nn.Module):
         )
         # Emit a hard one-hot log-probability so the evaluator's shared
         # confidence/abstention path treats this exactly like a learned router.
+        logits = torch.full(
+            (sequence.shape[0], len(OPTION_NAMES)), -30.0, device=sequence.device,
+        )
+        logits.scatter_(1, option[:, None], 0.0)
+        return logits.log_softmax(dim=-1)
+
+
+# ---------------------------------------------------------------------------
+# Generic signed-axis variant, used for benchmarks whose ejection direction is
+# a sign along one axis rather than which of two actors moved.
+# ---------------------------------------------------------------------------
+
+PEG_EJECTION_PREFIX = "hole_frame.peg_to_hole."
+PEG_BLOCKER_PREFIX = "hole_frame.blocker_to_hole."
+PEG_LATERAL_AXIS = "hole_frame.peg_to_hole.y"
+
+
+class SignedAxisMotionRouter(nn.Module):
+    """Motion-threshold router whose direction comes from the sign of one axis.
+
+    `LearnedRecovery-v4` distinguishes forward from reverse ejection by *which*
+    sweeper actor moved. `PegInsertionSide-v1` instead reflects the ejection
+    impulse along the hole frame's lateral axis, so direction is the sign of a
+    single coordinate. This router is the same hand-written rung of the control
+    ladder expressed for that geometry: it reads the identical matched tensor,
+    no mechanism ID and no future frame.
+
+    Under current-centering, `centered[0] = raw[start] - raw[now]`. A peg pushed
+    toward +y therefore has a *negative* centered value at the prefix start, so
+    the sign is read and inverted rather than taken directly.
+    """
+
+    def __init__(
+        self,
+        feature_names: list[str],
+        ejection_prefix: str = PEG_EJECTION_PREFIX,
+        blocker_prefix: str = PEG_BLOCKER_PREFIX,
+        lateral_feature: str = PEG_LATERAL_AXIS,
+        threshold: float = MOTION_THRESHOLD,
+    ):
+        super().__init__()
+        self.threshold = float(threshold)
+        if lateral_feature not in feature_names:
+            raise ValueError(f"missing lateral feature {lateral_feature!r}")
+        self.register_buffer(
+            "ejection_index",
+            torch.tensor(resolve_indices(feature_names, ejection_prefix), dtype=torch.long),
+        )
+        self.register_buffer(
+            "blocker_index",
+            torch.tensor(resolve_indices(feature_names, blocker_prefix), dtype=torch.long),
+        )
+        self.register_buffer(
+            "lateral_index",
+            torch.tensor(feature_names.index(lateral_feature), dtype=torch.long),
+        )
+
+    def forward(
+        self, sequence: torch.Tensor, lengths: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        if sequence.ndim != 3:
+            raise ValueError("sequence must have shape [batch, time, features]")
+        ejection = sequence[..., self.ejection_index].abs().amax(dim=(1, 2))
+        blocker = sequence[..., self.blocker_index].abs().amax(dim=(1, 2))
+        blocker_start = sequence[:, 0, :][..., self.blocker_index].abs().amax(dim=1)
+        # Negative centered start means the peg travelled toward +lateral.
+        lateral_start = sequence[:, 0, self.lateral_index]
+
+        option = torch.full(
+            (sequence.shape[0],), OPTION_NOMINAL, dtype=torch.long,
+            device=sequence.device,
+        )
+        ejected = ejection > self.threshold
+        option = torch.where(
+            ejected & (lateral_start < 0),
+            torch.full_like(option, OPTION_FORWARD), option,
+        )
+        option = torch.where(
+            ejected & (lateral_start >= 0),
+            torch.full_like(option, OPTION_REVERSE), option,
+        )
+        blocked = blocker > self.threshold
+        displaced = blocker_start > self.threshold
+        option = torch.where(
+            blocked & displaced, torch.full_like(option, OPTION_PERMANENT), option,
+        )
+        option = torch.where(
+            blocked & ~displaced, torch.full_like(option, OPTION_TEMPORARY), option,
+        )
         logits = torch.full(
             (sequence.shape[0], len(OPTION_NAMES)), -30.0, device=sequence.device,
         )

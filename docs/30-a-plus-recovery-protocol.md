@@ -313,13 +313,11 @@ each frame already carries a signed displacement to the present, so direction
 is available per frame and the model aggregates rather than integrates
 dynamics.
 
-Identifiers (`CausalOptionRouter`, `causal_gru`, `causal_option_router.py`)
-retain the original name deliberately. Frozen gate configs, checkpoint
-`model` strings, and `router_checkpoint_sha256` provenance for an already-
-opened confirmation all key on those exact strings; renaming them would break
-reproducibility of a once-only result to fix a wording problem. Prose must
-instead state the supported mechanism: temporal aggregation of signed motion
-evidence, with abstention until persistence is established.
+Python identifiers have since been renamed to match (see "Rename" below);
+only the persisted checkpoint `model` string stays frozen, because gate
+configs, `router_checkpoint_sha256` provenance, and result manifests key on it.
+Prose must state the supported mechanism: temporal aggregation of signed motion
+evidence, with commitment deferred until persistence is established.
 
 ### Single-observation baseline that is not handed zeros
 
@@ -376,3 +374,77 @@ history-trained model dropping to 0.000 measures degradation under distribution
 shift, not necessity: a model trained on a single frame reaches 100%. Neither
 that ablation nor the static MLP's structural 0.00% was evidence that the task
 requires memory.
+
+### Rename: identifiers now describe the model, strings still identify artifacts
+
+`causal_option_router.py` is now `option_router.py`, `CausalOptionRouter` is
+`FactorizedOptionRouter`, and `causal_safe_targets` is
+`deployable_option_targets`. The old names asserted causal-dynamics inference
+that the reversed-prefix and single-frame results do not support.
+
+The persisted `model` string inside a checkpoint is deliberately *not* renamed
+and remains `"causal_gru"`. Frozen gate configs, the
+`router_checkpoint_sha256` block of
+`configs/temporal_composition_v10_frozen_candidate.json`, every result
+manifest, and `scripts/audit_temporal_composition_router.py` all key on that
+exact string. Renaming it would either invalidate the once-only confirmation's
+provenance or require rewriting immutable records. Python identifiers therefore
+describe what the model is; the persisted string identifies a specific frozen
+artifact, and the two are allowed to differ. Both dispatch sites carry a
+comment stating this.
+
+Verified after the rename: all three frozen V10 checkpoints load under the new
+class names with unchanged SHA-256 digests, including
+`causal_seed0 = 532b763e...`, and 79 contract tests pass.
+
+### The shortcut ladder, applied to both benchmarks
+
+`scripts/audit_shortcut_ladder.py` scores a benchmark's held-out mechanism
+against four rungs of increasing capability on the identical matched tensor,
+group-disjoint split, and held-out option: the current frame only
+(instantaneous), one earlier frame (no sequence model), a hand-written
+motion-threshold rule, and the recurrent models. A held-out mechanism that a
+lower rung identifies as well as the top rung is a shortcut and cannot support
+a composition claim.
+
+Held-out-option accuracy, three seeds where applicable:
+
+| Rung | Control | LearnedRecovery-v4 | PegInsertion (cf) | PegInsertion (real) |
+|---|---|---:|---:|---:|
+| 1 | instantaneous | 0.0322 | 0.0000 | 0.0000 |
+| 2 | one past frame | **1.0000** | 0.0909 | 0.0104 |
+| 3 | hand-written | 0.1195 | 0.0000 | 0.0000 |
+| 4 | recurrent factorized | **1.0000** | 0.4015 | 0.0199 |
+| 4 | recurrent unstructured | 0.0000 | 0.0000 | 0.0000 |
+| | **shortcut detected** | **yes** | no | no |
+
+The two benchmarks return opposite verdicts, which is what validates the audit
+rather than merely applying it.
+
+`LearnedRecovery-v4`'s held-out reverse ejection is a shortcut. A
+single-observation model with no sequence encoder matches the recurrent model
+exactly at 1.0000. The 50.52-point closed-loop margin over the unstructured GRU
+therefore measures that arm's failure at something a memoryless model does
+perfectly, not learned composition.
+
+`PegInsertionSide-v1`'s held-out negative ejection is not. No rung below the
+recurrent model exceeds 0.0909, and on genuinely observed negative-ejection
+prefixes every method including the factorized router is at or below 0.0199.
+That benchmark's held-out mechanism is unsolved rather than shortcut-solved,
+and this is recorded as a negative result for the method.
+
+**The design lesson is specific.** Current-centering was introduced to remove
+the V1 shortcut in which instantaneous geometry identified the mechanism, and
+it worked: rung 1 falls to 0.0322. But because centering expresses every frame
+as a signed displacement to the present, it *created* a rung-2 shortcut, where
+one sufficiently old frame carries the whole answer. Fixing a leakage path at
+one rung introduced a subtler one at the next, and only the ladder exposes it.
+
+**Caveat on rung 3.** The hand-written rule never emits the `defer` option, so
+its offline accuracy against targets that use deferral before onset is not
+comparable to the learned rungs; its closed-loop score, 97.40% on V4's held-out
+reverse, is the meaningful one. The shortcut verdict rests on rungs 1, 2, and
+4, which share a training target convention.
+
+Artifacts: `results/router/ladder/learned_recovery_v4.json`,
+`peg_insertion.json`, and `peg_insertion_physical_only.json`.

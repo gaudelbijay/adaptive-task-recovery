@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from atr.policies.causal_option_router import OPTION_NAMES, current_centered_sequence
+from atr.policies.option_router import OPTION_NAMES, current_centered_sequence
 from atr.policies.heuristic_option_router import (
     MOTION_THRESHOLD, HeuristicMotionRouter, resolve_indices,
 )
@@ -138,3 +138,68 @@ def test_batch_decisions_are_independent():
     assert router(centered, lengths).argmax(-1).tolist() == [
         OPTION["forward"], OPTION["reverse"], OPTION["nominal"],
     ]
+
+
+# --- signed-axis variant (PegInsertion geometry) ----------------------------
+
+PEG_FEATURES = (
+    [f"hole_frame.peg_to_hole.{a}" for a in "xyz"]
+    + [f"hole_frame.blocker_to_hole.{a}" for a in "xyz"]
+    + [f"hole_frame.tcp_to_peg.{a}" for a in "xyz"]
+    + ["normalized_time"]
+)
+PEG_GEOM = 9
+
+
+def _peg_router():
+    from atr.policies.heuristic_option_router import SignedAxisMotionRouter
+    return SignedAxisMotionRouter(PEG_FEATURES)
+
+
+def _peg_prefix(raw_edit):
+    sequence = torch.zeros(1, 8, len(PEG_FEATURES))
+    raw_edit(sequence)
+    lengths = torch.tensor([8])
+    return current_centered_sequence(sequence, lengths, PEG_GEOM), lengths
+
+
+def test_signed_axis_router_resolves_peg_feature_groups():
+    router = _peg_router()
+    assert router.ejection_index.tolist() == [0, 1, 2]
+    assert router.blocker_index.tolist() == [3, 4, 5]
+    assert int(router.lateral_index) == 1
+
+
+def test_signed_axis_router_rejects_a_missing_lateral_axis():
+    from atr.policies.heuristic_option_router import SignedAxisMotionRouter
+    with pytest.raises(ValueError):
+        SignedAxisMotionRouter(["hole_frame.peg_to_hole.x", "normalized_time"])
+
+
+def test_positive_lateral_ejection_routes_forward():
+    # Peg ends at +y relative to its start, so the centered start is negative.
+    router = _peg_router()
+    sequence, lengths = _peg_prefix(lambda s: s[0, 4:, 1].fill_(0.05))
+    assert sequence[0, 0, 1] < 0
+    assert router(sequence, lengths).argmax(-1).item() == OPTION["forward"]
+
+
+def test_negative_lateral_ejection_routes_to_the_held_out_reverse_option():
+    router = _peg_router()
+    sequence, lengths = _peg_prefix(lambda s: s[0, 4:, 1].fill_(-0.05))
+    assert sequence[0, 0, 1] > 0
+    assert router(sequence, lengths).argmax(-1).item() == OPTION["reverse"]
+
+
+def test_peg_blocker_dominates_and_separates_permanence_by_start():
+    router = _peg_router()
+    persistent, lengths = _peg_prefix(lambda s: s[0, :4, 3:6].fill_(0.05))
+    assert router(persistent, lengths).argmax(-1).item() == OPTION["permanent"]
+    cleared, lengths = _peg_prefix(lambda s: s[0, 3:6, 3:6].fill_(0.05))
+    assert router(cleared, lengths).argmax(-1).item() == OPTION["temporary_recovery"]
+
+
+def test_peg_still_world_stays_nominal():
+    router = _peg_router()
+    sequence, lengths = _peg_prefix(lambda s: None)
+    assert router(sequence, lengths).argmax(-1).item() == OPTION["nominal"]

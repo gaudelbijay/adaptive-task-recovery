@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "data_sha256": "05bfa5c469d1d4f23fd3fb492d4e79c559cbc3dc0d8936ee925cd2bf8f55a456",
+  "feature_metadata_sha256": "c845ee9221ac78fc6108cf9fdc5e3f1d509ac5f43b84a41ce8d78ef113d886cf",
+  "heldout_option": 2,
+  "geometry_dim": 57,
+  "physical_heldout_only": false,
+  "rungs": {
+    "hand_written": {
+      "rung": 3,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.08066752958579881,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.11949823943661972
+        }
+      ],
+      "heldout_option_accuracy_mean": 0.11949823943661972,
+      "accuracy_mean": 0.08066752958579881
+    },
+    "instantaneous": {
+      "rung": 1,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.6219489644970414,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.03102992957746479
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.6216253698224852,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.03939260563380282
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.622341900887574,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.02618838028169014
+        }
+      ],
+      "heldout_option_accuracy_mean": 0.032203638497652586,
+      "accuracy_mean": 0.6219720784023669
+    },
+    "one_past_frame": {
+      "rung": 2,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.978018676035503,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.9778799926035503,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.9785040680473372,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        }
+      ],
+      "heldout_option_accuracy_mean": 1.0,
+      "accuracy_mean": 0.9781342455621301
+    },
+    "recurrent_factorized": {
+      "rung": 4,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.9948918269230769,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.9979890902366864,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.9988905325443787,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        }
+      ],
+      "heldout_option_accuracy_mean": 1.0,
+      "accuracy_mean": 0.9972571499013806
+    },
+    "recurrent_unstructured": {
+      "rung": 4,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.8942076553254438,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.8931444156804734,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.8941614275147929,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 0.0
+        }
+      ],
+      "heldout_option_accuracy_mean": 0.0,
+      "accuracy_mean": 0.8938378328402367
+    }
+  },
+  "verdict": {
+    "top_rung_heldout_accuracy": 1.0,
+    "best_lower_rung": "one_past_frame",
+    "best_lower_rung_heldout_accuracy": 1.0,
+    "heldout_mechanism_is_a_shortcut": true,
+    "interpretation": "A lower rung matching the recurrent model means the held-out mechanism is identifiable without the capability under test."
+  }
+}
