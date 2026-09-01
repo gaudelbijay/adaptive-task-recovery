@@ -29,10 +29,11 @@ INK_MUTED = "#52514e"
 GRID = "#dedcd5"
 
 RUNGS = [
-    ("instantaneous", "1  current frame only"),
+    ("instantaneous", "1  current frame"),
     ("one_past_frame", "2  one past frame"),
+    ("moment_summary", "\u2013  prefix summary"),
     ("hand_written", "3  hand-written rule *"),
-    ("recurrent_factorized", "4  recurrent (factorized)"),
+    ("recurrent_factorized", "4  recurrent"),
 ]
 
 
@@ -45,35 +46,38 @@ def load_ladder(path: Path) -> dict[str, float]:
     }
 
 
-def panel_a(ax, v4: dict[str, float], peg: dict[str, float]) -> None:
-    labels = [label for _, label in RUNGS]
-    y = range(len(RUNGS))
-    height = 0.36
-    gap = 0.02  # 2px-equivalent surface gap between adjacent bars
-    v4_values = [v4.get(key, 0.0) for key, _ in RUNGS]
-    peg_values = [peg.get(key, 0.0) for key, _ in RUNGS]
+def panel_a(axes, v4, peg, reboot):
+    """Three small multiples: the same question asked of three benchmarks.
 
-    ax.barh([i + (height + gap) / 2 for i in y], v4_values, height=height,
-            color=SERIES_1, label="LearnedRecovery-v4", zorder=3)
-    ax.barh([i - (height + gap) / 2 for i in y], peg_values, height=height,
-            color=SERIES_2, label="PegInsertionSide-v1", zorder=3)
-
-    for i, (a, b) in enumerate(zip(v4_values, peg_values)):
-        ax.text(a + 0.015, i + (height + gap) / 2, f"{a:.2f}", va="center",
-                ha="left", fontsize=8.5, color=INK)
-        ax.text(b + 0.015, i - (height + gap) / 2, f"{b:.2f}", va="center",
-                ha="left", fontsize=8.5, color=INK)
-
-    ax.set_yticks(list(y))
-    ax.set_yticklabels(labels, fontsize=9, color=INK)
-    ax.set_xlim(0, 1.14)
-    ax.xaxis.set_major_formatter(PercentFormatter(xmax=1))
-    ax.set_xlabel("held-out mechanism accuracy", fontsize=9, color=INK_MUTED)
-    ax.set_title(
-        "A.  A lower rung matching rung 4 means the held-out\n"
-        "     mechanism is a shortcut, not a composition result",
-        fontsize=10, color=INK, loc="left", pad=34,
-    )
+    The simulated benchmarks are scored as held-out-option accuracy (floor 0);
+    REBOOT is macro-AUROC (chance 0.5). They get separate axes rather than a
+    shared one, because the two metrics have different floors.
+    """
+    panels = [
+        ("LearnedRecovery-v4", v4, "held-out accuracy", None, SERIES_1),
+        ("PegInsertionSide-v1", peg, "held-out accuracy", None, SERIES_1),
+        ("REBOOT (real robot)", reboot, "macro-AUROC", 0.5, SERIES_2),
+    ]
+    for ax, (title, values, xlabel, chance, colour) in zip(axes, panels):
+        rows = [(lab, values.get(key)) for key, lab in RUNGS if key in values]
+        y = range(len(rows))
+        ax.barh(list(y), [v for _, v in rows], height=0.55, color=colour, zorder=3)
+        for i, (_, v) in enumerate(rows):
+            ax.text(v + 0.02, i, f"{v:.2f}", va="center", ha="left",
+                    fontsize=8.5, color=INK)
+        if chance is not None:
+            ax.axvline(chance, color=INK_MUTED, lw=1.0, ls=(0, (4, 3)), zorder=4)
+            ax.set_ylim(-0.6, len(rows) - 0.15)
+            ax.text(chance + 0.012, len(rows) - 0.42, "chance", fontsize=7.5,
+                    color=INK_MUTED, va="center", ha="left")
+        ax.set_yticks(list(y))
+        ax.set_yticklabels([lab for lab, _ in rows], fontsize=8.5, color=INK)
+        ax.set_xlim(0, 1.18)
+        ax.xaxis.set_major_formatter(PercentFormatter(xmax=1))
+        ax.set_xlabel(xlabel, fontsize=8.5, color=INK_MUTED)
+        ax.set_title(title, fontsize=9.5, color=INK, loc="left", pad=8)
+        ax.xaxis.grid(True, color=GRID, linewidth=0.8, zorder=0)
+        ax.set_axisbelow(True)
 
 
 def panel_b(ax, arms: list[tuple[str, float, float]]) -> None:
@@ -101,9 +105,9 @@ def panel_b(ax, arms: list[tuple[str, float, float]]) -> None:
     ax.yaxis.set_major_formatter(PercentFormatter(xmax=1))
     ax.set_ylabel("closed-loop safe recovery", fontsize=9, color=INK_MUTED)
     ax.set_title(
-        "B.  Both non-recurrent arms fail the confusion pair\n"
-        "     in opposite directions; both recurrent arms solve it",
-        fontsize=10, color=INK, loc="left", pad=34,
+        "B.  What memory is for: both non-recurrent arms fail\n"
+        "     the confusion pair, in opposite directions",
+        fontsize=10.5, color=INK, loc="left", pad=46,
     )
 
 
@@ -135,37 +139,49 @@ def main() -> None:
         return comparison[arm]["conditions"][condition]["safe_success_rate"]
 
     arms = [
-        ("factorized\nGRU", cell("causal_gru_matched", "permanent_block"),
+        ("ours\n(factorized)", cell("causal_gru_matched", "permanent_block"),
          cell("causal_gru_matched", "temporary_block")),
         ("unstructured\nGRU", cell("unstructured_gru", "permanent_block"),
          cell("unstructured_gru", "temporary_block")),
-        ("hand-written\nrule", cell("heuristic_v28", "permanent_block"),
+        ("motion\nrule", cell("heuristic_v28", "permanent_block"),
          cell("heuristic_v28", "temporary_block")),
-        ("one past frame\n(no memory)", cell("static_offset", "permanent_block"),
+        ("one\nframe", cell("static_offset", "permanent_block"),
          cell("static_offset", "temporary_block")),
     ]
 
-    fig, axes = plt.subplots(1, 2, figsize=(12.6, 4.5), facecolor=SURFACE)
-    fig.subplots_adjust(wspace=0.30, top=0.80, bottom=0.20)
-    panel_a(axes[0], v4, peg)
-    panel_b(axes[1], arms)
-    for ax in axes:
-        style(ax)
-    axes[0].xaxis.grid(True, color=GRID, linewidth=0.8, zorder=0)
-    axes[1].yaxis.grid(True, color=GRID, linewidth=0.8, zorder=0)
-    axes[0].set_axisbelow(True)
-    axes[1].set_axisbelow(True)
-    for ax in axes:
-        ax.legend(
-            frameon=False, fontsize=8.5, labelcolor=INK_MUTED, ncol=2,
-            loc="lower left", bbox_to_anchor=(0.0, 1.005), borderaxespad=0.0,
-            handlelength=1.2, columnspacing=1.6,
-        )
+    reboot_path = args.ladder_dir.parent.parent / "a_plus_audit" / "reboot_ladder_v4_aggregate.json"
+    reboot = {}
+    if reboot_path.exists():
+        agg = json.loads(reboot_path.read_text())["aggregate"]
+        reboot = {
+            "instantaneous": agg["static_mlp"]["macro_auroc_mean"],
+            "one_past_frame": agg["endpoint_pair_mlp"]["macro_auroc_mean"],
+            "moment_summary": agg["moment_mlp"]["macro_auroc_mean"],
+            "recurrent_factorized": agg["causal_dynamics_gru"]["macro_auroc_mean"],
+        }
 
+    fig = plt.figure(figsize=(16.0, 4.8), facecolor=SURFACE)
+    grid = fig.add_gridspec(1, 4, width_ratios=[1, 1, 1, 1.3], wspace=0.75)
+    ladder_axes = [fig.add_subplot(grid[0, i]) for i in range(3)]
+    confusion_ax = fig.add_subplot(grid[0, 3])
+    panel_a(ladder_axes, v4, peg, reboot)
+    panel_b(confusion_ax, arms)
+    for ax in ladder_axes + [confusion_ax]:
+        style(ax)
+    confusion_ax.yaxis.grid(True, color=GRID, linewidth=0.8, zorder=0)
+    confusion_ax.set_axisbelow(True)
+    confusion_ax.legend(
+        frameon=False, fontsize=8.5, labelcolor=INK_MUTED, loc="lower left", bbox_to_anchor=(0.0, 1.005), borderaxespad=0.0,
+        handlelength=1.2, ncol=2, columnspacing=1.4,
+    )
+    fig.suptitle(
+        "A.  Is the held-out mechanism a shortcut?  A lower rung matching rung 4 says yes.",
+        fontsize=10.5, color=INK, x=0.055, ha="left", y=1.045,
+    )
     fig.text(
-        0.085, -0.02,
-        "* the hand-written rule never emits \u201cdefer\u201d, so its offline score is not comparable to the "
-        "learned rungs; closed-loop it reaches 0.97 on v4.",
+        0.055, -0.06,
+        "* the hand-written rule never emits \u201cdefer\u201d, so its offline score is not comparable to the learned rungs; "
+        "closed-loop it reaches 0.97 on LearnedRecovery-v4.",
         fontsize=7.5, color=INK_MUTED, va="top", ha="left",
     )
 

@@ -454,3 +454,46 @@ reverse, is the meaningful one. The shortcut verdict rests on rungs 1, 2, and
 
 Artifacts: `results/router/ladder/learned_recovery_v4.json`,
 `peg_insertion.json`, and `peg_insertion_physical_only.json`.
+
+### The ladder on REBOOT: the audit's negative control
+
+The same four-rung audit was run on the external REBOOT benchmark: 2,072
+real-robot trajectories across nine leave-one-object-out object families,
+collected by another group. REBOOT prefixes are not current-centered, so its
+final frame already carries signal and rung 1 sits at 0.5740 rather than at
+zero; the matching rung-2 control is therefore the *endpoint pair*, the first
+and last frame with no sequence encoder and no summary over the frames between.
+
+| Rung | Control | macro-AUROC |
+|---|---|---:|
+| 1 | current frame | 0.5740 |
+| 2 | endpoint pair | 0.6080 |
+| -- | whole-prefix summary (mean, sd) | 0.7466 |
+| 4 | unstructured GRU | 0.8113 |
+| 4 | causal dynamics GRU | 0.8045 |
+
+The endpoint pair recovers almost none of the recurrent models' advantage:
+0.1966 macro-AUROC points behind, object-bootstrap 95% [0.1557, 0.2357]. This
+benchmark's held-out object family is not identifiable from where a trajectory
+started and ended. Together with PegInsertion this gives the audit two
+negatives against one positive, so it does not merely fire everywhere; the
+positive on LearnedRecovery-v4, where a memoryless model matches the recurrent
+model exactly, is a property of that benchmark rather than of the audit.
+
+One nuance is retained rather than smoothed over: the whole-prefix summary
+reaches 0.7466, closing most of the 0.5740-to-0.8045 span with no recurrence.
+The recurrent gain over it is real but small, 0.0579 [0.0031, 0.1382]. Most of
+REBOOT's signal is in aggregate statistics rather than in dynamics.
+
+**Defect found and fixed while running this.** `fit_one` never re-seeded before
+constructing a model, so weight initialisation drew from the advancing global
+RNG. Inserting the rung-2 control as the second method silently re-initialised
+the three methods after it, moving the unstructured GRU from 0.8072 to 0.8291
+and the causal GRU from 0.8353 to 0.8064 -- enough to flip the sign of their
+comparison. Model comparisons must not depend on the order of the method list.
+Seeding is now per (method, fold), and the causal-versus-unstructured
+comparison returns to unresolved at -0.0067 [-0.0249, +0.0119], consistent with
+the originally published +0.0282 [-0.0140, +0.0938]. The published REBOOT
+figures were internally consistent; they were not robust to adding an arm.
+
+Artifact: `results/a_plus_audit/reboot_ladder_v4_aggregate.json`.

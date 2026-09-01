@@ -32,14 +32,24 @@ controls of increasing capability on the identical inputs, split, and targets.
 composition claim survives, however large the margin over a weak baseline.
 
 <p align="center">
-  <img src="media/results/shortcut-ladder.png" width="960" alt="Panel A: held-out mechanism accuracy by control rung for two benchmarks. On LearnedRecovery-v4 a one-past-frame model reaches 1.00, matching the recurrent model, so the held-out mechanism is a shortcut. On PegInsertionSide-v1 no rung below the recurrent model exceeds 0.09. Panel B: closed-loop safe recovery on permanent versus temporary obstruction for four arms. The hand-written rule scores 1.00 and 0.00; the one-past-frame model scores 0.00 and 0.84; both recurrent arms solve both sides.">
+  <img src="media/results/shortcut-ladder.png" width="1000" alt="Panel A: held-out mechanism score by control rung for three benchmarks. On LearnedRecovery-v4 a one-past-frame model reaches 1.00, matching the recurrent model, so the held-out mechanism is a shortcut. On PegInsertionSide-v1 no rung below the recurrent model exceeds 0.09. On REBOOT real-robot trajectories the one-past-frame control reaches 0.61 macro-AUROC against 0.80 for the recurrent model. Panel B: closed-loop safe recovery on permanent versus temporary obstruction for four arms; the motion rule scores 1.00 and 0.00, the one-frame model scores 0.00 and 0.84, and both recurrent arms solve both sides.">
 </p>
 
-Run on two benchmarks the ladder returns **opposite verdicts**, which is what
-makes it a method rather than an anecdote. `LearnedRecovery-v4`'s held-out
-mechanism is a shortcut (rung 2 = rung 4 = 1.00). `PegInsertionSide-v1`'s is
-not — there no rung below the recurrent model exceeds 0.09, and on genuinely
-observed held-out prefixes every method including ours is at or below 0.02.
+Run on three benchmarks the ladder returns **one positive and two negatives**,
+which is what makes it a method rather than an anecdote.
+
+| Benchmark | Rung 2 | Rung 4 | Shortcut? |
+|---|---:|---:|:---:|
+| `LearnedRecovery-v4` (ours) | **1.0000** | 1.0000 | **yes** |
+| `PegInsertionSide-v1` | 0.0909 | 0.4015 | no |
+| REBOOT — real robot, another group | 0.6080 | 0.8045 | no |
+
+REBOOT is the negative control that matters: 2,072 real-robot trajectories
+across nine leave-one-object-out families, collected by someone else. There the
+endpoint-pair control reaches only **0.6080** macro-AUROC against 0.80 for the
+recurrent model — a gap of **+0.1966 [+0.1557, +0.2357]**. The held-out object
+family is genuinely not identifiable without temporal structure, so the audit
+does not simply fire everywhere.
 
 **The design lesson is specific.** Current-centering was introduced to remove an
 earlier shortcut in which instantaneous geometry gave the mechanism away, and it
@@ -182,8 +192,20 @@ control. The model name follows the simulator router's; the history-direction
 ablation above was run on that router, not on this offline predictor, so no
 causal-dynamics claim is made here either.
 
-Authoritative record:
-[`results/a_plus_audit/reboot_v2_aggregate.json`](results/a_plus_audit/reboot_v2_aggregate.json).
+The control ladder was also run here, and it is the audit's negative control:
+the endpoint-pair rung reaches 0.6080 against 0.8045 for the recurrent model,
+**+0.1966 [+0.1557, +0.2357]**. This benchmark's held-out family genuinely
+requires temporal structure.
+
+Adding that rung exposed an order-dependent seeding defect: model weights were
+initialised from the advancing global RNG, so inserting a method silently
+re-initialised every method after it. `fit_one` now seeds per method and fold.
+With that fixed the causal-versus-unstructured comparison is **−0.0067 [−0.0249,
++0.0119]**, still unresolved, consistent with the original run.
+
+Authoritative records:
+[`results/a_plus_audit/reboot_v2_aggregate.json`](results/a_plus_audit/reboot_v2_aggregate.json)
+and [`results/a_plus_audit/reboot_ladder_v4_aggregate.json`](results/a_plus_audit/reboot_ladder_v4_aggregate.json).
 
 ### Restricted-RGB continuous recovery
 
