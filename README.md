@@ -81,13 +81,13 @@ ledger rather than the README.
 
 ### Guarded factorized dispatch — untouched confirmation, completed baselines
 
-The V10 candidate was frozen before its once-only `347000000` confirmation
-family was opened. Evaluation uses three policy lineages, five recovery
+The guarded factorized dispatch router was frozen before its once-only
+`347000000` confirmation family was opened. Evaluation uses three policy lineages, five recovery
 conditions, matched observations and specialists across routers, and a held-out
 reverse-ejection mechanism.
 
-The gate's declared method list includes a hand-written V28 heuristic router and
-an oracle upper bound. Both were unimplemented when the gate was first scored,
+The gate's declared method list includes a hand-written motion-threshold router
+and an oracle upper bound. Both were unimplemented when the gate was first scored,
 so the original comparison ran three arms rather than five. Both are now built
 and evaluated on the same family; the table below is the completed comparison.
 
@@ -99,7 +99,7 @@ arm could receive it.
 |---|:---:|---:|---:|---:|---:|---:|---:|
 | **Causal router (matched)** | yes | 2,880 | **88.99%** | **0.83%** | 97.40% | 84.38% | 97.40% |
 | Unstructured GRU | yes | 2,880 | 81.74% | 4.83% | 97.40% | 84.20% | 46.88% |
-| Hand-written V28 heuristic | no | 960 | 74.06% | 16.98% | **100.0%** | **0.00%** | 97.40% |
+| Hand-written motion rule | no | 960 | 74.06% | 16.98% | **100.0%** | **0.00%** | 97.40% |
 | Static offset, one frame | no | 2,880 | 70.90% | 0.83% | **0.00%** | **84.38%** | 97.40% |
 | Static MLP, current frame | no | 2,880 | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% |
 | Immediate oracle (privileged) | — | 960 | 89.79% | 1.87% | 99.48% | 76.04% | 90.10% |
@@ -187,8 +187,9 @@ Authoritative record:
 
 ### Restricted-RGB continuous recovery
 
-V19 is the strongest completed integrated restricted-input controller. Across
-three seeds and 768 held-out episodes per regime it reaches:
+The dual-specialist RGB controller is the strongest completed integrated
+restricted-input policy. Across three seeds and 768 held-out episodes per
+regime it reaches:
 
 | Regime | Safe success | Violations |
 |---|---:|---:|
@@ -209,8 +210,8 @@ and [`docs/17-visual-training-ledger.md`](docs/17-visual-training-ledger.md).
 
 ## Publication status
 
-The completed V10 custom-benchmark result and REBOOT offline transfer are strong
-positive evidence, but they are not sufficient for an A/A+ IROS claim. The
+The completed custom-benchmark result and the REBOOT offline transfer are
+strong positive evidence, but they are not sufficient for a top-tier claim. The
 independently preregistered, no-teleport ManiSkill `PegInsertionSide-v1`
 closed-loop gate is still in progress. Its reserved `425000000` selection and
 `429000000` confirmation families remain unopened.
@@ -232,6 +233,14 @@ and [`docs/30-a-plus-recovery-protocol.md`](docs/30-a-plus-recovery-protocol.md)
 
 ## Reproducibility
 
+**Naming.** Prose here names methods by what they do. Version tags survive only
+where they identify a frozen artifact — a registered environment (`LearnedRecovery-v4`),
+a preregistered gate config, a checkpoint's persisted `model` string, or a
+reserved seed family. Those are immutable identifiers with provenance attached,
+not a quality ordering: a higher number is a later candidate, not a better one,
+and most were rejected. The per-candidate ledger lives in
+[`docs/30-a-plus-recovery-protocol.md`](docs/30-a-plus-recovery-protocol.md).
+
 The repository records immutable experiment configurations, seed families,
 checkpoint hashes, per-episode outcomes, confidence intervals, failed gates,
 and Slurm job provenance. Runtime interventions use simulator forces and
@@ -246,7 +255,7 @@ Key entry points:
 - [`src/atr/policies/option_router.py`](src/atr/policies/option_router.py):
   learned factorized and matched-baseline router models.
 - [`src/atr/policies/heuristic_option_router.py`](src/atr/policies/heuristic_option_router.py):
-  hand-written V28 motion-threshold baseline over the same matched tensor.
+  hand-written motion-threshold baseline over the same matched tensor.
 - [`scripts/evaluate_external_peg_router.py`](scripts/evaluate_external_peg_router.py):
   matched closed-loop external evaluation.
 - [`scripts/summarize_external_peg_gate.py`](scripts/summarize_external_peg_gate.py):
