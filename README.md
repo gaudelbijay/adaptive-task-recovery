@@ -65,16 +65,21 @@ wrong side is unrecoverable. The two non-recurrent arms fail that pair in
 calls everything temporary — and both recurrent arms solve both. Mechanism
 identification needs no memory; persistence disambiguation does.
 
-## The task
+## The task family
 
 <p align="center">
-  <img src="media/demos/learned-recovery-montage.gif" width="820" alt="Three frozen-policy ManiSkill recordings of one Panda policy: recovery after the first requested cube is physically removed, recovery after the second is removed, and nominal completion of both ordered goals.">
+  <img src="media/demos/learned-recovery-montage.gif" width="820" alt="Three frozen-policy ManiSkill recordings of the earlier restricted-RGB controller on LearnedRecovery-v3: recovery after the first requested cube is physically removed, recovery after the second is removed, and nominal completion of both ordered goals.">
 </p>
 
 <p align="center"><sub>
-One frozen policy across both irreversible-change orderings and a nominal
-two-goal episode. Every intervention is force-driven; pose assignment happens
-only at reset.
+What an irreversible change looks like. These are recordings of the earlier
+restricted-RGB controller on <code>LearnedRecovery-v3</code>, seed 4796, at
+96,657,408 steps: one frozen policy across both removal orderings and a nominal
+two-goal episode, force-driven interventions, zero teleport calls.
+<b>They are illustrative of the problem, not of the results above.</b> The
+ladder and the confusion-pair findings use <code>LearnedRecovery-v4</code>,
+which adds permanent and temporary blockage and reverse ejection — mechanisms
+this footage does not contain — and a router rather than this controller.
 </sub></p>
 
 Runtime routing is temporally causal — it reads only observations at or before
