@@ -1,26 +1,83 @@
 # Adaptive Task Recovery
 
-Adaptive Task Recovery (ATR) studies how a robot should preserve task intent
-when the world changes during execution: an object is ejected, a goal becomes
-blocked, or a temporary obstruction makes the original plan invalid.
+When a robot is part-way through a task and the world changes irreversibly — an
+object is knocked out of reach, a goal gets blocked, an obstruction appears that
+may or may not clear — it has to work out which of its goals are still possible
+and pursue those, without faking success. Adaptive Task Recovery (ATR) is a
+benchmark and an audit for that problem.
 
-The current method combines temporal evidence accumulation over observed
-motion, calibrated abstention, and continuous-control specialists. Runtime
-routing is temporally causal -- it reads only observations at or before the
-current step -- and excludes intervention identity, future state, oracle
-feasibility, and native success labels. "Causal" throughout this repository
-refers to that no-future-access property, not to inferring causal dynamics;
-see the history ablation below.
+## The idea
+
+Building a recovery benchmark is easy. Building one that actually *measures*
+recovery is not, because a benchmark can look hard while being solvable by
+something trivial.
+
+ATR's benchmark holds out a recovery mechanism the model never trains on, then
+asks whether it can compose the right response. A large margin over a learned
+baseline looked like evidence that it could. **It wasn't.** A model that sees a
+single past frame — no memory, no sequence encoder — identifies the held-out
+mechanism perfectly.
+
+So we built a **shortcut ladder**: score the held-out mechanism against four
+controls of increasing capability on the identical inputs, split, and targets.
+
+| Rung | Control | Question it answers |
+|---|---|---|
+| 1 | current frame only | is the mechanism visible instantaneously? |
+| 2 | one past frame | …from a single earlier observation? |
+| 3 | hand-written rule | …from a motion threshold with no learning? |
+| 4 | recurrent model | does it need temporal evidence at all? |
+
+**If a lower rung matches rung 4, the held-out mechanism is a shortcut** and no
+composition claim survives, however large the margin over a weak baseline.
 
 <p align="center">
-  <img src="media/demos/learned-recovery-montage.gif" width="900" alt="Frozen-policy ManiSkill recovery and nominal-control episodes.">
+  <img src="media/results/shortcut-ladder.png" width="960" alt="Panel A: held-out mechanism accuracy by control rung for two benchmarks. On LearnedRecovery-v4 a one-past-frame model reaches 1.00, matching the recurrent model, so the held-out mechanism is a shortcut. On PegInsertionSide-v1 no rung below the recurrent model exceeds 0.09. Panel B: closed-loop safe recovery on permanent versus temporary obstruction for four arms. The hand-written rule scores 1.00 and 0.00; the one-past-frame model scores 0.00 and 0.84; both recurrent arms solve both sides.">
 </p>
 
-## Strongest completed results
+Run on two benchmarks the ladder returns **opposite verdicts**, which is what
+makes it a method rather than an anecdote. `LearnedRecovery-v4`'s held-out
+mechanism is a shortcut (rung 2 = rung 4 = 1.00). `PegInsertionSide-v1`'s is
+not — there no rung below the recurrent model exceeds 0.09, and on genuinely
+observed held-out prefixes every method including ours is at or below 0.02.
 
-Only the latest completed results that support a positive claim are summarized
-here. Rejected experiments, development sweeps, and historical results remain
-available in the evidence ledger, not in the README.
+**The design lesson is specific.** Current-centering was introduced to remove an
+earlier shortcut in which instantaneous geometry gave the mechanism away, and it
+worked — rung 1 drops to 0.03. But because centering expresses every frame as a
+signed displacement to the present, it *created* a rung-2 shortcut where one old
+frame carries the whole answer. Fixing a leakage path at one rung opened a
+subtler one at the next, and only the ladder exposes it.
+
+**What memory is actually for** (panel B) is narrower than it looked: deciding
+whether an obstruction is permanent or temporary, where committing early to the
+wrong side is unrecoverable. The two non-recurrent arms fail that pair in
+*opposite* directions — the rule calls everything permanent, the one-frame model
+calls everything temporary — and both recurrent arms solve both. Mechanism
+identification needs no memory; persistence disambiguation does.
+
+## The task
+
+<p align="center">
+  <img src="media/demos/learned-recovery-montage.gif" width="820" alt="Three frozen-policy ManiSkill recordings of one Panda policy: recovery after the first requested cube is physically removed, recovery after the second is removed, and nominal completion of both ordered goals.">
+</p>
+
+<p align="center"><sub>
+One frozen policy across both irreversible-change orderings and a nominal
+two-goal episode. Every intervention is force-driven; pose assignment happens
+only at reset.
+</sub></p>
+
+Runtime routing is temporally causal — it reads only observations at or before
+the current step — and excludes intervention identity, future state, oracle
+feasibility, and native success labels. "Causal" throughout this repository
+refers to that no-future-access property, **not** to inferring causal dynamics;
+the history ablation below rejects the stronger reading.
+
+## Results in detail
+
+The numbers behind the figure above, plus the completed baseline set. Rejected
+experiments, development sweeps, and historical results stay in the evidence
+ledger rather than the README.
 
 ### Guarded factorized dispatch — untouched confirmation, completed baselines
 
@@ -194,6 +251,10 @@ Key entry points:
   matched closed-loop external evaluation.
 - [`scripts/summarize_external_peg_gate.py`](scripts/summarize_external_peg_gate.py):
   fail-closed external publication gate.
+- [`scripts/audit_shortcut_ladder.py`](scripts/audit_shortcut_ladder.py): the
+  four-rung shortcut audit, and
+  [`scripts/plot_shortcut_ladder.py`](scripts/plot_shortcut_ladder.py) which
+  renders the figure above from committed artifacts.
 - [`docs/18-evidence-blueprint.md`](docs/18-evidence-blueprint.md): evidence
   provenance and claim boundaries.
 
