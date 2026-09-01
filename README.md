@@ -4,10 +4,13 @@ Adaptive Task Recovery (ATR) studies how a robot should preserve task intent
 when the world changes during execution: an object is ejected, a goal becomes
 blocked, or a temporary obstruction makes the original plan invalid.
 
-The current method combines causal temporal inference, calibrated abstention,
-and continuous-control specialists. Runtime routing uses observable trajectory
-history; intervention identity, future state, oracle feasibility, and native
-success labels are excluded.
+The current method combines temporal evidence accumulation over observed
+motion, calibrated abstention, and continuous-control specialists. Runtime
+routing is temporally causal -- it reads only observations at or before the
+current step -- and excludes intervention identity, future state, oracle
+feasibility, and native success labels. "Causal" throughout this repository
+refers to that no-future-access property, not to inferring causal dynamics;
+see the history ablation below.
 
 <p align="center">
   <img src="media/demos/learned-recovery-montage.gif" width="900" alt="Frozen-policy ManiSkill recovery and nominal-control episodes.">
@@ -19,7 +22,7 @@ Only the latest completed results that support a positive claim are summarized
 here. Rejected experiments, development sweeps, and historical results remain
 available in the evidence ledger, not in the README.
 
-### Guarded factorized causal dispatch — untouched confirmation
+### Guarded factorized dispatch — untouched confirmation, completed baselines
 
 The V10 candidate was frozen before its once-only `347000000` confirmation
 family was opened. Evaluation uses three policy lineages, five recovery
@@ -57,8 +60,9 @@ evidence of learned composition. The learned router's entire advantage over a
 hand-written baseline is concentrated in one place: deciding whether an
 obstruction is temporary or permanent, **+84.38 points [+80.63, +87.11]**, where
 the heuristic scores 0.00%. On forward ejection and permanent blockage the
-heuristic is slightly *better*. Accumulating causal evidence about persistence
-is what the learned model buys; recognizing which mechanism fired is not.
+heuristic is slightly *better*. Accumulating evidence about whether an
+obstruction will clear is what the learned model buys; recognizing which
+mechanism fired is not.
 
 The static MLP's 0.00% is structural, not a defeated baseline: current-centering
 makes the final geometry frame exactly zero (audited, `final_geometry_max_abs =
@@ -102,7 +106,9 @@ trajectory-moment baseline by **+9.03 points** (**[+1.96, +18.08]**). Its
 +2.82-point difference from the unstructured GRU is not statistically resolved
 (**[−1.40, +9.38]**), so no architecture-superiority claim is made for that
 comparison. This is real-robot offline inference, not real-robot closed-loop
-control.
+control. The model name follows the simulator router's; the history-direction
+ablation above was run on that router, not on this offline predictor, so no
+causal-dynamics claim is made here either.
 
 Authoritative record:
 [`results/a_plus_audit/reboot_v2_aggregate.json`](results/a_plus_audit/reboot_v2_aggregate.json).
@@ -166,7 +172,9 @@ Key entry points:
 - [`src/atr/envs/peg_insertion_recovery.py`](src/atr/envs/peg_insertion_recovery.py):
   no-teleport extension of official ManiSkill PegInsertion.
 - [`src/atr/policies/causal_option_router.py`](src/atr/policies/causal_option_router.py):
-  learned causal and matched router models.
+  learned temporally-causal and matched router models.
+- [`src/atr/policies/heuristic_option_router.py`](src/atr/policies/heuristic_option_router.py):
+  hand-written V28 motion-threshold baseline over the same matched tensor.
 - [`scripts/evaluate_external_peg_router.py`](scripts/evaluate_external_peg_router.py):
   matched closed-loop external evaluation.
 - [`scripts/summarize_external_peg_gate.py`](scripts/summarize_external_peg_gate.py):

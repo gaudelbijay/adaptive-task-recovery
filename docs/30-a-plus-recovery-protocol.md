@@ -293,3 +293,42 @@ motion evidence, not causal dynamics inference.
 
 Machine-readable records: `results/router/matched_router_comparison_347M.json`
 and `results/router/v18_factorized_dispatch/history_ablation_seed{0,1,2}.json`.
+
+### Terminology: two senses of "causal"
+
+The word carries two meanings in this repository and only one is supported by
+evidence.
+
+*Temporally causal* means the model reads no observation after the current
+step. `current_centered_sequence` centers on the current frame, prefix
+timestamps are pre-action in both collection and deployment, and
+`causal_safe_targets` builds targets without future events. This property is
+audited and holds.
+
+*Causal-dynamics inference* would mean the model recovers how the intervention
+evolved. The history-direction ablation rejects this reading: reversing the
+prefix leaves held-out reverse accuracy at 97.7%, 77.6%, and 96.9% across
+seeds, while removing history collapses it to 0.000. Under current-centering
+each frame already carries a signed displacement to the present, so direction
+is available per frame and the model aggregates rather than integrates
+dynamics.
+
+Identifiers (`CausalOptionRouter`, `causal_gru`, `causal_option_router.py`)
+retain the original name deliberately. Frozen gate configs, checkpoint
+`model` strings, and `router_checkpoint_sha256` provenance for an already-
+opened confirmation all key on those exact strings; renaming them would break
+reproducibility of a once-only result to fix a wording problem. Prose must
+instead state the supported mechanism: temporal aggregation of signed motion
+evidence, with abstention until persistence is established.
+
+### Single-observation baseline that is not handed zeros
+
+`StaticOptionRouter` reads the final frame, which centering forces to exactly
+zero, so its 0.00% is structural. The declared factorial therefore cannot
+separate "history is required" from "this arm received no input".
+`StaticOffsetRouter` closes that gap: it reads one *earlier* frame, which under
+centering carries the signed displacement between then and now. It is a genuine
+single-observation model with real information and no sequence encoder.
+Variants are trained at the earliest valid frame and at 16- and 48-step
+offsets, capacity-matched at hidden dimension 96, on the same data, seeds, and
+held-out option. Selection among offsets uses group-disjoint validation only.

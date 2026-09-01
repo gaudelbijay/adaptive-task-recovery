@@ -18,8 +18,8 @@ import mani_skill.envs  # noqa: F401
 import atr.envs.learned_recovery_v4  # noqa: F401
 import atr.envs.learned_recovery_v4_ood  # noqa: F401
 from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
-    current_centered_sequence,
+    CausalOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+    UnstructuredOptionGRU, current_centered_sequence,
 )
 from atr.policies.heuristic_option_router import HeuristicMotionRouter
 from collect_v4_option_router_data import POSE_KEYS, SNAPSHOTS, extract_features
@@ -41,6 +41,10 @@ def load_router(checkpoint_path: Path, metadata_path: Path, device):
     if name == "causal_gru": model = CausalOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
     elif name == "static_mlp": model = StaticOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"])
     elif name == "unstructured_gru": model = UnstructuredOptionGRU(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
+    elif name.startswith("static_offset_"):
+        suffix = name.rsplit("_", 1)[1]
+        offset = None if suffix == "first" else int(suffix)
+        model = StaticOffsetRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], offset)
     elif name == "heuristic_motion":
         # Hand-written V28 baseline. It has no trained parameters; its buffers
         # are feature indices resolved from the same matched metadata.

@@ -1,7 +1,8 @@
+import pytest
 import torch
 
 from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
+    OPTION_NAMES, CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
     causal_safe_targets, current_centered_sequence,
 )
 from atr.policies.peg_router_features import relative_geometry, world_to_local
@@ -64,6 +65,20 @@ def test_matched_baselines_accept_identical_contract():
     assert static.option_log_probability.shape == recurrent.shape == (5, 6)
 
 
+def test_external_static_baseline_is_parameter_matched():
+    models = {
+        "causal": CausalOptionRouter(13, hidden_dim=96, layers=2),
+        "static": StaticOptionRouter(13, hidden_dim=288),
+        "unstructured": UnstructuredOptionGRU(13, hidden_dim=96, layers=2),
+    }
+    counts = {
+        name: sum(parameter.numel() for parameter in model.parameters())
+        for name, model in models.items()
+    }
+    assert abs(counts["static"] - counts["causal"]) / counts["causal"] < 0.02
+    assert abs(counts["unstructured"] - counts["causal"]) / counts["causal"] < 0.01
+
+
 def test_normalization_rejects_wrong_feature_contract():
     model = CausalOptionRouter(4, hidden_dim=8, layers=1)
     try:
@@ -111,3 +126,48 @@ def test_peg_router_vectors_are_rotated_into_randomized_hole_frame():
     ]])
     geometry = relative_geometry(raw)
     assert torch.allclose(geometry[0, :3], torch.tensor([1.0, 0.0, 0.0]), atol=1e-6)
+
+
+def test_static_offset_router_reads_a_past_frame_not_the_zeroed_current_one():
+    """The current frame is zero after centering; an earlier frame is not."""
+    from atr.policies.causal_option_router import StaticOffsetRouter
+
+    raw = torch.zeros(1, 8, 6)
+    raw[0, :4, :] = 0.05
+    lengths = torch.tensor([8])
+    centered = current_centered_sequence(raw, lengths, 6)
+    assert centered[0, -1].abs().max() == 0.0
+
+    first = StaticOffsetRouter(6, 16, None)
+    assert first._select(centered, lengths).abs().max() > 0.0
+
+    zeroed = StaticOptionRouter(6, 16)
+    from atr.policies.causal_option_router import _last_valid
+    assert _last_valid(centered, lengths).abs().max() == 0.0
+
+
+def test_static_offset_router_offset_is_clamped_to_the_prefix_start():
+    from atr.policies.causal_option_router import StaticOffsetRouter
+
+    sequence = torch.arange(24, dtype=torch.float32).reshape(1, 8, 3)
+    lengths = torch.tensor([4])
+    far = StaticOffsetRouter(3, 8, 99)
+    assert torch.equal(far._select(sequence, lengths), sequence[:, 0])
+    near = StaticOffsetRouter(3, 8, 1)
+    assert torch.equal(near._select(sequence, lengths), sequence[:, 2])
+
+
+def test_static_offset_router_rejects_a_non_past_offset():
+    from atr.policies.causal_option_router import StaticOffsetRouter
+
+    with pytest.raises(ValueError):
+        StaticOffsetRouter(3, 8, 0)
+
+
+def test_static_offset_router_emits_the_factorized_head_contract():
+    from atr.policies.causal_option_router import StaticOffsetRouter
+
+    model = StaticOffsetRouter(6, 16, None)
+    output = model(torch.randn(4, 8, 6), torch.tensor([8, 8, 8, 8]))
+    assert output.option_log_probability.shape == (4, len(OPTION_NAMES))
+    assert output.event_logits.shape[0] == 4

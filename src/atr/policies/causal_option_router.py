@@ -4,6 +4,23 @@ The router deliberately contains no environment names, intervention IDs, or
 geometry thresholds.  It maps a prefix of matched physical observations to a
 distribution over recovery options.  Its factorization separates event type,
 sweep direction, and blocker persistence so each component can be audited.
+
+**What "causal" does and does not mean here.**  It means *temporally causal*:
+at decision time the model reads only observations at or before the current
+step, never a future frame, and `current_centered_sequence` performs its
+centering against the current frame rather than the episode end.  That property
+is audited and holds.
+
+It does **not** mean the model infers causal dynamics.  The preregistered
+history ablation (`scripts/audit_temporal_composition_ablations.py`) shows that
+removing the geometry history collapses held-out reverse accuracy to 0.000 on
+every seed, but *reversing* the prefix in time leaves it at 97.7%, 77.6%, and
+96.9%.  History is necessary; its temporal direction largely is not.  The
+supported mechanism is temporal aggregation of signed motion evidence.  Class
+and checkpoint names retain "causal" because frozen checkpoints, gate configs,
+and confirmation hashes key on those exact strings -- renaming them would break
+the provenance chain for an already-opened confirmation.  Prose claims should
+say what is supported, not repeat the identifier.
 """
 
 from __future__ import annotations
@@ -224,6 +241,61 @@ class StaticOptionRouter(nn.Module):
             )
         final = _last_valid(sequence, lengths)
         return self.heads(self.encoder((final - self.input_mean) / self.input_scale))
+
+
+class StaticOffsetRouter(nn.Module):
+    """Single-observation baseline that reads one *past* frame, not the final one.
+
+    :class:`StaticOptionRouter` reads the final frame, which current-centering
+    forces to exactly zero -- so it receives no information by construction and
+    cannot distinguish "history is required" from "this arm was handed zeros".
+    This variant reads one earlier frame instead. Under current-centering that
+    frame is the signed displacement between then and now, so the model gets a
+    real motion signal from a single observation and no sequence model.
+
+    ``offset=None`` reads the earliest valid frame, the maximum-information
+    single frame. An integer ``offset`` reads that many steps back from the
+    current frame, clamped to the start of the prefix.
+    """
+
+    def __init__(self, input_dim: int, hidden_dim: int = 96, offset: int | None = None):
+        super().__init__()
+        self.input_dim = int(input_dim)
+        self.offset = None if offset is None else int(offset)
+        if self.offset is not None and self.offset < 1:
+            raise ValueError("offset must be at least one frame in the past")
+        self.register_buffer("input_mean", torch.zeros(self.input_dim))
+        self.register_buffer("input_scale", torch.ones(self.input_dim))
+        self.encoder = nn.Sequential(
+            nn.Linear(self.input_dim, hidden_dim), nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim), nn.SiLU(),
+        )
+        self.heads = _FactorizedHeads(hidden_dim)
+
+    def set_normalization(self, mean: torch.Tensor, scale: torch.Tensor) -> None:
+        if mean.shape != (self.input_dim,) or scale.shape != (self.input_dim,):
+            raise ValueError("normalization vectors do not match input_dim")
+        self.input_mean.copy_(mean)
+        self.input_scale.copy_(scale.clamp_min(1e-6))
+
+    def _select(self, sequence: torch.Tensor, lengths: torch.Tensor) -> torch.Tensor:
+        lengths = lengths.to(sequence.device)
+        if self.offset is None:
+            index = torch.zeros_like(lengths)
+        else:
+            index = (lengths - 1 - self.offset).clamp_min(0)
+        return sequence[torch.arange(sequence.shape[0], device=sequence.device), index]
+
+    def forward(
+        self, sequence: torch.Tensor, lengths: torch.Tensor | None = None,
+    ) -> RouterOutput:
+        if lengths is None:
+            lengths = torch.full(
+                (sequence.shape[0],), sequence.shape[1], dtype=torch.long,
+                device=sequence.device,
+            )
+        frame = self._select(sequence, lengths)
+        return self.heads(self.encoder((frame - self.input_mean) / self.input_scale))
 
 
 class UnstructuredOptionGRU(nn.Module):

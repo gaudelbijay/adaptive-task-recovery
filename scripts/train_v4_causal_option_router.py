@@ -15,8 +15,8 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
-    causal_safe_targets, current_centered_sequence,
+    CausalOptionRouter, StaticOffsetRouter, StaticOptionRouter,
+    UnstructuredOptionGRU, causal_safe_targets, current_centered_sequence,
 )
 
 
@@ -33,6 +33,12 @@ def make_model(name: str, input_dim: int, hidden_dim: int):
     if name == "causal_gru": return CausalOptionRouter(input_dim, hidden_dim, 2)
     if name == "static_mlp": return StaticOptionRouter(input_dim, hidden_dim)
     if name == "unstructured_gru": return UnstructuredOptionGRU(input_dim, hidden_dim, 2)
+    # Single-observation baselines that read one past frame instead of the
+    # current frame, which centering forces to zero. "first" reads the earliest
+    # valid frame; "offsetN" reads N steps back.
+    if name == "static_offset_first": return StaticOffsetRouter(input_dim, hidden_dim, None)
+    if name.startswith("static_offset_"):
+        return StaticOffsetRouter(input_dim, hidden_dim, int(name.rsplit("_", 1)[1]))
     raise ValueError(name)
 
 
@@ -219,13 +225,20 @@ def main():
     parser.add_argument("--output-dir", default="results/router/v4_causal_router_v1")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--hidden-dim", type=int, default=96)
+    parser.add_argument("--static-hidden-dim", type=int, default=288)
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--current-centered-geometry-dim", type=int, default=0)
     parser.add_argument("--heldout-option", type=int, choices=range(6))
     parser.add_argument(
         "--models", nargs="+",
-        choices=("causal_gru", "static_mlp", "unstructured_gru"),
+        choices=(
+            "causal_gru", "static_mlp", "unstructured_gru",
+            # Single-observation baselines reading one past frame. The current
+            # frame is exactly zero after centering, so `static_mlp` alone
+            # cannot separate "history is required" from "given no input".
+            "static_offset_first", "static_offset_16", "static_offset_48",
+        ),
         default=("causal_gru", "static_mlp", "unstructured_gru"),
     )
     args = parser.parse_args()
@@ -262,7 +275,12 @@ def main():
     summary = {"schema_version": 1, "seed": args.seed, "models": {}}
     for name in args.models:
         torch.manual_seed(args.seed)
-        model = make_model(name, raw["sequence"].shape[-1], args.hidden_dim).to(device)
+        model_hidden_dim = (
+            args.static_hidden_dim if name == "static_mlp" else args.hidden_dim
+        )
+        model = make_model(
+            name, raw["sequence"].shape[-1], model_hidden_dim,
+        ).to(device)
         model.set_normalization(mean.to(device), scale.to(device))
         optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
         loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, generator=torch.Generator().manual_seed(args.seed))
@@ -303,7 +321,12 @@ def main():
         }
         checkpoint = {
             "schema_version": 1, "model": name, "seed": args.seed,
-            "input_dim": int(raw["sequence"].shape[-1]), "hidden_dim": args.hidden_dim,
+            "input_dim": int(raw["sequence"].shape[-1]),
+            "hidden_dim": model_hidden_dim,
+            "trainable_parameters": sum(
+                parameter.numel() for parameter in model.parameters()
+                if parameter.requires_grad
+            ),
             "current_centered_geometry_dim": args.current_centered_geometry_dim,
             "heldout_option": args.heldout_option,
             "state_dict": model.state_dict(), "calibration": calibration,
@@ -316,6 +339,8 @@ def main():
         summary["models"][name] = {
             "best_epoch": best[1], "validation": validation_metrics,
             "calibration": calibration, "test": test_metrics,
+            "hidden_dim": model_hidden_dim,
+            "trainable_parameters": checkpoint["trainable_parameters"],
             "checkpoint": str(path),
             "checkpoint_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         }

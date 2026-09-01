@@ -119,3 +119,43 @@ The release decision is conjunctive:
 
 Until both closed-loop gates pass, the defensible paper framing is benchmark
 and representation evidence, not a top-tier general recovery method.
+
+## Correction: what the V10 comparison actually establishes
+
+Three corrections apply to the V10 paragraphs above. None changes a frozen
+threshold or reinterprets a rejection; all are recorded because the original
+scoring was incomplete or the wording overclaimed.
+
+**The declared comparison was incomplete.** The gate listed five methods.
+`heuristic_v28_router` and `oracle_mechanism_router_upper_bound` had no
+implementation when V10 was scored, so "strongest matched non-oracle baseline"
+ranged over three arms, not five. Both are now built and run on the same
+family.
+
+**The reported gain included an unmatched mechanism.** The causal arm ran a
+factorized sweep dispatch that no other arm can execute. Disabling it leaves
+held-out reverse ejection at exactly 561/576 and changes only forward ejection.
+The matched gain over the unstructured GRU is 7.26 points [5.44, 9.07] -- still
+above the frozen five-point floor, but the correct number to quote is 7.26, not
+10.45.
+
+**"Causal composition" is the wrong description of the held-out result.** The
+hand-written motion-threshold heuristic reaches the *same* 97.40% on held-out
+reverse ejection as the learned model. A held-out mechanism that a six-branch
+threshold rule identifies perfectly is not evidence of learned causal
+composition. The learned model's advantage over that heuristic is confined to
+temporary-versus-permanent obstruction (84.38% against 0.00%) and to
+constraint violations (0.83% against 16.98%).
+
+The history ablation supports the same narrowing. Removing geometry history
+collapses held-out accuracy to 0.000 on every seed, but reversing the prefix in
+time leaves it at 97.7%, 77.6%, and 96.9%. History is necessary; its direction
+largely is not. Throughout this repository "causal" should be read as
+*temporally causal* -- no access to future frames -- and not as causal-dynamics
+inference. Class and checkpoint identifiers keep the older name because frozen
+gate hashes and confirmation provenance key on those exact strings.
+
+The revised blocking weakness is therefore sharper than the original list: the
+benchmark's held-out mechanism is too easy to detect, so mechanism recognition
+cannot carry a method claim. Persistence disambiguation can, and that is the
+result the external PegInsertion gate should be designed to test.
