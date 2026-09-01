@@ -11,7 +11,7 @@ last_updated: 2026-08-28
 > [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
 
 
-This document is the evidence and reporting contract for the non-teleport V3 track. It
+This document is the evidence and reporting contract for the non-teleport `LearnedRecovery-v3` track. It
 is deliberately incomplete while the preregistered adaptive and confirmation
 cohorts run. A number enters the abstract, contribution list, or conclusion
 only if its named aggregate below exists and passes its fail-closed verifier.
@@ -53,7 +53,7 @@ Jarvis integration test then resets `LearnedRecovery-v3`, replaces ManiSkill's
 steps successfully. Thus task execution and the physical intervention do not
 assign poses after reset. The combined learned-recovery, visual-policy, and
 statistical/checkpoint/teacher/selection-gate/method-accounting contract suite passes 100/100 tests
-on Jarvis after the final V3 runtime-test, checkpoint gate, V14 allocation gate,
+on Jarvis after the final `LearnedRecovery-v3` runtime-test, checkpoint gate, V14 allocation gate,
 integrated-policy selection, dual-regime comparison, and strict five-seed
 allocation changes.
 
@@ -72,7 +72,7 @@ allocation changes.
    asymmetric critic, DAgger initialization, temporal latent prediction, PPO
    continuation, and checkpoint selection.
 5. **Benchmark:** randomized cube starts, fixed camera, physical sweeper,
-   continuous Panda control, V3 event reward, nominal/sweeper/strict protocols.
+   continuous Panda control, `LearnedRecovery-v3` event reward, nominal/sweeper/strict protocols.
 6. **Experiments:** hypotheses V1–V5, ablations, strict branch analysis,
    state-policy controls, five-seed confirmation, representation diagnostics,
    and compute accounting.
@@ -88,7 +88,7 @@ allocation changes.
 | Nominal restricted-RGB competence | `results/visual_recovery_ppo/visual_recovery_progress_dagger_v6_event_reward/aggregate.json` | Complete |
 | Clean strict physical removal | `results/strict_removal_comparison/strict_removal_screening_comparison_v1/aggregate.json` | Complete |
 | Strict state-training effect | `results/strict_removal_comparison/strict_removal_state_training_comparison_v1/aggregate.json` | Complete |
-| Preregistered V1–V5 | `results/final_visual_comparison/hypotheses.json` | Complete: V1–V4 rejected; V5 confirmed only against the frozen historical state reference and explicitly not competitive with the post-audit 98.44%-safe strict state baseline |
+| Preregistered hypotheses V1–V5 | `results/final_visual_comparison/hypotheses.json` | Complete: V1–V4 (hypothesis: visual adaptive recovery) rejected; V5 confirmed only against the frozen historical state reference and explicitly not competitive with the post-audit 98.44%-safe strict state baseline |
 | Full strict comparison | `results/strict_removal_comparison/strict_removal_extension_comparison_v1/aggregate.json` | Dependency-scheduled |
 | Strict benchmark table/figure | strict-removal extension artifacts | Dependency-scheduled |
 | Matched strict/nominal benchmark comparison | integrated regime comparison v2 | Complete as `1140913`/`1140914`; seven methods, identical three-seed/768-episode protocols, exact source hashes; V19 only >90% worst endpoint |
@@ -158,7 +158,7 @@ The primary integrated-policy comparison is generated separately from
 success, both strict removed-goal branches, violations, hierarchical intervals,
 and the minimum safe-success endpoint for every visual and state cohort. The
 builder fails closed unless every source contains exactly 768 episodes from
-three training seeds under the V3 event-reward semantics.
+three training seeds under the `LearnedRecovery-v3` event-reward semantics.
 
 ### Table 4: Hypotheses and ablations
 
@@ -184,7 +184,7 @@ primary direct-RGB hypothesis into a confirmation.
   temporal SSL. The +17.71-point pooled extension passes its declared pooled
   threshold, but its paired hierarchical interval includes zero.
 - Primary direct RGB factorial nominal: 0.26% safe for symmetric PPO and 0%
-  for both asymmetric variants. Primary V1, V2, and V3 are rejected; the later
+  for both asymmetric variants. Primary V1 (hypothesis: visual control competence), V2 (hypothesis: privileged training without inference leakage), and V3 (hypothesis: temporal representation learning) are rejected; the later
   DAgger competence extension cannot rewrite them.
 - V7 adaptive continuation: 94.14% nominal safe but only 32.42% strict safe;
   clean-minus-V7 strict safe is +19.92 points [−0.13, 48.83]. It does not

@@ -18,15 +18,15 @@ constant across the evaluated high-level split, not that uncertainty is absent.
 
 ## V41 three-seed canonicalization result
 
-V41 deploys the audited V40 checkpoint lineage with one fixed magnitude gate.
+V41 (the magnitude-gated canonicalization controller) deploys the audited V40 (the audited canonicalization lineage) checkpoint lineage with one fixed magnitude gate.
 It reaches 89.45% standard nominal, 95.57% standard intervention, and 96.35%
 strict-removal safe success across three seeds. The minimum standard and strict
 seed rates are 83.20% and 94.14%; pooled strict performance exactly matches the
-V19 incumbent. Cyclic progress intervention produces positive paired effects
+V19 (the dual-specialist RGB controller) incumbent. Cyclic progress intervention produces positive paired effects
 in both conditions: 11.07 points nominal [4.43, 19.79] and 13.15 points under
 intervention [0.39, 23.18].
 
-The untouched mean improves from V35's 18.34% to 44.47%, but the frozen
+The untouched mean improves from V35's (the observed-domain canonicalization controller) 18.34% to 44.47%, but the frozen
 all-domain rule is rejected. Synthetic geometric intervention cells reach
 72.92%--82.03%; combined camera displacement reaches only 0.26% nominal /
 10.81% intervention, and opposite-side lighting reaches 0% / 5.08%. The final
@@ -35,9 +35,9 @@ causal progress utility, and improved geometric transfer—not general visual
 robustness. V41 uses privileged same-state supervision and supplies no
 real-robot, pure self-supervised, or from-scratch RL evidence.
 
-Two bounded follow-ups clarify the limitation. V42's unconstrained renderer
+Two bounded follow-ups clarify the limitation. V42's (the unconstrained renderer-repair candidate) unconstrained renderer
 repair crosses the clean route and collapses nominal/intervention to
-50.39%/63.28%. V43 restores retention to 91.02%/91.80% with stronger identity
+50.39%/63.28%. V43 (the identity-protected renderer-repair candidate) restores retention to 91.02%/91.80% with stronger identity
 protection, but reaches only 33.65% mean development OOD and 0% worst OOD.
 Together they isolate a plasticity/invariance conflict in dense pixel
 reconstruction: it can either alter clean controller inputs or preserve them
@@ -46,13 +46,13 @@ multi-seed or untouched allocation.
 
 ## V35 observed-domain allocation result
 
-The seed-1788 V35 translation-repair smoke passes all seven frozen allocation
+The seed-1788 V35 (the observed-domain canonicalization controller) translation-repair smoke passes all seven frozen allocation
 checks: 94.14% nominal and 96.09% intervention safe success, a 27.34-point
 causal-progress drop [21.48, 33.20], +53.46-point mean observed-OOD improvement,
 and 55.47% worst observed-OOD safe success. This authorizes the three-seed
 confirmation chain; it does not itself establish multi-seed robustness. The
 observed domains influenced model design, generic translations are supervised
-training data, and V35 inherits privileged V34/V19 supervision. Consequently
+training data, and V35 inherits privileged V34 (the dense spatial-warp candidate)/V19 (the dual-specialist RGB controller) supervision. Consequently
 these numbers support only a development-gate claim, not pure self-supervised
 learning, end-to-end RL, unseen-domain generalization, or real-robot transfer.
 
@@ -160,7 +160,7 @@ ordered feasible goals without displacing a protected yellow object. Pose
 assignment is confined to randomized reset, and a runtime regression test
 forbids `Actor.set_pose()` during task execution.
 
-V6 trains three matched PPO methods for exactly 99,942,400 transitions per
+V6 (the clean learned-progress DAgger RGB controller) trains three matched PPO methods for exactly 99,942,400 transitions per
 seed, three seeds each. Checkpoint selection uses only training-stream
 validation and scores success minus twice the failure rate. Final evaluation
 uses 256 disjoint held-out episodes per seed under intervention and another 256
@@ -288,7 +288,7 @@ the first-goal-removed branch (369/374, 98.66%) and second-goal-removed branch
 [−58.20, −35.55] and −46.09 points safe [−58.33, −36.20] on the identical 768
 episode seeds. Thus the earlier visual-over-state result diagnoses distribution
 shift, not an information advantage. It also establishes a demanding 98.44%
-matched state baseline that the running V13 visual extension must approach
+matched state baseline that the running V13 (the stabilized integrated RGB controller) visual extension must approach
 while retaining nominal performance. This post-audit extension does not alter
 the preregistered comparison.
 
@@ -330,11 +330,11 @@ evaluator, and completed all tasks with exit zero. State-only aggregate
 `1139845` fed gate `1139804`, which failed closed and allocated no V15/V16
 training.
 
-The former V7/V8 five-seed chain was cancelled before allocation because its
+The former V7 (the adaptive continuation controller)/V8 five-seed chain was cancelled before allocation because its
 forced-sweeper endpoint rarely produced actual removal. The replacement
 confirmation is gated on V13's separate strict and nominal held-out aggregates
 and both strict removal branches. Only if all frozen eligibility checks pass do
-seeds 71064 and 84293 retrain byte-identical V6, V13, and integrated-state
+seeds 71064 and 84293 retrain byte-identical V6 (the clean learned-progress DAgger RGB controller), V13, and integrated-state
 tasks. Final aggregation requires all five seeds and 1,280 episodes per
 condition; this post-audit extension cannot revise preregistered V1--V5.
 
@@ -400,7 +400,7 @@ decodability, not a pure self-supervised or causal representation claim.
 The failure-only strict-initialized state continuation reaches 92.58% strict
 safe success, 91.18%/93.91% branch safe, and 0.91% violations, but again scores
 0/768 nominal. Its frozen gate failed only nominal safety. The router artifact
-then released the post-hoc V19/V20 dual-specialist RGB pair, which uses nominal
+then released the post-hoc V19 (the dual-specialist RGB controller)/V20 (the full-strength VICReg ablation) dual-specialist RGB pair, which uses nominal
 RGB and strict state specialists only as disclosed training-time teachers.
 
 V19 subsequently completed three exact 99,999,744-step seeds and its immutable
@@ -411,7 +411,7 @@ first goal is physically removed and 95.69% when the second is removed. It
 passes all six frozen selector checks and improves the integrated worst
 endpoint from V13's 83.69% to 91.41%. This supports a competitive non-teleport
 restricted-input visual-control claim within this benchmark. It does not show
-state-upper-bound parity (strict V11: 98.44% safe, zero violations), pure pixel
+state-upper-bound parity (strict V11 (the strict-trained state PPO specialist): 98.44% safe, zero violations), pure pixel
 RL, pure self-supervision, real-robot transfer, or cross-method superiority:
 V19 uses privileged dual teachers, progress labels, and an asymmetric critic
 during training, and its fixed new-seed confirmation remains in progress.

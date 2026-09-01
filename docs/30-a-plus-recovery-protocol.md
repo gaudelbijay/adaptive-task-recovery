@@ -55,13 +55,13 @@ subset, seed, or favorable OOD profile can substitute for the frozen gate.
 
 ## V2 temporal-composition addendum
 
-The V1 audit found that the five simulator mechanisms are almost perfectly
+The V1 (the instantaneous-geometry router) audit found that the five simulator mechanisms are almost perfectly
 identified from one task-relative state: the causal and unstructured GRUs
 produced the same 878/960 safe successes and the static MLP was one episode
 behind. V1 remains rejected. Further tuning on that representation cannot
 support a causal-memory claim.
 
-Before V2 training or evaluation, the follow-up protocol is frozen in
+Before V2 (the temporal-composition router) training or evaluation, the follow-up protocol is frozen in
 `configs/a_plus_recovery_gate_v2_temporal_composition.json`. At decision time,
 the current 42-dimensional task geometry is subtracted from every geometry
 frame in the prefix. This is deployably causal and translation-invariant: the
@@ -80,7 +80,7 @@ Passing V2 does not retroactively make V1 pass.
 
 ### V2 rejection and V3 feature-contract correction
 
-V2 is rejected before closed-loop evaluation. Across three optimizer seeds,
+V2 (the temporal-composition router) is rejected before closed-loop evaluation. Across three optimizer seeds,
 the causal factorized router reached 100% held-out reverse accuracy and the
 unstructured GRU reached 0%, but the static factorized MLP reached 66.11%,
 above the frozen 40% shortcut ceiling. Inspection of the mechanically named
@@ -88,7 +88,7 @@ feature contract found that V2 centered the first 42 actor/mechanism geometry
 dimensions but omitted dimensions 42:57, which encode TCP position relative
 to cubes, goals, and the protected object.
 
-V3 is frozen in `configs/a_plus_recovery_gate_v3_full_geometry.json` before
+V3 (the full-geometry centered router) is frozen in `configs/a_plus_recovery_gate_v3_full_geometry.json` before
 training. It centers the complete 57-dimensional geometry prefix and changes
 no numerical threshold. Its selection family is `328000000`; its untouched
 confirmation family is `332000000`. V2 remains a machine-recorded failed
@@ -96,7 +96,7 @@ candidate and is not pooled with V3.
 
 ### V3 confirmation rejection and V4 nominal-controller correction
 
-V3 was opened once on its untouched `332000000` confirmation family. The
+V3 (the full-geometry centered router) was opened once on its untouched `332000000` confirmation family. The
 causal router achieved 2655/2880 (92.19%) safe successes with 51/2880 (1.77%)
 violations, versus 2369/2880 (82.26%) for the strongest non-oracle baseline.
 The 9.93-point gain had a 95% Newcombe interval of [7.54, 12.29] points. It
@@ -105,7 +105,7 @@ Nevertheless, nominal safe success was only 456/576 (79.17%), below the frozen
 82% worst-condition floor. V3 is therefore rejected and is never rerun as an
 untouched result.
 
-V4 is preregistered in `configs/a_plus_recovery_gate_v4_nominal_state.json`.
+V4 (the nominal-state revision) is preregistered in `configs/a_plus_recovery_gate_v4_nominal_state.json`.
 It changes only the controller shared by nominal execution and temporary
 recovery after clearance: the dual-specialist RGB controller is replaced with a dedicated
 LearnedRecovery-v4 state PPO trained on nominal episodes. The exact selected
@@ -116,7 +116,7 @@ selection and reserves `333000000` for a once-only untouched confirmation.
 
 ### V4 selection rejection and V5 controller selection
 
-V4 is rejected before confirmation. Two of its three state PPO seeds learned
+V4 (the nominal-state revision) is rejected before confirmation. Two of its three state PPO seeds learned
 0% nominal success; the best seed's frozen checkpoint achieved only 100/192
 (52.08%) safe successes on the `329000000` nominal selection episodes. There
 were zero violations, but the 82% condition floor failed decisively. The
@@ -125,7 +125,7 @@ reserved `333000000` family remains untouched.
 The same selection family was used for a declared five-way screen of the
 existing shared nominal controller. That controller's seed 9351 achieved 166/192 (86.46%)
 safe successes, compared with 135/192 and 152/192 for the other individual
-seeds, 150/192 for the mean ensemble, and 145/192 for the median ensemble. V5
+seeds, 150/192 for the mean ensemble, and 145/192 for the median ensemble. V5 (the selected-nominal router)
 freezes seed 9351's exact checkpoint and hash in
 `configs/a_plus_recovery_gate_v5_selected_nominal.json`. It changes no router,
 specialist, representation, hold, or numerical threshold, and uses fresh
@@ -133,14 +133,14 @@ specialist, representation, hold, or numerical threshold, and uses fresh
 
 ### V5 confirmation rejection and V6 option-specific library
 
-V5 was opened once on `334000000`. It achieved 2623/2880 (91.08%) safe
+V5 (the selected-nominal router) was opened once on `334000000`. It achieved 2623/2880 (91.08%) safe
 successes and beat the matched unstructured model by 7.57 points with a 95%
 Newcombe interval of [5.16, 9.96] points. It is nevertheless rejected: 87/2880
 violations is 3.0208%, one episode beyond the 3.00% cap, and temporary recovery
 was 468/576 (81.25%), five episodes below the 82% condition floor. These are
 not rounded into passes, and no V5 OOD confirmation is run.
 
-V6 freezes an option-specific shared controller library in
+V6 (the option-specific nominal router) freezes an option-specific shared controller library in
 `configs/a_plus_recovery_gate_v6_option_specific_nominal.json`. Nominal option
 0 keeps V5's selected seed-9351 controller; temporary post-clearance option 4
 uses the seed-1788 controller that was stronger on that recovery role. The
@@ -150,14 +150,14 @@ selection and reserves `339000000` for once-only confirmation.
 
 ### V6 selection rejection and V7 evidence-conditioned defer
 
-V6 is rejected before confirmation. It passed overall safe success, violation,
+V6 (the option-specific nominal router) is rejected before confirmation. It passed overall safe success, violation,
 gain, uncertainty, held-out reverse, and temporary recovery, but nominal safe
 success fell to 435/576 (75.52%) on the fresh `335000000` selection family.
 The reserved `339000000` family remains untouched.
 
 Development on the opened selection family showed that the universal 36-step
 defer, not recovery routing, was placing the nominal controller outside its
-training-state distribution. V7 retains 36 as a maximum hold but releases it
+training-state distribution. V7 (the evidence-release router) retains 36 as a maximum hold but releases it
 when the method's own calibrated posterior confirms nominal execution. Later
 events remain revisable. Every method receives the same release rule; no
 mechanism label is consulted. A declared controller screen chose its seed 1788,
@@ -168,14 +168,14 @@ across all conditions in the causal development run. V7 is frozen for fresh
 
 ### V7 selection rejection and V8 natural termination
 
-V7 is rejected before confirmation. It passed overall success, violation,
+V7 (the evidence-release router) is rejected before confirmation. It passed overall success, violation,
 gain, uncertainty, held-out reverse, and every recovery condition, but nominal
 safe success was 464/576 (80.56%) on `336000000`. Its reserved `340000000`
 confirmation family remains untouched.
 
 Nine nominal episodes had reached native success and then violated only because
 the fixed-size vector evaluator continued issuing and scoring actions after the
-environment's natural terminal boundary. V8 freezes first-resolution scoring:
+environment's natural terminal boundary. V8 (the terminal-ensemble router) freezes first-resolution scoring:
 an episode ends at its first success or constraint violation, simultaneous
 success/violation remains unsafe, and later masked simulator steps are not
 scored. This rule is identical for all methods and does not provide a router
@@ -187,7 +187,7 @@ uses fresh `337000000` selection and untouched `341000000` confirmation.
 
 ### V8 selection rejection and V9 reverse-handoff specialist
 
-V8 is rejected before confirmation. It reached 2644/2880 (91.81%) causal safe
+V8 (the terminal-ensemble router) is rejected before confirmation. It reached 2644/2880 (91.81%) causal safe
 successes with 43/2880 (1.49%) violations; its weakest conditions were
 492/576 (85.42%), and held-out reverse was 537/576 (93.23%). The strongest
 non-oracle unstructured GRU reached 2514/2880 (87.29%). The causal gain was
@@ -199,14 +199,14 @@ The causal router's final reverse decision accuracy was 100% in every V8
 reverse manifest; residual failures were downstream controller failures.
 On the now-open `337000000` development family, a screen of existing reverse
 controllers rejected action averaging (144/192) and selected the seed-4796
-handoff checkpoint (188/192 safe, zero violations). V9 changes only this exact
+handoff checkpoint (188/192 safe, zero violations). V9 (the reverse-handoff router) changes only this exact
 option-2 checkpoint, shared by every router, and freezes its SHA-256 in
 `configs/a_plus_recovery_gate_v9_reverse_handoff.json`. Fresh selection is
 `338000000`; `342000000` is reserved for once-only confirmation.
 
 ### V9 OOD rejection and V10 guarded factorized dispatch
 
-V9 passed every primary selection check at 2647/2880 (91.91%) safe success,
+V9 (the reverse-handoff router) passed every primary selection check at 2647/2880 (91.91%) safe success,
 31/2880 (1.08%) violations, and a +5.49-point gain over unstructured with a
 95% Newcombe interval of [3.23, 7.73] points. It is nevertheless rejected
 before confirmation because pooled OOD safe success was 5348/7680 (69.64%),
@@ -216,7 +216,7 @@ roughly 48% violations. The reserved `342000000` family remains untouched.
 On the opened OOD family, a privileged-timing oracle that waited until the
 first causally observable post-event prefix established that the delayed tasks
 were recoverable. The failure decomposed into conservative joint dispatch and
-a forward specialist tied to one handoff distribution. V10 therefore freezes
+a forward specialist tied to one handoff distribution. V10 (the guarded factorized dispatch router) therefore freezes
 three changes: group-disjoint 99%-precision calibration of the existing causal
 event/direction heads, dense pre-action queries under a label-free guard through
 step 40, and an existing seed-84293 forward specialist that achieved 181/192,
@@ -227,7 +227,7 @@ validated factorized dispatch may use it. Fresh selection is `343000000`, and
 
 ### V10 untouched confirmation passes; external gate remains blocking
 
-The V10 candidate was frozen and committed before `347000000` was opened. Its
+The V10 (the guarded factorized dispatch router) candidate was frozen and committed before `347000000` was opened. Its
 once-only primary confirmation passed every preregistered check: 2655/2880
 (92.19%) safe successes, 24/2880 (0.83%) violations, 84.38% in the worst
 condition, and 561/576 (97.40%) on held-out reverse ejection. The strongest
@@ -250,7 +250,7 @@ general recovery claim or README headline promotion.
 
 ### V10 completed method list and mechanism attribution
 
-The gate's `methods` list declared five arms. When V10 was first scored, only
+The gate's `methods` list declared five arms. When V10 (the guarded factorized dispatch router) was first scored, only
 three existed in code: `heuristic_v28_router` and
 `oracle_mechanism_router_upper_bound` were names with no implementation, and
 `scripts/evaluate_v4_learned_option_router.py` dispatched `causal_gru`,
@@ -399,7 +399,7 @@ describe what the model is; the persisted string identifies a specific frozen
 artifact, and the two are allowed to differ. Both dispatch sites carry a
 comment stating this.
 
-Verified after the rename: all three frozen V10 checkpoints load under the new
+Verified after the rename: all three frozen V10 (the guarded factorized dispatch router) checkpoints load under the new
 class names with unchanged SHA-256 digests, including
 `causal_seed0 = 532b763e...`, and 79 contract tests pass.
 
@@ -440,7 +440,7 @@ That benchmark's held-out mechanism is unsolved rather than shortcut-solved,
 and this is recorded as a negative result for the method.
 
 **The design lesson is specific.** Current-centering was introduced to remove
-the V1 shortcut in which instantaneous geometry identified the mechanism, and
+the V1 (the instantaneous-geometry router) shortcut in which instantaneous geometry identified the mechanism, and
 it worked: rung 1 falls to 0.0322. But because centering expresses every frame
 as a signed displacement to the present, it *created* a rung-2 shortcut, where
 one sufficiently old frame carries the whole answer. Fixing a leakage path at
@@ -448,7 +448,7 @@ one rung introduced a subtler one at the next, and only the ladder exposes it.
 
 **Caveat on rung 3.** The hand-written rule never emits the `defer` option, so
 its offline accuracy against targets that use deferral before onset is not
-comparable to the learned rungs; its closed-loop score, 97.40% on V4's held-out
+comparable to the learned rungs; its closed-loop score, 97.40% on V4's (the nominal-state revision) held-out
 reverse, is the meaningful one. The shortcut verdict rests on rungs 1, 2, and
 4, which share a training target convention.
 

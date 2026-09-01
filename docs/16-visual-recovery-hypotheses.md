@@ -31,7 +31,7 @@ gate additionally excludes TCP and therefore remains a stricter baseline.
   trained vision exceeds no-intervention training on first-goal-removed cases.
   Gate: positive paired 95% interval over at least 768 held-out episodes.
 - **V5 — competitive safe recovery:** the final adaptive visual method matches
-  or beats the matched V3 adaptive state PPO in raw and safe success without
+  or beats the matched `LearnedRecovery-v3` adaptive state PPO in raw and safe success without
   exceeding its violation rate. The primary comparison trains both methods on
   the originally locked 50% intervention distribution and evaluates both on
   identical step-0 physical-removal seeds; every reported episode must contain
@@ -40,16 +40,16 @@ gate additionally excludes TCP and therefore remains a stricter baseline.
   state policy trained directly on the strict distribution reaches 98.44% raw
   and safe success with zero violations. It is a stronger distribution-matched
   extension and the benchmark's required upper baseline, but it cannot rewrite the
-  preregistered V5 primary comparison.
+  preregistered V5 (hypothesis: competitive safe recovery) primary comparison.
 
-V1 is tested first. V2/V3 are a factorial comparison at the same 40M-step
+V1 (hypothesis: visual control competence) is tested first. V2 (hypothesis: privileged training without inference leakage)/V3 are a factorial comparison at the same 40M-step
 budget, environment distribution, seeds, optimizer, and evaluation schedule.
 Failure of V1 blocks claims about recovery and triggers curriculum/teacher
 distillation rather than spending full recovery budgets on an incompetent
 controller. All final claims require held-out deterministic evaluation and
 per-seed reporting; training-time best metrics are only a selection diagnostic.
 The executable verdict configuration is
-`configs/visual_recovery_hypothesis_validation_v1.json`. V1, V2, V3, V4, and
+`configs/visual_recovery_hypothesis_validation_v1.json`. V1, V2, V3, V4 (hypothesis: visual adaptive recovery), and
 V5 each name a primary comparison. Later protocol extensions are included in
 the generated report but cannot overturn a rejected primary hypothesis. This
 prevents choosing whichever completed ablation happens to produce the most
@@ -61,15 +61,15 @@ direct-RGB V1 test into a confirmation.
 
 ## Frozen V1--V5 verdicts
 
-All required three-seed, 768-episode primary inputs are now complete. V1 is
+All required three-seed, 768-episode primary inputs are now complete. V1 (hypothesis: visual control competence) is
 **rejected**: direct RGB PPO reaches only 2/768 nominal raw and safe successes
-(0.26%). V2 is **rejected**: asymmetric training reaches 0/768 and does not
-improve on direct RGB. V3 is **rejected**: adding temporal prediction to the
+(0.26%). V2 (hypothesis: privileged training without inference leakage) is **rejected**: asymmetric training reaches 0/768 and does not
+improve on direct RGB. V3 (hypothesis: temporal representation learning) is **rejected**: adding temporal prediction to the
 direct asymmetric policy also reaches 0/768; the favorable DAgger comparison
 is retained only as a protocol extension because its paired hierarchical
-interval crosses zero. V4 is **rejected**: adaptive V7 is 8.56 points worse
+interval crosses zero. V4 (hypothesis: visual adaptive recovery) is **rejected**: adaptive V7 is 8.56 points worse
 than clean V6 on first-goal-physically-removed safe success, with paired 95%
-interval [−36.36, 20.66]. V5 is **confirmed only for its preregistered primary
+interval [−36.36, 20.66]. V5 (hypothesis: competitive safe recovery) is **confirmed only for its preregistered primary
 comparison**: V7 exceeds the historical state reference under identical strict
 evaluation seeds. That primary reference is only 2.86% safe and is superseded
 for benchmark competitiveness by the post-audit strict-trained state PPO at 98.44%
@@ -80,7 +80,7 @@ rewrite these verdicts.
 
 ## Post-registration integrated-policy hypotheses
 
-The rejected V1--V5 primaries remain immutable. Later experiments answer three
+The rejected hypotheses V1--V5 primaries remain immutable. Later experiments answer three
 separately labeled questions under the corrected strict-removal and nominal
 protocols:
 
@@ -208,7 +208,7 @@ removals, so those pooled values are not labeled post-removal recovery. A
 separate step-0 strict-removal protocol requires actual unavailability in every
 episode and is never pooled with the original condition. The clean visual
 cohort passed that invariant in 768/768 final episodes and achieved 52.60% raw
-and 52.34% safe success with 0.65% violations. V4 now reads only the paired
+and 52.34% safe success with 0.65% violations. V4 (hypothesis: visual adaptive recovery) now reads only the paired
 first-goal-physically-removed contrast from this strict aggregate; V5 reads
 only the matched strict visual-versus-state comparison. Target-only branch
 labels cannot enter either verdict. The authorized adaptive V7 continuation is
@@ -227,7 +227,7 @@ caused the gain or improved control.
 Qualitative README media is also gated rather than treated as free-form
 cherry-picking. The capture script searches the first safe success in a fixed
 declared seed range, but it may run only after the same method's three-seed,
-768-episode aggregate matches the V3 state reference in raw recovery, safe
+768-episode aggregate matches the `LearnedRecovery-v3` state reference in raw recovery, safe
 recovery, and violation rate and retains at least 70% nominal success. Its JSON
 records the search range and selected seed. A visually appealing isolated
 success from a weaker aggregate is ineligible to replace the README montage.
@@ -257,8 +257,8 @@ This was a sequencing-expert choice, not a claim that the teacher is a safety
 oracle: seed 1788's nominal safe success was 52.0% and its full-horizon
 violation rate was 48.0% (versus 42.2%/7.0% for seed 4796). Consequently the
 student must reduce violations through the safety-penalized PPO phase and still
-pass V5's matched V3 state-reference violation gate. Raw imitation success
-alone cannot confirm the method; the historical 8.59% V2 rate is context, not
+pass V5's matched `LearnedRecovery-v3` state-reference violation gate. Raw imitation success
+alone cannot confirm the method; the historical 8.59% `LearnedRecovery-v2` rate is context, not
 the V3 acceptance threshold.
 
 A separate privileged-representation candidate predicts scaled cube/sweeper
@@ -317,15 +317,15 @@ action MSE term that decays linearly from 0.1 to zero over the first 5M PPO
 steps. Ground-truth state and teacher actions remain training-only. The
 follow-up is useful only if it improves pooled 4.9M success by at least five
 percentage points without increasing violations; otherwise it is rejected.
-This gate is explicitly post-hoc and cannot be presented as a predeclared V1--V5
+This gate is explicitly post-hoc and cannot be presented as a predeclared hypotheses V1--V5
 confirmation.
 
-The later reward audit superseded this V2-only gate before a kickstarting job
+The later reward audit superseded this `LearnedRecovery-v2`-only gate before a kickstarting job
 was launched. Because all V2 candidates optimize the same success-delaying
 reward, their 4.9M comparison cannot distinguish controller forgetting from
 objective misalignment. The current V2 runs and their gate measurements remain
 negative diagnostics, but no additional GPU budget is assigned to the V2
-kickstarting or intervention branches. V3 begins from the already-declared
+kickstarting or intervention branches. `LearnedRecovery-v3` begins from the already-declared
 DAgger candidate without a result-contingent kickstarting change.
 
 At the analogous 4.907M V3 checkpoint, the three temporal+learned-progress
@@ -386,7 +386,7 @@ as exploratory diagnostics and are ineligible for final claims.
 
 ### Reward-objective audit and V3 correction
 
-Before held-out visual evaluation, a code-level reward audit found that V2 paid
+Before held-out visual evaluation, a code-level reward audit found that `LearnedRecovery-v2` paid
 `3 * completed_goal_count` on every remaining step. With the configured
 normalization and discount (`gamma=0.95`), stalling after the first goal can
 produce `0.3 / (1 - 0.95) = 6.0` discounted reward, whereas completing the
@@ -402,7 +402,7 @@ completion bonus, and the existing terminal success and safety terms. An
 unchanged state away from the protected object receives zero task reward, so
 waiting after goal one cannot accumulate return. V2 jobs are retained as a
 fully disclosed negative reward-audit cohort, but no V2 result is eligible for
-V1--V5 confirmation. All final state and visual methods are rerun on V3 with
+hypotheses V1--V5 confirmation. All final state and visual methods are rerun on V3 (hypothesis: temporal representation learning) with
 matched seeds and budgets. This correction was declared before any V3 training
 or held-out result existed.
 
@@ -415,7 +415,7 @@ one-feasible-goal branch and is not evidence of reliable ordered two-goal
 control. These V2 held-out results were produced after V3 was specified and do
 not influence its reward coefficients or training configuration.
 
-The matched V3 state-policy reference subsequently completed its predeclared
+The matched `LearnedRecovery-v3` state-policy reference subsequently completed its predeclared
 held-out evaluation. Across 768 forced-intervention episodes it achieved
 425/768 raw successes (55.34%, Wilson [51.81%, 58.82%]), 424/768 safe
 successes (55.21%, Wilson [51.67%, 58.69%]), a 1.56% constraint-violation
