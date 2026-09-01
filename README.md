@@ -26,14 +26,49 @@ family was opened. Evaluation uses three policy lineages, five recovery
 conditions, matched observations and specialists across routers, and a held-out
 reverse-ejection mechanism.
 
-| Metric | V10 causal dispatch | Strongest matched non-oracle |
-|---|---:|---:|
-| Safe recovery | **2,655/2,880 — 92.19%** | 2,354/2,880 — 81.74% |
-| Gain | **+10.45 points** | — |
-| Newcombe 95% interval | **[+8.05, +12.83] points** | — |
-| Constraint violations | **24/2,880 — 0.83%** | — |
-| Worst condition | **84.38% safe recovery** | — |
-| Held-out reverse ejection | **561/576 — 97.40%** | — |
+The gate's declared method list includes a hand-written V28 heuristic router and
+an oracle upper bound. Both were unimplemented when the gate was first scored,
+so the original comparison ran three arms rather than five. Both are now built
+and evaluated on the same family; the table below is the completed comparison.
+
+The causal arm additionally ran a factorized sweep dispatch that no other arm
+can execute. It is reported separately rather than folded in, because only one
+arm could receive it.
+
+| Arm | n | Safe recovery | Violations | Held-out reverse |
+|---|---:|---:|---:|---:|
+| **Causal router (matched inputs)** | 2,880 | **88.99%** | **0.83%** | **97.40%** |
+| Unstructured GRU | 2,880 | 81.74% | 4.83% | 46.88% |
+| Hand-written V28 heuristic | 960 | 74.06% | 16.98% | 97.40% |
+| Static MLP | 2,880 | 0.00% | 0.00% | 0.00% |
+| Immediate oracle (privileged) | 960 | 89.79% | 1.87% | 90.10% |
+| *Causal + factorized dispatch* | *2,880* | *92.19%* | *0.83%* | *97.40%* |
+
+Matched-input gains, Newcombe 95%: **+7.26 points [+5.44, +9.07]** over the
+unstructured GRU and **+14.93 points [+12.00, +18.00]** over the heuristic. The
+causal router is statistically indistinguishable from the privileged immediate
+oracle (**−0.80 points [−2.93, +1.55]**) while using no privileged input.
+
+**Where the advantage actually comes from.** The hand-written heuristic solves
+four of the five mechanisms, *including the held-out reverse ejection at an
+identical 97.40%*. The held-out mechanism is therefore trivially detectable from
+motion features, and the large margin over the unstructured GRU is not by itself
+evidence of learned composition. The learned router's entire advantage over a
+hand-written baseline is concentrated in one place: deciding whether an
+obstruction is temporary or permanent, **+84.38 points [+80.63, +87.11]**, where
+the heuristic scores 0.00%. On forward ejection and permanent blockage the
+heuristic is slightly *better*. Accumulating causal evidence about persistence
+is what the learned model buys; recognizing which mechanism fired is not.
+
+The static MLP's 0.00% is structural, not a defeated baseline: current-centering
+makes the final geometry frame exactly zero (audited, `final_geometry_max_abs =
+0.0`), so a model that sees only that frame receives an all-zero input.
+
+A history ablation on 4,544 held-out reverse prefixes per seed shows removing
+geometry history collapses held-out accuracy to **0.000** on all three seeds,
+but *reversing* the prefix leaves it at **97.7% / 77.6% / 96.9%**. History is
+required; its temporal direction largely is not. The supported mechanism is
+temporal aggregation of signed motion evidence, not causal dynamics inference.
 
 The same frozen controller passed the registered pooled OOD gate at
 **6,369/7,680 — 82.93% safe recovery**, above its 75% floor, with **2.81%**
@@ -41,8 +76,11 @@ violations. This is a pooled result, not universal robustness: 12-step action
 delay reached only 55.83% safe recovery, and a long temporary obstruction
 produced 15.83% violations.
 
-Authoritative record:
-[`configs/temporal_composition_v10_confirmation.json`](configs/temporal_composition_v10_confirmation.json).
+Authoritative records:
+[`configs/temporal_composition_v10_confirmation.json`](configs/temporal_composition_v10_confirmation.json)
+and [`results/router/matched_router_comparison_347M.json`](results/router/matched_router_comparison_347M.json).
+The completed five-arm comparison and the history ablations are development
+evidence on an already-opened family, not a second gate pass.
 
 ### REBOOT real-robot trajectories — leave-one-object-out transfer
 

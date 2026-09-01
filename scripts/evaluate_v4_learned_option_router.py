@@ -21,6 +21,7 @@ from atr.policies.causal_option_router import (
     CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
     current_centered_sequence,
 )
+from atr.policies.heuristic_option_router import HeuristicMotionRouter
 from collect_v4_option_router_data import POSE_KEYS, SNAPSHOTS, extract_features
 from evaluate_v19_on_v4 import CONDITIONS, SEEDS
 from train_manipulation_ppo import Agent as StateAgent
@@ -40,6 +41,14 @@ def load_router(checkpoint_path: Path, metadata_path: Path, device):
     if name == "causal_gru": model = CausalOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
     elif name == "static_mlp": model = StaticOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"])
     elif name == "unstructured_gru": model = UnstructuredOptionGRU(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
+    elif name == "heuristic_motion":
+        # Hand-written V28 baseline. It has no trained parameters; its buffers
+        # are feature indices resolved from the same matched metadata.
+        model = HeuristicMotionRouter(
+            checkpoint["feature_names"], checkpoint["threshold"],
+        )
+        model.to(device).eval()
+        return model, checkpoint
     else: raise ValueError(f"unknown router model: {name}")
     model.load_state_dict(checkpoint["state_dict"]); model.to(device).eval()
     return model, checkpoint

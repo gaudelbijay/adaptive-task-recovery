@@ -241,3 +241,55 @@ This closes the input-matched positive-method blocker on LearnedRecovery-v4.
 It does not close the paper gate. The independently preregistered, no-teleport
 `PegInsertionSide-v1` closed-loop experiment must still pass before an A/A+
 general recovery claim or README headline promotion.
+
+### V10 completed method list and mechanism attribution
+
+The gate's `methods` list declared five arms. When V10 was first scored, only
+three existed in code: `heuristic_v28_router` and
+`oracle_mechanism_router_upper_bound` were names with no implementation, and
+`scripts/evaluate_v4_learned_option_router.py` dispatched `causal_gru`,
+`static_mlp`, and `unstructured_gru` only. The declared comparison was
+therefore incomplete, and this is recorded rather than quietly corrected.
+
+Both missing arms are now implemented
+(`src/atr/policies/heuristic_option_router.py`, twelve contract tests) and
+evaluated on the same `347000000` family with matched observations,
+specialists, seeds, and execution settings. Because that family is already
+opened, all results in this section are development evidence and cannot
+substitute for the original once-only confirmation.
+
+Two unmatched factors were also isolated:
+
+1. The causal arm ran a factorized sweep dispatch that no other arm can
+   execute (`"factorized_sweep_dispatch": "causal only"`). Disabling it changes
+   only forward ejection, 96.88% to 80.90%, and leaves held-out reverse
+   ejection at exactly 561/576 either way. The matched pooled result is
+   88.99%, and the matched gain over the unstructured GRU is 7.26 points
+   [5.44, 9.07] -- still above the frozen five-point floor without the
+   unmatched mechanism.
+2. The static MLP scores 0.00% by construction. Current-centering forces the
+   final geometry frame to exactly zero (`final_geometry_max_abs = 0.0`), so a
+   model reading only that frame receives an all-zero input. The declared
+   factorial cannot separate "history is required" from "this arm was handed a
+   zero vector"; a static arm trained on a non-final frame would be needed.
+
+The completed comparison relocates the finding. The hand-written heuristic
+solves four of five mechanisms and matches the causal router exactly on the
+held-out reverse ejection (both 97.40%), so held-out composition is not
+evidence of learned causal structure -- a motion threshold achieves it. On
+forward ejection and permanent blockage the heuristic is slightly better. The
+learned router's advantage is concentrated entirely in temporary-versus-
+permanent obstruction, 84.38% against 0.00% (+84.38 points [80.63, 87.11]),
+and in constraint violations, 0.83% against 16.98%. Pooled, the causal router
+is statistically indistinguishable from a privileged immediate oracle
+(-0.80 points [-2.93, 1.55]) while consuming no privileged input.
+
+The preregistered history ablations were also unrun and are now complete on
+4,544 held-out reverse prefixes per seed. Removing geometry history collapses
+held-out accuracy to 0.000 on all three seeds. Reversing the prefix leaves it
+at 97.7%, 77.6%, and 96.9%. History is necessary; its temporal direction
+largely is not. Claims must therefore say temporal aggregation of signed
+motion evidence, not causal dynamics inference.
+
+Machine-readable records: `results/router/matched_router_comparison_347M.json`
+and `results/router/v18_factorized_dispatch/history_ablation_seed{0,1,2}.json`.
