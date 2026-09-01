@@ -18,7 +18,8 @@ only if its named aggregate below exists and passes its fail-closed verifier.
 
 ## One-sentence thesis
 
-A single continuous, language-conditioned visual policy can detect that an
+A single continuous visual policy, conditioned on a parsed goal-order
+encoding, can detect that an
 ordered manipulation goal has become physically unavailable, abandon only that
 goal, complete the feasible suffix, and respect an explicit protected-object
 constraint—without object-pose input or runtime teleportation.

@@ -55,7 +55,7 @@ schema contracts this phase calls for, neither of which exists yet — see
 
 ## Phase 2 — static policy baseline
 
-- **Policy:** Train static and oracle-feasibility language-conditioned policies.
+- **Policy:** Train static and oracle-feasibility goal-order-conditioned policies.
 - **Representation:** Provide deterministic parsing/encoding and a placeholder belief adapter.
 - **Shared:** Quantify nominal performance, adaptation headroom, and post-change failures.
 

@@ -8,9 +8,9 @@ last_updated: 2026-08-01
 
 ## One-liner
 
-A feasibility-aware vision-language reinforcement learning agent that recognizes
-which instructed goals survive an irreversible world change and adapts its
-strategy to maximize valid goal completion without betraying the instruction.
+A feasibility-aware reinforcement learning agent that recognizes which
+instructed goals survive an irreversible world change and adapts its strategy to
+maximize valid goal completion without betraying the instruction.
 
 ## Core research question
 
@@ -20,11 +20,26 @@ or a path closes. Can the robot tell which goals are still possible, still do
 whichever of them remain achievable, and never fake success by doing
 something it was never asked to do?
 
-> Can a vision-language reinforcement learning agent, equipped with
-> self-supervised visual representations, learn to identify which
-> language-specified goals remain feasible after unforeseen and irreversible
-> world changes, and adapt its task strategy to maximize goal achievement
-> without violating the original intent?
+> Can a reinforcement learning agent, conditioned on a parsed goal
+> specification and equipped with learned visual representations, identify
+> which goals remain feasible after unforeseen and irreversible world changes,
+> and adapt its task strategy to maximize goal achievement without violating
+> the original intent?
+
+**What "language" means in this project, precisely.** No language model is used
+in the policy loop. `src/atr/language/instruction_parser.py` compiles
+controlled-grammar English into a `GoalGraph` offline; it is a hand-written
+grammar, not learned, and its own module docstring says so. What reaches a
+policy is a two-dimensional encoding of the resulting goal order, written
+`instruction.0` and `instruction.1` in the feature schema. Describing these
+policies as "language-conditioned" or "vision-language" overstates the input:
+they are conditioned on a parsed goal-order encoding.
+
+The one language-supervised model in the repository is CLIP
+(`src/atr/feasibility/clip_feasibility.py`, open_clip ViT-B-32), used zero-shot
+with text prompts for object presence in the earlier teleport-executor track.
+It is not used by the router, the shortcut ladder, or any result in the
+README.
 
 ## Build-up order (one capability at a time)
 

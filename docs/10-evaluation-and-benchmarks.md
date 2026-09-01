@@ -29,7 +29,7 @@ evaluation so controller reliability does not obscure the research result.
 ## Required baselines
 
 - no-change upper control;
-- static language-conditioned policy;
+- static goal-order-conditioned policy;
 - domain-randomized policy without explicit feasibility;
 - simple frame-difference change detector plus rules;
 - adaptive policy with task-reward-only visual encoder;
@@ -39,7 +39,7 @@ evaluation so controller reliability does not obscure the research result.
 - full self-supervised feasibility-conditioned agent with intent guard.
 
 **Toy-scale first instances (2026-07-29, extended through 2026-08-01):**
-"static language-conditioned policy" and "oracle-feasibility policies"
+"static goal-order-conditioned policy" and "oracle-feasibility policies"
 both have first hand-authored implementations in
 `spikes/task_schema_draft/policy_baselines.py` (D-014) — a single
 scenario, confirmed with the same result across four robot/scene

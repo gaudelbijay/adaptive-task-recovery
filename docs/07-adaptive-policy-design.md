@@ -25,7 +25,7 @@ avoid defining success circularly.
 
 ## Policy variants
 
-1. **Static language-conditioned policy:** never receives explicit change or
+1. **Static goal-order-conditioned policy:** never receives explicit change or
    feasibility estimates.
 2. **Change-aware policy:** receives a change embedding but no per-goal labels.
 3. **Feasibility-conditioned policy:** receives learned per-goal beliefs.

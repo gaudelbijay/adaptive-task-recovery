@@ -26,7 +26,7 @@ low-level skill outcomes are logged separately.
 
 ## Stage 1 — static baseline
 
-**Policy:** train static and oracle-feasibility language-conditioned policies
+**Policy:** train static and oracle-feasibility goal-order-conditioned policies
 and evaluate both before and after interventions. **Representation:** supply the
 deterministic language representation used by these baselines. **Shared gate:**
 reliable nominal behavior and a measured adaptation gap.

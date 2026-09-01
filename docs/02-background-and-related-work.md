@@ -42,7 +42,7 @@ treated as a common leaderboard.
   manipulation subpolicies, including switching to recover from failures and
   bypassing redundant stages. This is especially relevant to ATR's ordered
   suffix behavior. Its unit of control is a chain of dexterous subpolicies;
-  ATR instead evaluates one continuous language-conditioned policy after an
+  ATR instead evaluates one continuous goal-order-conditioned policy after an
   exogenous stage becomes physically impossible.
 - **SPIRE** combines task-and-motion-planning decomposition, imitation, and RL
   for long-horizon contact-rich manipulation. It is a strong precedent for
@@ -210,7 +210,7 @@ this repository use identical ATR cases, paired seeds, and common evaluators.
 | Autonomous Interactive Correction | Corrected contact pose | Articulated interaction failure | Pose execution | No |
 | Failure-Aware RL | Safety critic + recovery policy | Intervention-requiring failure | Yes | No (IR-failure metric) |
 | Sequential Dexterity | Transition feasibility + chained subpolicies | Failed/redundant stage | Yes | No |
-| ATR V19 integrated learned recovery | One restricted-input, language-conditioned PPO policy | Persistent exogenous goal loss | Yes; continuous joint control | Yes; 1.30% strict / 3.65% nominal violations |
+| ATR dual-specialist RGB controller (visual series V19) | One restricted-input PPO policy conditioned on a parsed goal-order encoding | Persistent exogenous goal loss | Yes; continuous joint control | Yes; 1.30% strict / 3.65% nominal violations |
 
 The ATR row now describes the completed three-seed screen: 96.35% strict safe,
 91.41% nominal safe, and 97.06%/95.69% safe success on the two physical-removal

@@ -131,7 +131,7 @@ unrequested object, or violate the glass constraint for reward.
   non-cherry-picked picture of what it actually takes to make either one
   reliable in a live decision loop, not just at calibration time.
 - **H2 — explicit feasibility:** conditioning strategy selection on per-goal
-  feasibility estimates outperforms a static language-conditioned policy after
+  feasibility estimates outperforms a static goal-order-conditioned policy after
   irreversible changes. **First toy-scale test (2026-07-29):** see D-014 in
   `ai-notes/decisions.md` and `spikes/task_schema_draft/policy_baselines.py`
   — a hand-authored single scenario, not evidence for the general claim, but
@@ -190,7 +190,8 @@ unrequested object, or violate the glass constraint for reward.
   (67.80% versus 68.05%). This is the strongest direct H2 result because the
   same policy performs the motor control and the recovery. It uses simulator
   state and a factorized instruction encoding, not images/open text, and does
-  not establish the full vision-language hypothesis.
+  not establish a vision-language hypothesis; no language model is used in the
+  policy loop.
 - **H3 — intent guard:** explicit goal/constraint checking reduces semantic and
   constraint violations with an acceptable trade-off in achievable-goal recall.
   **First toy-scale test (2026-07-29):** see D-015 and
