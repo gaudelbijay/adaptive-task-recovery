@@ -6,18 +6,22 @@ last_updated: 2026-08-30
 
 # IROS publishability gate
 
-The existing V19 result is a strong custom-benchmark result, not yet a strong
+> **Naming.** V36--V60 are *visual* controller candidates; the A+ V1--V10 are
+> *router* candidates. A counter is a later candidate, not a better one. See
+> [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
+The dual-specialist RGB controller is a strong custom-benchmark result, not yet a strong
 main-track IROS paper. Repository scale and the number of attempted variants do
-not substitute for novelty or external validity. V36--V60 is closed as a
-patching line after the independent V60 lineage retained only 69.53% nominal
-safe success on seed 9351.
+not substitute for novelty or external validity. The visual robustness-patching line is closed: its final candidate retained
+only 69.53% nominal safe success on seed 9351.
 
 ## Blocking weaknesses
 
 1. The benchmark contains one intervention mechanism, two colored cubes, one
    camera, and one robot arm.
-2. V19 is a privileged dual-teacher distillation recipe rather than a concise
-   new recovery algorithm.
+2. The incumbent controller is a privileged dual-teacher distillation recipe
+   rather than a concise new recovery algorithm.
 3. The winning actor fails small camera and appearance shifts.
 4. There is no held-out failure-mechanism result and no shared external
    benchmark comparison.
@@ -61,7 +65,7 @@ corresponding outcomes:
 3. Nominal, strict removal, each removal position, protected-object violation,
    and recovery latency reported for the same checkpoints.
 4. Three or more independent training seeds and hierarchical uncertainty.
-5. Oracle-belief, end-to-end V19, no-memory, random-feature, and
+5. Oracle-belief, end-to-end dual-specialist RGB, no-memory, random-feature, and
    no-counterfactual-pair baselines under identical evaluation seeds.
 6. A reserved camera/lighting/object-appearance suite with no tuning on its
    outcomes.
@@ -76,28 +80,28 @@ outcome is observed.
 
 ## 2026-08-31 reconciliation after the temporal-composition study
 
-The assessment above predates the completed A+ V3 experiment. V3 fixed the
-input mismatch and produced a positive causal-composition result: the causal
-model reached 100% held-out reverse accuracy offline while the static and
+The assessment above predates the completed A+ V3 experiment. The full-geometry centered router fixed the input mismatch and produced a
+positive composition result: that model reached 100% held-out reverse accuracy offline while the static and
 unstructured controls reached 3.22% and 0%; on the once-only closed-loop
 confirmation it achieved 573/576 held-out reverse safe successes and 2655/2880
 overall, versus 2369/2880 for the matched unstructured baseline. The overall
 gain was 9.93 points with a 95% Newcombe interval of [7.54, 12.29] points.
 
-V3 remains rejected because its nominal condition reached only 456/576
-(79.17%), below the frozen 82% worst-condition floor. V4--V9 retained that
-rejection history and used fresh selection/confirmation families; none was
+It remains rejected because its nominal condition reached only 456/576
+(79.17%), below the frozen 82% worst-condition floor. The six router candidates
+that followed retained that rejection history and used fresh selection/confirmation families; none was
 reinterpreted as a pass.
 
-V10 now closes the custom-benchmark method blocker. On the once-only untouched
-`347000000` confirmation family, the causal method achieved 2655/2880 (92.19%)
+The guarded factorized dispatch router closes the custom-benchmark method
+blocker. On the once-only untouched `347000000` confirmation family, it achieved 2655/2880 (92.19%)
 safe success with 0.83% violations, versus 2354/2880 (81.74%) for the strongest
 matched non-oracle baseline. The +10.45-point gain has a 95% Newcombe interval
 of [8.05, 12.83] points. It also passed the frozen pooled OOD gate at 6369/7680
 (82.93%). This result has a real boundary: twelve-step control delay reached
 only 55.83%, and the 48-step temporary-block axis produced 15.83% violations.
 
-Passing V10 is necessary but not sufficient for an A/A+ claim. The remaining
+Passing the guarded factorized dispatch router's gate (router series V10) is
+necessary but not sufficient for a top-tier claim. The remaining
 blocker is closed-loop external validity. The second-family protocol
 is frozen separately in
 `configs/a_plus_external_peg_insertion_gate_v1.json`: an intervention extension
@@ -110,7 +114,7 @@ confirmation bank.
 
 The release decision is conjunctive:
 
-1. V10 primary and pooled OOD gates pass on `347000000` (completed).
+1. Its primary and pooled OOD gates pass on `347000000` (completed).
 2. The external PegInsertion gate passes on `429000000`.
 3. The existing REBOOT result remains labeled offline real-robot transfer, not
    closed-loop real-robot control.
@@ -120,15 +124,15 @@ The release decision is conjunctive:
 Until both closed-loop gates pass, the defensible paper framing is benchmark
 and representation evidence, not a top-tier general recovery method.
 
-## Correction: what the V10 comparison actually establishes
+## Correction: what the router comparison actually establishes
 
-Three corrections apply to the V10 paragraphs above. None changes a frozen
+Three corrections apply to the paragraphs above. None changes a frozen
 threshold or reinterprets a rejection; all are recorded because the original
 scoring was incomplete or the wording overclaimed.
 
 **The declared comparison was incomplete.** The gate listed five methods.
 `heuristic_v28_router` and `oracle_mechanism_router_upper_bound` had no
-implementation when V10 was scored, so "strongest matched non-oracle baseline"
+implementation when the router was scored, so "strongest matched non-oracle"
 ranged over three arms, not five. Both are now built and run on the same
 family.
 

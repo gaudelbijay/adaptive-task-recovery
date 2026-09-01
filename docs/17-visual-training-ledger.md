@@ -1,5 +1,11 @@
 # Jarvis visual training ledger
 
+> **Naming.** This is a per-candidate ledger, so the counter is the primary key
+> and is retained deliberately. Row titles of the form "V19 <name> V27" read as
+> "frozen base policy / candidate built on it". See
+> [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
 This ledger separates exploratory jobs from experiments eligible for final
 claims. Times are Jarvis scheduler times in America/New_York. All arrays use one
 L40S per task, atomic checkpoints, and the repository's 24-hour continuation

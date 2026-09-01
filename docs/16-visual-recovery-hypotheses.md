@@ -1,5 +1,12 @@
 # Visual recovery: staged hypotheses and decision gates
 
+> **Naming.** V1--V5 here are **hypotheses**, not models, and do not correspond
+> to visual controllers or router candidates with the same numbers. Where the
+> text says "the matched V3 adaptive state PPO" it means the *environment*
+> generation `LearnedRecovery-v3`. See
+> [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
 The final policy must execute continuous robot commands in `LearnedRecovery-v3`.
 It receives RGB, Panda joint position/velocity, robot TCP pose, and the parsed
 two-token order instruction. TCP is robot proprioception derived from its own

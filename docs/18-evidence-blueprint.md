@@ -6,6 +6,11 @@ last_updated: 2026-08-28
 
 # Recover What Remains: Visual Manipulation after Irreversible Goal Loss
 
+> **Naming.** Counters span the hypothesis, visual-controller, and state-policy
+> series and are not comparable across them. See
+> [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
 This document is the evidence and reporting contract for the non-teleport V3 track. It
 is deliberately incomplete while the preregistered adaptive and confirmation
 cohorts run. A number enters the abstract, contribution list, or conclusion

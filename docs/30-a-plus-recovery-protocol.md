@@ -1,6 +1,12 @@
 # A/A+ recovery protocol (frozen before development)
 
-This protocol replaces the previous goal of improving the V28 aggregate.  V28
+> **Naming.** Counters in this document belong to the *recovery router* series
+> unless marked otherwise; V19 and V28 are *visual*-series artifacts. A counter
+> is not a quality ordering. See
+> [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
+This protocol replaces the previous goal of improving the hand-written hybrid controller's aggregate.  That controller
 is a baseline: its routing logic is a hand-written motion-threshold state
 machine, and its primary comparison does not match the router and policy input
 contract.  Those facts prevent it from supporting a top-tier learning claim.
@@ -37,7 +43,7 @@ after the implementation and calibration are frozen.
 3. REBOOT is an external real-robot *offline transfer* benchmark.  It tests
    causal recovery-state prediction from real bimanual trajectory prefixes;
    it is not described as real-robot closed-loop control.
-4. Restricted-RGB V19 remains context evidence and is never presented as an
+4. The dual-specialist RGB controller (visual series V19) remains context evidence and is never presented as an
    input-matched primary baseline for a state-observation router.
 
 ## Stopping rule
@@ -101,7 +107,7 @@ untouched result.
 
 V4 is preregistered in `configs/a_plus_recovery_gate_v4_nominal_state.json`.
 It changes only the controller shared by nominal execution and temporary
-recovery after clearance: the V19 RGB controller is replaced with a dedicated
+recovery after clearance: the dual-specialist RGB controller is replaced with a dedicated
 LearnedRecovery-v4 state PPO trained on nominal episodes. The exact selected
 checkpoint is shared by every router baseline. The 57-dimensional temporal
 representation, specialists, router calibration, 36-step safe hold, OOD axes,
@@ -117,7 +123,7 @@ were zero violations, but the 82% condition floor failed decisively. The
 reserved `333000000` family remains untouched.
 
 The same selection family was used for a declared five-way screen of the
-existing shared nominal controller. V19 seed 9351 achieved 166/192 (86.46%)
+existing shared nominal controller. That controller's seed 9351 achieved 166/192 (86.46%)
 safe successes, compared with 135/192 and 152/192 for the other individual
 seeds, 150/192 for the mean ensemble, and 145/192 for the median ensemble. V5
 freezes seed 9351's exact checkpoint and hash in
@@ -154,7 +160,7 @@ defer, not recovery routing, was placing the nominal controller outside its
 training-state distribution. V7 retains 36 as a maximum hold but releases it
 when the method's own calibrated posterior confirms nominal execution. Later
 events remain revisable. Every method receives the same release rule; no
-mechanism label is consulted. A declared controller screen chose V19 seed 1788,
+mechanism label is consulted. A declared controller screen chose its seed 1788,
 which achieved 167/192 (86.98%) nominal safe successes and 893/960 (93.02%)
 across all conditions in the causal development run. V7 is frozen for fresh
 `336000000` selection and untouched `340000000` confirmation in
@@ -345,7 +351,7 @@ Closed-loop on `347000000`, per condition:
 |---|---|---:|---:|---:|
 | causal GRU (matched) | yes | 97.40% | 84.38% | 97.40% |
 | unstructured GRU | yes | 97.40% | 84.20% | 46.88% |
-| hand-written V28 heuristic | no | 100.00% | 0.00% | 97.40% |
+| hand-written motion rule | no | 100.00% | 0.00% | 97.40% |
 | static offset, one frame | no | 0.00% | 84.38% | 97.40% |
 
 Two conclusions follow, and both narrow the earlier claim.

@@ -6,6 +6,11 @@ last_updated: 2026-08-30
 
 # Results and claim boundaries
 
+> **Naming.** Counters here span the visual-controller and state-policy series
+> and are not comparable across series. A counter is a later candidate, not a
+> better one. See [`31-naming-and-identifier-key.md`](31-naming-and-identifier-key.md).
+
+
 This is the validated index of results that passed their current validation
 gate. It deliberately separates abstract skill selection from continuous robot
 control. Confidence intervals are 95%; a point interval means the aggregate was
