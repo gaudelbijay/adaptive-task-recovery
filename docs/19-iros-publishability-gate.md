@@ -197,32 +197,37 @@ this section is development evidence on an already-opened family.
 
 ## External validity of the audit itself
 
-The shortcut ladder has now been run on three benchmarks, and the external
-validity question it faced -- "you audited your own benchmarks" -- is answered.
-REBOOT supplies the negative control: 2,072 real-robot trajectories across nine
-leave-one-object-out families, collected by another group, where the rung-2
-endpoint-pair control reaches 0.6080 macro-AUROC against 0.8045 for the
-recurrent model (+0.1966 [0.1557, 0.2357]).
+The ladder has been run on three benchmarks with an identical rung set. The
+matched set revised an earlier conclusion recorded in this file and in the
+README, and the revision is kept rather than absorbed.
 
-| Benchmark | Rung 2 | Rung 4 | Shortcut |
-|---|---:|---:|---|
-| LearnedRecovery-v4 (ours) | 1.0000 | 1.0000 | yes |
-| PegInsertionSide-v1 | 0.0909 | 0.4015 | no |
-| REBOOT (external, real robot) | 0.6080 | 0.8045 | no |
+| Benchmark | Best non-recurrent rung | Recurrent | Ratio | Verdict |
+|---|---:|---:|---:|---|
+| LearnedRecovery-v4 (ours) | 1.0000 | 1.0000 | 1.000 | shortcut |
+| PegInsertionSide-v1 | 0.0909 | 0.4015 | 0.226 | none |
+| REBOOT (external, real robot) | 0.7466 | 0.8045 | 0.928 | shortcut, marginal |
 
-One positive and two negatives. The audit does not fire everywhere, so the
-positive on our own benchmark is a property of that benchmark rather than of
-the instrument. This is the evidence that converts a finding about one custom
-environment into a claim about how recovery evaluations are constructed, and it
-does not depend on the Peg closed-loop gate passing.
+Two of three benchmarks, including real-robot trajectories collected by another
+group, have held-out mechanisms identifiable without the capability under test.
+This is a broader claim than the earlier "we audited our own benchmark and
+found it flawed", and it does not depend on the Peg closed-loop gate passing.
 
-It also revises what the REBOOT numbers in this repository mean. A whole-prefix
-summary of mean and standard deviation reaches 0.7466 there with no recurrence,
-so most of that benchmark's signal is aggregate rather than dynamic, and the
-unresolved causal-versus-unstructured interval is the expected outcome rather
-than a disappointment.
+PegInsertion is the discriminating negative that keeps the audit from being
+vacuous: its strongest non-recurrent control reaches 0.226 of the recurrent
+score, and its order-free summary is weaker than its two-frame control. The
+separation between 0.226 and 0.928/1.000 is wide.
 
-The remaining gap to a top-tier claim is unchanged and is not about the audit:
-no closed-loop real-robot recovery, and on the benchmark without a shortcut the
-factorized router reaches only 0.0199 on genuinely observed held-out prefixes.
-Those stay disclosed.
+Three limitations attach and are not resolved.
+
+The 0.9 line is a reporting convention set by this project, not a test with an
+error rate. REBOOT at 0.928 is close to it and should be quoted as a ratio.
+
+Every REBOOT figure rests on three optimizer seeds whose unstructured-GRU
+spread is 0.7754 to 0.8506, wider than several of the differences discussed.
+More seeds are needed before those intervals carry weight.
+
+On REBOOT the factorized model does not improve on the capacity-matched
+unstructured GRU (-0.0068, [-0.0249, 0.0119]). External evidence for the
+architecture is absent rather than supportive, and on PegInsertion, the one
+benchmark without a shortcut, it reaches 0.0199 on genuinely observed held-out
+prefixes. The method claim is weak; the audit claim is what this work supports.

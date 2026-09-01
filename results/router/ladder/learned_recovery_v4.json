@@ -69,6 +69,31 @@
       "heldout_option_accuracy_mean": 1.0,
       "accuracy_mean": 0.9781342455621301
     },
+    "moment_summary": {
+      "rung": 2.5,
+      "seeds": [
+        {
+          "rows": 43264,
+          "accuracy": 0.9981046597633136,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.9984744822485208,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        },
+        {
+          "rows": 43264,
+          "accuracy": 0.998127773668639,
+          "heldout_rows": 4544,
+          "heldout_option_accuracy": 1.0
+        }
+      ],
+      "heldout_option_accuracy_mean": 1.0,
+      "accuracy_mean": 0.9982356385601578
+    },
     "recurrent_factorized": {
       "rung": 4,
       "seeds": [

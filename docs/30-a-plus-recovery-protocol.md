@@ -497,3 +497,46 @@ the originally published +0.0282 [-0.0140, +0.0938]. The published REBOOT
 figures were internally consistent; they were not robust to adding an arm.
 
 Artifact: `results/a_plus_audit/reboot_ladder_v4_aggregate.json`.
+
+### Matched rung set, and the verdict revision it forced
+
+The ladder was first scored with a rung set that differed per benchmark: REBOOT
+had an order-free summary control because its pipeline already provided one,
+while the two simulated benchmarks did not. A ladder whose rungs differ per
+benchmark cannot support a cross-benchmark claim, and in this case the omission
+changed conclusions.
+
+`MomentSummaryRouter` supplies the matched control. It reads every frame but has
+no sequence encoder and no access to frame order, taking the mean and standard
+deviation over the valid prefix. It is the strongest order-free control.
+
+| Benchmark | r1 | r2 | r2b | r3 | r4 | best lower / r4 | Verdict |
+|---|---:|---:|---:|---:|---:|---:|---|
+| LearnedRecovery-v4 | 0.0322 | 1.0000 | 1.0000 | 0.1195 | 1.0000 | 1.000 | shortcut |
+| PegInsertionSide-v1 | 0.0000 | 0.0909 | 0.0503 | 0.0000 | 0.4015 | 0.226 | none |
+| REBOOT | 0.5740 | 0.6080 | 0.7466 | n/a | 0.8045 | 0.928 | shortcut |
+
+Two revisions follow, and both are recorded rather than quietly absorbed.
+
+REBOOT was previously reported here and in the README as a clean negative on
+the strength of its endpoint-pair control at 0.6080. Its order-free summary
+reaches 0.7466, or 0.928 of the recurrent score, which is above the 0.9
+reporting line. REBOOT is a marginal positive, not a negative. The earlier
+"one positive, two negatives" summary was wrong; the matched result is two
+positives and one negative.
+
+The LearnedRecovery-v4 verdict is strengthened rather than weakened: two
+independent non-recurrent controls both reach 1.0000, so the shortcut is not an
+artifact of how one control was built.
+
+PegInsertion is the discriminating negative and becomes more decisive under the
+matched set. Its order-free summary reaches 0.0503, weaker than its two-frame
+control at 0.0909, and its strongest lower rung is 0.226 of the recurrent
+score.
+
+Two caveats attach to the interpretation. The 0.9 line is a reporting
+convention chosen by this project, not a test with an error rate, and REBOOT at
+0.928 sits close enough to it that the ratio should be quoted rather than the
+verdict. And every REBOOT figure rests on three optimizer seeds whose
+unstructured-GRU spread is 0.7754 to 0.8506, wider than several differences
+under discussion; more seeds are required before those intervals carry weight.

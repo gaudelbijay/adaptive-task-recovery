@@ -37,36 +37,46 @@ baseline.
 
 ## Results
 
-Applied to three benchmarks with a matched rung set:
+Applied to three benchmarks with an identical rung set:
 
-| Benchmark | Rung 2 | Rung 2b | Rung 4 | Shortcut |
-|---|---:|---:|---:|:---:|
-| `LearnedRecovery-v4` (this work) | 1.0000 | pending | 1.0000 | yes |
-| `PegInsertionSide-v1` | 0.0909 | pending | 0.4015 | pending |
-| REBOOT (external, real robot) | 0.6080 | 0.7466 | 0.8045 | contested |
+| Benchmark | r1 | r2 | r2b | r3 | r4 | best lower / r4 | Verdict |
+|---|---:|---:|---:|---:|---:|---:|:---:|
+| `LearnedRecovery-v4` (this work) | 0.0322 | 1.0000 | 1.0000 | 0.1195 | 1.0000 | 1.000 | shortcut |
+| `PegInsertionSide-v1` | 0.0000 | 0.0909 | 0.0503 | 0.0000 | 0.4015 | 0.226 | none |
+| REBOOT (external, real robot) | 0.5740 | 0.6080 | 0.7466 | n/a | 0.8045 | 0.928 | shortcut |
 
-Rung 2b is an order-free control that reads the whole prefix as a mean and
-standard deviation. It matters because a verdict computed against a weak
-non-recurrent control is not robust. On REBOOT the endpoint-pair control
-reaches 0.6080, which reports no shortcut, but the order-free summary reaches
-0.7466 — 0.928 of the recurrent score, above the 0.9 threshold the audit uses.
-REBOOT is therefore recorded as contested rather than as a clean negative, and
-the matched control is being trained for the other two benchmarks so all three
-are scored identically.
+Rung 2b is an order-free control: it reads every frame but has no sequence
+encoder and no access to frame order, taking the mean and standard deviation
+over the prefix. Including it changes two of the three verdicts relative to a
+ladder scored only against single- and two-frame controls, which is why the
+rung set must be identical across benchmarks.
+
+Two of the three benchmarks, including real-robot trajectories collected
+independently, have held-out mechanisms identifiable without the capability
+under test. `PegInsertionSide-v1` is the discriminating negative: its strongest
+non-recurrent control reaches 0.226 of the recurrent score, and its order-free
+summary is weaker still than its two-frame control.
+
+The threshold is a reporting convention rather than a test. REBOOT sits at
+0.928 against a 0.9 line, so it should be read as marginal; the ratios are
+given so the judgement does not rest on the cut. `LearnedRecovery-v4` at 1.000
+and PegInsertion at 0.226 are unambiguous either way.
 
 On REBOOT the recurrent factorized model also does not improve on the
 capacity-matched unstructured GRU: −0.0068, interval [−0.0249, 0.0119]. The
 unstructured GRU spans 0.7754 to 0.8506 across three optimizer seeds, a range
 wider than several of the differences discussed here. External evidence for the
-factorization is therefore absent rather than supportive.
+factorization is therefore absent rather than supportive, and three optimizer
+seeds is too few for these intervals to carry weight.
 
-The positive result on `LearnedRecovery-v4` has a specific cause. Current-
-centering was introduced to remove an earlier shortcut in which instantaneous
-geometry identified the mechanism, and it succeeded: rung 1 falls to 0.0322.
-Because centering expresses every frame as a signed displacement relative to
-the present, however, it introduced a rung-2 shortcut in which a single early
+The result on `LearnedRecovery-v4` has a specific cause. Current-centering was
+introduced to remove an earlier shortcut in which instantaneous geometry
+identified the mechanism, and it succeeded: rung 1 falls to 0.0322. Because
+centering expresses every frame as a signed displacement relative to the
+present, however, it introduced a shortcut one rung up, where a single early
 frame carries the full answer. Removing a leakage path at one rung opened
-another at the next.
+another at the next. Both non-recurrent controls above rung 1 reach 1.0000
+there, so this is not an artifact of one control's construction.
 
 The corresponding closed-loop result narrows what temporal evidence is required
 for. Mechanism identification does not require it: the held-out reverse
