@@ -31,7 +31,7 @@ GRID = "#dedcd5"
 RUNGS = [
     ("instantaneous", "1  current frame"),
     ("one_past_frame", "2  one past frame"),
-    ("moment_summary", "\u2013  prefix summary"),
+    ("moment_summary", "2b  prefix summary"),
     ("hand_written", "3  hand-written rule *"),
     ("recurrent_factorized", "4  recurrent"),
 ]
@@ -65,13 +65,19 @@ def panel_a(axes, v4, peg, reboot):
         for i, (_, v) in enumerate(rows):
             ax.text(v + 0.02, i, f"{v:.2f}", va="center", ha="left",
                     fontsize=8.5, color=INK)
+        top = values.get("recurrent_factorized")
+        if top:
+            line = 0.9 * top
+            ax.axvline(line, color="#b3401f", lw=1.1, ls=(0, (2, 2)), zorder=4)
+            ax.text(line + 0.012, -0.62, "0.9 \u00d7 rung 4", fontsize=7,
+                    color="#b3401f", va="center", ha="left")
         if chance is not None:
             ax.axvline(chance, color=INK_MUTED, lw=1.0, ls=(0, (4, 3)), zorder=4)
-            ax.set_ylim(-0.6, len(rows) - 0.15)
-            ax.text(chance + 0.012, len(rows) - 0.42, "chance", fontsize=7.5,
+            ax.text(chance + 0.012, len(rows) - 0.62, "chance", fontsize=7.5,
                     color=INK_MUTED, va="center", ha="left")
         ax.set_yticks(list(y))
         ax.set_yticklabels([lab for lab, _ in rows], fontsize=8.5, color=INK)
+        ax.set_ylim(-1.0, len(rows) - 0.35)
         ax.set_xlim(0, 1.18)
         ax.xaxis.set_major_formatter(PercentFormatter(xmax=1))
         ax.set_xlabel(xlabel, fontsize=8.5, color=INK_MUTED)
