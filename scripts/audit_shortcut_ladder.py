@@ -47,6 +47,41 @@ RUNG = {
 }
 
 
+def group_bootstrap_difference(
+    top_rows, top_groups, low_rows, low_groups, seed=20260901, samples=10000,
+):
+    """Bootstrap rung4 minus a lower rung, resampling whole episode groups.
+
+    Prefixes from one episode are correlated, so the episode is the resampling
+    unit. Both rungs are scored on the same rows, so the paired difference is
+    taken within each resampled group.
+    """
+    import collections
+
+    top_by_group = collections.defaultdict(list)
+    low_by_group = collections.defaultdict(list)
+    for hit, group in zip(top_rows, top_groups):
+        top_by_group[group].append(hit)
+    for hit, group in zip(low_rows, low_groups):
+        low_by_group[group].append(hit)
+    shared = sorted(set(top_by_group) & set(low_by_group))
+    if not shared:
+        return None
+    top_mean = np.array([np.mean(top_by_group[g]) for g in shared])
+    low_mean = np.array([np.mean(low_by_group[g]) for g in shared])
+    rng = np.random.default_rng(seed)
+    draws = rng.integers(0, len(shared), size=(samples, len(shared)))
+    differences = top_mean[draws].mean(1) - low_mean[draws].mean(1)
+    return {
+        "difference": float(top_mean.mean() - low_mean.mean()),
+        "group_bootstrap_95": [
+            float(np.quantile(differences, 0.025)),
+            float(np.quantile(differences, 0.975)),
+        ],
+        "groups": len(shared),
+    }
+
+
 def group_split(group_id: np.ndarray):
     bucket = np.array([
         int(hashlib.sha256(str(int(x)).encode()).hexdigest()[:8], 16) % 100
@@ -56,10 +91,11 @@ def group_split(group_id: np.ndarray):
 
 
 @torch.inference_mode()
-def score(model, tensors, indices, geometry_dim, heldout_option, device, batch=512):
+def score(model, tensors, indices, geometry_dim, heldout_option, device, groups, batch=512):
     """Held-out-option accuracy and overall accuracy on the given rows."""
     loader = DataLoader(TensorDataset(torch.from_numpy(indices)), batch_size=batch)
     correct = total = heldout_correct = heldout_total = 0
+    heldout_rows, heldout_groups = [], []
     for (index,) in loader:
         sequence = tensors["sequence"][index].to(device)
         length = tensors["length"][index].to(device)
@@ -75,8 +111,11 @@ def score(model, tensors, indices, geometry_dim, heldout_option, device, batch=5
         total += int(target.numel())
         mask = target == heldout_option
         if bool(mask.any()):
-            heldout_correct += int((prediction[mask] == target[mask]).sum())
+            hit = (prediction[mask] == target[mask])
+            heldout_correct += int(hit.sum())
             heldout_total += int(mask.sum())
+            heldout_rows.extend(hit.int().cpu().tolist())
+            heldout_groups.extend(groups[index.numpy()][mask.cpu().numpy()].tolist())
     return {
         "rows": total,
         "accuracy": correct / total if total else None,
@@ -84,6 +123,8 @@ def score(model, tensors, indices, geometry_dim, heldout_option, device, batch=5
         "heldout_option_accuracy": (
             heldout_correct / heldout_total if heldout_total else None
         ),
+        "heldout_correct_by_row": heldout_rows,
+        "heldout_group_by_row": heldout_groups,
     }
 
 
@@ -159,7 +200,7 @@ def main() -> None:
     else:
         heuristic = HeuristicMotionRouter(feature_names).to(device).eval()
     record("hand_written", RUNG["hand_written"],
-           [score(heuristic, tensors, indices, geometry_dim, heldout_option, device)])
+           [score(heuristic, tensors, indices, geometry_dim, heldout_option, device, raw['group_id'])])
 
     # Rungs 1, 2 and 4: learned models, one checkpoint per seed.
     families = {
@@ -187,35 +228,48 @@ def main() -> None:
             model.load_state_dict(checkpoint["state_dict"])
             model.to(device).eval()
             results.append(
-                score(model, tensors, indices, geometry_dim, heldout_option, device)
+                score(model, tensors, indices, geometry_dim, heldout_option, device, raw['group_id'])
             )
         if results:
             rung = RUNG["recurrent"] if name.startswith("recurrent") else RUNG[name]
             record(name, rung, results)
 
-    top = report["rungs"].get("recurrent_factorized", {}).get(
-        "heldout_option_accuracy_mean"
-    )
-    lower = {
-        name: entry["heldout_option_accuracy_mean"]
-        for name, entry in report["rungs"].items()
-        if entry["rung"] < RUNG["recurrent"]
-        and entry["heldout_option_accuracy_mean"] is not None
-    }
-    best_lower = max(lower.values()) if lower else None
+    # Statistical criterion: a lower rung is "matching" when the recurrent
+    # model's advantage over it is not distinguishable from zero, i.e. the
+    # paired group-bootstrap interval on (rung4 - lower) includes zero. This
+    # replaces an arbitrary ratio cut with a test that has an error rate.
+    top_entry = report["rungs"].get("recurrent_factorized")
+    top = top_entry["heldout_option_accuracy_mean"] if top_entry else None
+    comparisons, flagged = {}, []
+    if top_entry:
+        top_seed = top_entry["seeds"][0]
+        for name, entry in report["rungs"].items():
+            if entry["rung"] >= RUNG["recurrent"]:
+                continue
+            low_seed = entry["seeds"][0]
+            test = group_bootstrap_difference(
+                top_seed["heldout_correct_by_row"], top_seed["heldout_group_by_row"],
+                low_seed["heldout_correct_by_row"], low_seed["heldout_group_by_row"],
+            )
+            if test is None:
+                continue
+            test["indistinguishable_from_rung4"] = bool(test["group_bootstrap_95"][0] <= 0)
+            test["ratio_to_rung4"] = (
+                entry["heldout_option_accuracy_mean"] / top if top else None
+            )
+            comparisons[name] = test
+            if test["indistinguishable_from_rung4"]:
+                flagged.append(name)
+
+    report["comparisons_to_rung4"] = comparisons
     report["verdict"] = {
+        "criterion": (
+            "A lower rung matches rung 4 when the paired group-bootstrap 95% "
+            "interval on (rung4 - lower) includes zero."
+        ),
         "top_rung_heldout_accuracy": top,
-        "best_lower_rung": (
-            max(lower, key=lower.get) if lower else None
-        ),
-        "best_lower_rung_heldout_accuracy": best_lower,
-        "heldout_mechanism_is_a_shortcut": (
-            None if (top is None or best_lower is None) else bool(best_lower >= 0.9 * top)
-        ),
-        "interpretation": (
-            "A lower rung matching the recurrent model means the held-out "
-            "mechanism is identifiable without the capability under test."
-        ),
+        "matching_lower_rungs": flagged,
+        "heldout_mechanism_is_a_shortcut": bool(flagged) if top_entry else None,
     }
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -229,8 +283,14 @@ def main() -> None:
         held_s = "n/a" if held is None else f"{held:.4f}"
         overall_s = "n/a" if overall is None else f"{overall:.4f}"
         print(f"{entry['rung']:>5}  {name:<24} {held_s:>13}  {overall_s:>8}")
+    for name, test in report["comparisons_to_rung4"].items():
+        lo, hi = test["group_bootstrap_95"]
+        mark = "MATCHES rung 4" if test["indistinguishable_from_rung4"] else ""
+        print(f"  rung4 - {name:<24} {test['difference']:+.4f} "
+              f"[{lo:+.4f}, {hi:+.4f}]  {mark}")
     verdict = report["verdict"]["heldout_mechanism_is_a_shortcut"]
-    print(f"\nheld-out mechanism is a shortcut: {verdict}")
+    print(f"\nheld-out mechanism is a shortcut: {verdict} "
+          f"(matching rungs: {report['verdict']['matching_lower_rungs'] or 'none'})")
     print(f"wrote {args.output}")
 
 

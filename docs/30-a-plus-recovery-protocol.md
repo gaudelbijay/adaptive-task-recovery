@@ -540,3 +540,47 @@ convention chosen by this project, not a test with an error rate, and REBOOT at
 verdict. And every REBOOT figure rests on three optimizer seeds whose
 unstructured-GRU spread is 0.7754 to 0.8506, wider than several differences
 under discussion; more seeds are required before those intervals carry weight.
+
+### Replacing the ratio cut with a paired test, and ten-seed REBOOT
+
+Two limitations of the previous ladder are resolved here and the verdict
+history is recorded in full, because REBOOT has now moved twice.
+
+**The criterion.** The audit previously called a lower rung "matching" when it
+reached 0.9 of the recurrent score. That cut was chosen by this project and
+carries no error rate. It is replaced by a paired bootstrap on the difference
+between rung 4 and each lower rung, resampling the correlated unit: whole
+episodes on the simulated benchmarks, object families on REBOOT. A lower rung
+matches when that interval includes zero.
+
+**Seeds.** REBOOT now uses ten optimizer seeds rather than three.
+
+| Benchmark | Best lower | Rung 4 | rung4 - lower | Verdict |
+|---|---:|---:|---|---|
+| LearnedRecovery-v4 | 1.0000 | 1.0000 | +0.0000 [+0.0000, +0.0000] | shortcut |
+| PegInsertionSide-v1 | 0.0909 | 0.4015 | +0.3240 [+0.1344, +0.5231] | none |
+| REBOOT (10 seeds) | 0.7482 | 0.8108 | +0.0626 [+0.0035, +0.1367] | none |
+
+**REBOOT's verdict history.** It was first recorded as no shortcut, using an
+endpoint-pair control and three seeds; that was unsound because the rung set
+was not matched across benchmarks. It was then recorded as a shortcut, using
+the matched order-free control at a ratio of 0.928 against the 0.9 cut; that
+was unsound because the cut is arbitrary. It is now recorded as no shortcut
+under the paired test at +0.0626 [+0.0035, +0.1367].
+
+The criterion was changed to remove an acknowledged defect, not to obtain a
+verdict, and the change was made before the ten-seed run completed. The verdict
+moving as a consequence is disclosed rather than presented as the original
+finding. The margin is thin -- a lower bound of +0.0035 and a ratio of 0.923 --
+so both readings are reported and REBOOT should be described as a benchmark
+where the order-free control comes close without matching. LearnedRecovery-v4
+and PegInsertion are unambiguous under either criterion.
+
+**Ten-seed REBOOT figures.** static 0.5734, endpoint pair 0.5995, order-free
+summary 0.7482, unstructured GRU 0.8129, factorized GRU 0.8108. The factorized
+and unstructured models are statistically indistinguishable at -0.0021
+[-0.0123, +0.0069], tightening the three-seed interval of [-0.0249, +0.0119]
+without changing its conclusion.
+
+Artifacts: `results/router/ladder/*.json`,
+`results/a_plus_audit/reboot_ladder_v5_aggregate.json`.

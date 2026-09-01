@@ -201,16 +201,16 @@ The ladder has been run on three benchmarks with an identical rung set. The
 matched set revised an earlier conclusion recorded in this file and in the
 README, and the revision is kept rather than absorbed.
 
-| Benchmark | Best non-recurrent rung | Recurrent | Ratio | Verdict |
-|---|---:|---:|---:|---|
-| LearnedRecovery-v4 (ours) | 1.0000 | 1.0000 | 1.000 | shortcut |
-| PegInsertionSide-v1 | 0.0909 | 0.4015 | 0.226 | none |
-| REBOOT (external, real robot) | 0.7466 | 0.8045 | 0.928 | shortcut, marginal |
+| Benchmark | Best lower | Rung 4 | rung4 - lower | Verdict |
+|---|---:|---:|---|---|
+| LearnedRecovery-v4 (ours) | 1.0000 | 1.0000 | +0.0000 [+0.0000, +0.0000] | shortcut |
+| PegInsertionSide-v1 | 0.0909 | 0.4015 | +0.3240 [+0.1344, +0.5231] | none |
+| REBOOT (external, real robot) | 0.7482 | 0.8108 | +0.0626 [+0.0035, +0.1367] | none, marginal |
 
-Two of three benchmarks, including real-robot trajectories collected by another
-group, have held-out mechanisms identifiable without the capability under test.
-This is a broader claim than the earlier "we audited our own benchmark and
-found it flawed", and it does not depend on the Peg closed-loop gate passing.
+One of three benchmarks has a held-out mechanism identifiable without the
+capability under test, and it is ours. The two external-facing benchmarks do
+not, though REBOOT's margin is thin: its order-free control reaches 0.923 of
+the recurrent score and the difference interval has a lower bound of +0.0035.
 
 PegInsertion is the discriminating negative that keeps the audit from being
 vacuous: its strongest non-recurrent control reaches 0.226 of the recurrent
@@ -219,12 +219,11 @@ separation between 0.226 and 0.928/1.000 is wide.
 
 Three limitations attach and are not resolved.
 
-The 0.9 line is a reporting convention set by this project, not a test with an
-error rate. REBOOT at 0.928 is close to it and should be quoted as a ratio.
-
-Every REBOOT figure rests on three optimizer seeds whose unstructured-GRU
-spread is 0.7754 to 0.8506, wider than several of the differences discussed.
-More seeds are needed before those intervals carry weight.
+The verdict on REBOOT has moved twice as the audit was corrected: no shortcut
+under an unmatched rung set, shortcut under a matched set with a ratio cut, no
+shortcut under a matched set with a paired test at ten seeds. Only the last is
+sound, but the history is disclosed in docs/30 and the margin is thin enough
+that the benchmark should be described rather than labelled.
 
 On REBOOT the factorized model does not improve on the capacity-matched
 unstructured GRU (-0.0068, [-0.0249, 0.0119]). External evidence for the

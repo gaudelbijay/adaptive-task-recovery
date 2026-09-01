@@ -37,37 +37,30 @@ baseline.
 
 ## Results
 
-Applied to three benchmarks with an identical rung set:
+Applied to three benchmarks with an identical rung set. A lower rung "matches"
+rung 4 when the paired bootstrap interval on their difference includes zero,
+resampling whole episodes on the simulated benchmarks and object families on
+REBOOT:
 
-| Benchmark | r1 | r2 | r2b | r3 | r4 | best lower / r4 | Verdict |
-|---|---:|---:|---:|---:|---:|---:|:---:|
-| `LearnedRecovery-v4` (this work) | 0.0322 | 1.0000 | 1.0000 | 0.1195 | 1.0000 | 1.000 | shortcut |
-| `PegInsertionSide-v1` | 0.0000 | 0.0909 | 0.0503 | 0.0000 | 0.4015 | 0.226 | none |
-| REBOOT (external, real robot) | 0.5740 | 0.6080 | 0.7466 | n/a | 0.8045 | 0.928 | shortcut |
+| Benchmark | Best lower rung | Rung 4 | rung4 − lower | Verdict |
+|---|---:|---:|---|:---:|
+| `LearnedRecovery-v4` (this work) | 1.0000 | 1.0000 | +0.0000 [+0.0000, +0.0000] | shortcut |
+| `PegInsertionSide-v1` | 0.0909 | 0.4015 | +0.3240 [+0.1344, +0.5231] | none |
+| REBOOT (external, real robot, 10 seeds) | 0.7482 | 0.8108 | +0.0626 [+0.0035, +0.1367] | none |
 
-Rung 2b is an order-free control: it reads every frame but has no sequence
-encoder and no access to frame order, taking the mean and standard deviation
-over the prefix. Including it changes two of the three verdicts relative to a
-ladder scored only against single- and two-frame controls, which is why the
-rung set must be identical across benchmarks.
+On `LearnedRecovery-v4` two independent non-recurrent controls — a
+single past frame and an order-free prefix summary — reach exactly the
+recurrent score, so the shortcut does not depend on how one control was built.
+On the other two benchmarks every lower rung is separated from the recurrent
+model by an interval excluding zero.
 
-Two of the three benchmarks, including real-robot trajectories collected
-independently, have held-out mechanisms identifiable without the capability
-under test. `PegInsertionSide-v1` is the discriminating negative: its strongest
-non-recurrent control reaches 0.226 of the recurrent score, and its order-free
-summary is weaker still than its two-frame control.
-
-The threshold is a reporting convention rather than a test. REBOOT sits at
-0.928 against a 0.9 line, so it should be read as marginal; the ratios are
-given so the judgement does not rest on the cut. `LearnedRecovery-v4` at 1.000
-and PegInsertion at 0.226 are unambiguous either way.
-
-On REBOOT the recurrent factorized model also does not improve on the
-capacity-matched unstructured GRU: −0.0068, interval [−0.0249, 0.0119]. The
-unstructured GRU spans 0.7754 to 0.8506 across three optimizer seeds, a range
-wider than several of the differences discussed here. External evidence for the
-factorization is therefore absent rather than supportive, and three optimizer
-seeds is too few for these intervals to carry weight.
+The REBOOT margin is thin: the lower bound is +0.0035, and its order-free
+summary reaches 0.923 of the recurrent score. An earlier version of this
+analysis used a ratio cut at 0.9 and recorded REBOOT as a shortcut on that
+basis. The ratio has no error rate attached, so the paired test replaces it;
+the two disagree only on REBOOT, and both readings are reported here rather
+than only the one the test returns. `LearnedRecovery-v4` and `PegInsertionSide-v1`
+are unambiguous under either.
 
 The result on `LearnedRecovery-v4` has a specific cause. Current-centering was
 introduced to remove an earlier shortcut in which instantaneous geometry

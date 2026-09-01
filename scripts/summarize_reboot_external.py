@@ -61,12 +61,16 @@ def main() -> None:
             for run in runs
         ])
         difference = candidate - baseline_values
+        interval = object_bootstrap(difference, args.seed, args.bootstrap_samples)
         comparisons[f"causal_vs_{baseline}"] = {
             "macro_auroc_difference": float(difference.mean()),
             "optimizer_seed_differences": [float(x) for x in difference.mean(axis=1)],
-            "object_bootstrap_95": object_bootstrap(
-                difference, args.seed, args.bootstrap_samples,
-            ),
+            "object_bootstrap_95": interval,
+            # A control "matches" the recurrent model when the recurrent
+            # advantage over it is not distinguishable from zero. This is the
+            # same criterion the simulated ladders use, replacing the earlier
+            # ratio cut, which had no error rate.
+            "indistinguishable_from_recurrent": bool(interval[0] <= 0),
         }
     payload = {
         "schema_version": 1,
