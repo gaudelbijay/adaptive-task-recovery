@@ -1,0 +1,14 @@
+{
+  "accuracy": {
+    "clean": 1.0,
+    "geometry_history_removed": 0.0,
+    "reversed_history": 0.9766725352112676
+  },
+  "checkpoint_sha256": "532b763e8d7df5627df445f6a4bb0fc5394c2951c581d178993a498a26dcf883",
+  "data_sha256": "05bfa5c469d1d4f23fd3fb492d4e79c559cbc3dc0d8936ee925cd2bf8f55a456",
+  "final_geometry_max_abs": 0.0,
+  "heldout_option": "reverse",
+  "matched_centered_geometry_sha256": "17209aa55243979716ce9b88d2499dc0486c1d09ad0747eab5181c9f5b3aed97",
+  "rows": 4544,
+  "schema_version": 1
+}
