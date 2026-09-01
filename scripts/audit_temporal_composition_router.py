@@ -49,19 +49,43 @@ def main() -> None:
         "static_heldout_reverse_offline_accuracy_max",
         criteria.get("static_heldout_offline_accuracy_max"),
     )
-    if causal_min is None or static_max is None:
-        raise RuntimeError("gate omits held-out causal/static offline thresholds")
+    causal_seed_min = criteria.get("causal_heldout_offline_per_seed_min")
+    causal_gain_min = criteria.get(
+        "causal_heldout_gain_over_strongest_matched_min_pp"
+    )
+    if causal_min is None:
+        raise RuntimeError("gate omits held-out causal offline threshold")
     checks = {
         "training_seed_count": len(paths) >= expected_seeds,
         "causal_heldout_reverse_accuracy": (
             methods["causal_gru"]["heldout_option_accuracy_mean"]
             >= causal_min
         ),
-        "static_heldout_reverse_shortcut_absent": (
+    }
+    if causal_seed_min is not None:
+        checks["causal_heldout_reverse_per_seed"] = (
+            min(methods["causal_gru"]["heldout_option_accuracy_by_seed"])
+            >= causal_seed_min
+        )
+    if causal_gain_min is not None:
+        strongest_matched = max(
+            methods[name]["heldout_option_accuracy_mean"]
+            for name in ("static_mlp", "unstructured_gru")
+        )
+        checks["causal_gain_over_strongest_matched"] = (
+            methods["causal_gru"]["heldout_option_accuracy_mean"]
+            - strongest_matched
+            >= causal_gain_min / 100.0
+        )
+    elif static_max is not None:
+        # Backward-compatible audit for previously frozen gates. New gates use
+        # an advantage over strong baselines instead of requiring one to fail.
+        checks["static_heldout_reverse_shortcut_absent"] = (
             methods["static_mlp"]["heldout_option_accuracy_mean"]
             <= static_max
-        ),
-    }
+        )
+    else:
+        raise RuntimeError("gate omits matched held-out baseline criterion")
     payload = {
         "schema_version": 1,
         "gate": str(args.gate),

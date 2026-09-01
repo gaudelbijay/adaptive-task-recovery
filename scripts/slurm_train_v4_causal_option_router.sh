@@ -23,5 +23,6 @@ fi
   --output-dir "${ATR_ROUTER_OUTPUT:-results/router/v4_causal_router_v1}" \
   --seed "${SLURM_ARRAY_TASK_ID}" \
   --models "${ROUTER_MODELS[@]}" \
+  --static-hidden-dim "${ATR_ROUTER_STATIC_HIDDEN_DIM:-288}" \
   --current-centered-geometry-dim "${ATR_ROUTER_CURRENT_CENTERED_GEOMETRY_DIM:-0}" \
   "${EXTRA_ARGS[@]}"

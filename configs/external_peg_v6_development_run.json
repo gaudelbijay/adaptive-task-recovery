@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "superseded_and_cancelled_during_full_source_parity_audit",
+  "nominal_config": "configs/external_peg_nominal_ppo_v6_official_fast_exact.json",
+  "nominal_training_job": 1151141,
+  "nominal_transfer_evaluation_job": 1151142,
+  "nominal_competence_summary_job": 1151143,
+  "positive_negative_specialist_training_job": 1151144,
+  "specialist_fresh_seed_evaluation_job": 1151145,
+  "specialist_fail_closed_summary_job": 1151146,
+  "causal_prefix_collection_job": 1151147,
+  "causal_prefix_merge_job": 1151148,
+  "matched_three_seed_router_fit_job": 1151149,
+  "offline_fail_closed_gate_job": 1151150,
+  "external_router_gate": "configs/a_plus_external_peg_insertion_gate_v5_strong_baselines.json",
+  "cancelled_jobs": [1151141, 1151142, 1151143, 1151144, 1151145, 1151146, 1151147, 1151148, 1151149, 1151150],
+  "rejection_record": "configs/external_peg_nominal_ppo_v6_rejection.json",
+  "release_dependency": "Every downstream branch is afterok:1151143; specialist evaluation/summary and router merge/fit/audit are transitively afterok their preceding stages.",
+  "nominal_and_specialist_training_seeds": [9351, 4796, 1788],
+  "development_seed_families": [421000000, 421100000, 421600000],
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "Scheduled jobs and early training curves are not results. Nothing enters the README until all applicable frozen gates pass."
+}

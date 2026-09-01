@@ -89,11 +89,15 @@ def labels(
         reference_index = onset.clamp(min=1, max=length) - 1
         row = torch.arange(count, device=onset.device)
         reference_lateral = geometry_history[row, reference_index, 1]
-        current_lateral = geometry_history[:, -1, 1]
         sign = 1.0 if kind_index == 1 else -1.0
-        ready = post_event & (
-            sign * (current_lateral - reference_lateral) > 0.01
+        directed_history = sign * (
+            geometry_history[:, :, 1] - reference_lateral[:, None]
         )
+        frame_index = torch.arange(length, device=onset.device)[None, :]
+        directed_history = directed_history.masked_fill(
+            frame_index < reference_index[:, None], -torch.inf,
+        )
+        ready = post_event & (directed_history.max(dim=1).values > 0.01)
     elif kind_index == 2:
         event[post_event] = 2
         engaged = info["blocker_engaged"].bool()
@@ -240,7 +244,11 @@ def main() -> None:
         "rows": int(len(packed["length"])),
         "simulator_batch_groups": int(len(np.unique(packed["group_id"]))),
         "feature_names": [*GEOMETRY_NAMES, "normalized_time"],
-        "current_centered_geometry_dim": 12,
+        # Preserve the full current hole-relative geometry for the static
+        # baseline.  A zero here means no additional current-centering is
+        # applied by the trainer; the features are already expressed in the
+        # randomized hole frame.
+        "current_centered_geometry_dim": 0,
         "forbidden_feature_keys": [
             "critic_intervention_mechanism", "critic_intervention_onset_step",
             "critic_physical_unavailable", "success", "future_observation",
@@ -250,8 +258,9 @@ def main() -> None:
             "temporary_cleared", "option_ready",
         ],
         "sweep_readiness_rule": (
-            "more than 1 cm of prefix-observed displacement in the labeled "
-            "hole-frame direction relative to the onset-aligned past frame"
+            "more than 1 cm maximum prefix-observed displacement in the "
+            "labeled hole-frame direction relative to the onset-aligned "
+            "past frame"
         ),
         "heldout_option": 2,
         "heldout_option_cross_entropy": False,

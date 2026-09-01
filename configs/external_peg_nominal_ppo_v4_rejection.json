@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "rejected_before_competence_evaluation_or_reserved_outcomes",
+  "candidate": "external_peg_nominal_ppo_v4_official_environment",
+  "reason": "The run matched ManiSkill's older wall-time example but not the pinned repository's fair PPO baseline command. The authoritative baselines.sh uses 2048 environments, 16-step rollouts, gamma=0.97, gae_lambda=0.95, 75M transitions, and canonical seeds 9351/4796/1788 for PegInsertionSide-v1.",
+  "official_source": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "file": "examples/baselines/ppo/baselines.sh",
+    "lines": "2 and 107-112"
+  },
+  "rejected_job": 1150794,
+  "maximum_observed_checkpoint_steps": {
+    "50411": 68608000,
+    "73129": 48128000,
+    "99277": 52224000
+  },
+  "development_diagnostic": "results/a_plus_audit/external_peg_nominal_v4_stage_diagnostic_50m_latest",
+  "observed_reason_is_not_the_selection_rule": "The replacement is required by an objective source-command mismatch. Sparse success and one-seed policy collapse are recorded diagnostics, not the basis for choosing new hyperparameters.",
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "consequence": "V4 and every dependent competence, specialist, router, selection, and confirmation job are cancelled. Only a subsequently audited pinned fair-baseline chain may release external-task evaluation."
+}

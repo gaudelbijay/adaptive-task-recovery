@@ -10,6 +10,8 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
+import numpy as np
+
 
 def wilson(successes: int, trials: int, z: float = 1.959963984540054):
     p = successes / trials
@@ -85,6 +87,76 @@ def seed_bootstrap_gain(candidate, baseline, samples=10000, seed=20260831):
     }
 
 
+def paired_episode_cluster_bootstrap_gain(
+    candidate_records, baseline_records, samples=10000, seed=20260901,
+):
+    """Bootstrap router seeds and matched physical episodes as two clusters."""
+    def matrices(records):
+        by_router = defaultdict(dict)
+        for record in records:
+            router = record.get("router_seed")
+            key = "shared" if router is None else str(router)
+            episode_ids = record.get("episode_ids", [])
+            outcomes = record.get("episode_safe_outcome", [])
+            if len(episode_ids) != len(outcomes):
+                raise RuntimeError("episode IDs/outcomes are missing or misaligned")
+            for episode_id, outcome in zip(episode_ids, outcomes):
+                if episode_id in by_router[key]:
+                    raise RuntimeError(f"duplicate episode {episode_id} for router {key}")
+                by_router[key][episode_id] = float(outcome)
+        return dict(by_router)
+
+    candidate = matrices(candidate_records)
+    baseline = matrices(baseline_records)
+    candidate_keys = sorted(key for key in candidate if key != "shared")
+    if len(candidate_keys) < 2:
+        return None
+    if "shared" in baseline:
+        baseline_keys = ["shared"] * len(candidate_keys)
+    elif set(candidate_keys).issubset(baseline):
+        baseline_keys = candidate_keys
+    else:
+        return None
+    common_episodes = sorted(set.intersection(*(
+        *[set(candidate[key]) for key in candidate_keys],
+        *[set(baseline[key]) for key in set(baseline_keys)],
+    )))
+    if not common_episodes:
+        raise RuntimeError("methods have no common episode IDs")
+    candidate_matrix = np.asarray([
+        [candidate[key][episode] for episode in common_episodes]
+        for key in candidate_keys
+    ], dtype=np.float64)
+    baseline_matrix = np.asarray([
+        [baseline[key][episode] for episode in common_episodes]
+        for key in baseline_keys
+    ], dtype=np.float64)
+    rng = np.random.default_rng(seed)
+    draws = []
+    router_count, episode_count = candidate_matrix.shape
+    for start in range(0, samples, 500):
+        count = min(500, samples - start)
+        router_index = rng.integers(0, router_count, size=(count, router_count))
+        episode_index = rng.integers(0, episode_count, size=(count, episode_count))
+        candidate_draw = candidate_matrix[
+            router_index[:, :, None], episode_index[:, None, :]
+        ].mean(axis=(1, 2))
+        baseline_draw = baseline_matrix[
+            router_index[:, :, None], episode_index[:, None, :]
+        ].mean(axis=(1, 2))
+        draws.extend((candidate_draw - baseline_draw).tolist())
+    draws.sort()
+    return {
+        "paired_router_seeds": [int(key) for key in candidate_keys],
+        "common_episode_ids": len(common_episodes),
+        "bootstrap_samples": samples,
+        "point_gain": float((candidate_matrix - baseline_matrix).mean()),
+        "bootstrap_95": [
+            draws[int(0.025 * samples)], draws[int(0.975 * samples) - 1],
+        ],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gate", type=Path, required=True)
@@ -130,6 +202,15 @@ def main() -> None:
     checks["gain_over_strongest_non_oracle"] = gain >= criteria["gain_over_strongest_non_oracle_min_pp"] / 100
     checks["gain_newcombe_lower"] = difference_ci[0] > criteria["gain_newcombe_95_lower_min_pp"] / 100
     hierarchical_gain = seed_bootstrap_gain(candidate, strongest)
+    paired_cluster_gain = paired_episode_cluster_bootstrap_gain(
+        grouped[args.candidate], grouped[strongest_name],
+    )
+    if "gain_cluster_bootstrap_95_lower_min_pp" in criteria:
+        checks["gain_cluster_bootstrap_lower"] = (
+            paired_cluster_gain is not None
+            and paired_cluster_gain["bootstrap_95"][0]
+            > criteria["gain_cluster_bootstrap_95_lower_min_pp"] / 100
+        )
     result = {
         "schema_version": 1,
         "gate": str(args.gate),
@@ -140,6 +221,7 @@ def main() -> None:
             "gain": gain,
             "newcombe_95": difference_ci,
             "training_seed_bootstrap": hierarchical_gain,
+            "paired_episode_cluster_bootstrap": paired_cluster_gain,
         },
         "checks": checks,
         "external_gate_pass": all(checks.values()),

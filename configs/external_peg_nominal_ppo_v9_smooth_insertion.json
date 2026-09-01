@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_after_v8_10m_development_diagnosis_before_v9_training_or_outcomes",
+  "name": "external_peg_nominal_ppo_v9_smooth_insertion",
+  "supersedes": "configs/external_peg_nominal_ppo_v8_demo_initialized.json",
+  "supersession_reason": "The fresh V8 >=10M diagnostic showed 77-94% pre-insertion but zero X-threshold entry for every seed. V9 preserves the downloaded-demo initialization, benchmark dynamics, observations, actions, success predicate, seeds, PPO recipe, and evaluation gates, while smoothing only the training reward's hard insertion gate.",
+  "training_reward_change": {
+    "environment": "PegInsertionSideSmoothReward-v1",
+    "base_environment": "PegInsertionSide-v1",
+    "registration_module": "atr.envs.peg_insertion_shaped",
+    "definition": "Add native insertion-distance reward times exp(-50 * summed peg/head YZ error) while grasped; native success remains exactly 10.",
+    "diagnostic_target": "pre-insertion local optimum with no insertion-axis progress",
+    "evaluation_environment_unchanged": "PegInsertionRecovery-v1 with interventions disabled"
+  },
+  "demonstration_initialization": {
+    "source": "ManiSkill published PegInsertionSide-v1 RL demonstrations",
+    "downloaded_archive_sha256": "6948b407728f3995db85b526f6f827ef26d16e60cc8a308af45938e4048a9666",
+    "converted_dataset_sha256": "01d2b65365e6d6a4d07ed7d4550a3984ee2bc87fe359ca92fb6a2349f290b5dc",
+    "demonstrations": 1000,
+    "rows": 50000,
+    "bc_seeds": [9351, 4796, 1788],
+    "checkpoint_pattern": "results/manipulation_bc/external_peg_rl_demo_v1/seed_{seed}/best.pt"
+  },
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "method": "demo_initialized_smooth_insertion_fast_ppo_nominal",
+      "env_id": "PegInsertionSideSmoothReward-v1",
+      "registration_module": "atr.envs.peg_insertion_shaped",
+      "total_timesteps": 75000000,
+      "num_envs": 2048,
+      "num_steps": 16,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {"insertion_shaping_coefficient": 1.0},
+      "eval_env_kwargs": {"insertion_shaping_coefficient": 1.0},
+      "init_checkpoint": "results/manipulation_bc/external_peg_rl_demo_v1/seed_{seed}/best.pt",
+      "competence_env_id": "PegInsertionRecovery-v1",
+      "competence_registration_module": "atr.envs.peg_insertion_recovery",
+      "competence_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "num_eval_envs": 16,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "eval_frequency_offset": 1,
+  "checkpoint_freq": 25,
+  "learning_rate": 0.0003,
+  "anneal_lr": false,
+  "actor_logstd_initial": 0.0,
+  "fast_action_sampling": true,
+  "explicit_environment_reset_seed": false,
+  "shuffle_backend": "torch_cuda",
+  "gamma": 0.97,
+  "gae_lambda": 0.95,
+  "target_kl": 0.1,
+  "target_kl_check_after_update": true,
+  "require_config_hash_match": true,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "Smooth reward is training-only and must be disclosed. All competence, specialist, router, selection, and confirmation evaluations use unmodified benchmark success and frozen gates."
+}

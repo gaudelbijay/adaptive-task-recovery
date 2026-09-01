@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "status": "scheduled_dependency_gated_development_only",
+  "config": "configs/external_peg_nominal_ppo_v8_demo_initialized.json",
+  "v7_failure_diagnostic": "results/a_plus_audit/external_peg_nominal_v7_stage_diagnostic_25m",
+  "official_demo_download": "completed",
+  "failed_stock_replay_jobs": [1151438, 1151443, 1151453],
+  "failed_stock_replay_reason": "ManiSkill 3.0.0b22 replay utility first required unavailable compute-node git and then called missing TimeLimitWrapper.set_state_dict; all attempts failed before processing an episode and empty shards were quarantined.",
+  "exact_state_conversion_job": 1151461,
+  "converted_dataset": "results/external_demos/PegInsertionSide-v1/rl/state_actions_v1.npz",
+  "converted_dataset_sha256": "01d2b65365e6d6a4d07ed7d4550a3984ee2bc87fe359ca92fb6a2349f290b5dc",
+  "bc_training_job": 1151465,
+  "bc_development_diagnostic_job": 1151479,
+  "bc_development_diagnostic": "results/a_plus_audit/external_peg_bc_closed_loop_v1",
+  "ppo_training_job": 1151485,
+  "fresh_nominal_competence_job": 1151489,
+  "nominal_competence_summary_job": 1151490,
+  "minimum_10m_geometric_diagnostic_job": 1151541,
+  "minimum_10m_geometric_diagnostic_output": "results/a_plus_audit/external_peg_nominal_v8_stage_diagnostic_10m",
+  "training_seeds": [9351, 4796, 1788],
+  "development_seed_families": [421710000, 421720000, 421800000],
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "release_dependency": "No specialist or router job may consume V8 unless job 1151490 passes the unchanged competence gate.",
+  "claim_boundary": "Downloaded demonstrations are declared additional training data. BC validation and development diagnostics are not results; README promotion still requires all frozen selection and confirmation gates."
+}

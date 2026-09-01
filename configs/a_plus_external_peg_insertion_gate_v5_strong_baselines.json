@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_external_router_production_or_reserved_outcomes",
+  "supersedes": "configs/a_plus_external_peg_insertion_gate_v4_directed_servo.json",
+  "supersession_reason": "A pre-production method audit found that current-centering all geometry makes the static model's current physical coordinates identically zero and that its 96-unit MLP is substantially smaller than the temporal models. V5 preserves raw hole-relative geometry, parameter-matches the static MLP, and replaces the requirement that static accuracy be low with a positive causal advantage over the strongest matched learned baseline. No router data, closed-loop outcome, 425M selection seed, or 429M confirmation seed was opened.",
+  "inherited_contract": "All V4 task, intervention-physics, outcome, split, safety, cost-reporting, and release fields are inherited unchanged unless explicitly replaced below.",
+  "representation_contract": {
+    "features": "four physical relative-position vectors expressed in the randomized hole frame plus normalized prefix time",
+    "current_centered_geometry_dim": 0,
+    "reason": "Hole-relative coordinates already remove global pose; retaining the current frame gives every learned method the same physically meaningful deployment observation.",
+    "forbidden_runtime_inputs": [
+      "intervention kind",
+      "intervention target",
+      "future observation",
+      "oracle feasibility",
+      "native success flag"
+    ]
+  },
+  "data_contract": {
+    "reset_batches_per_condition_per_nominal_seed": 12,
+    "nominal_training_seeds": 3,
+    "conditions": 5,
+    "minimum_simulator_batch_groups": 180,
+    "split_unit": "entire vectorized simulator reset batch",
+    "real_negative_ejection": "physical test-only"
+  },
+  "matched_baselines": {
+    "causal_factorized_gru_hidden_dim": 96,
+    "static_mlp_hidden_dim": 288,
+    "temporal_unstructured_gru_hidden_dim": 96,
+    "exact_trainable_parameter_counts_must_be_logged": true,
+    "same_training_rows_splits_normalization_and_calibration": true,
+    "same_specialist_library_and_closed_loop_evaluation": true,
+    "heuristic_router": "Hole-frame cumulative peg displacement from the initial observation with the same 1 cm evidence threshold as learned-router readiness; blocker routing uses observable inward travel and return.",
+    "comparison_rule": "The candidate must exceed the strongest of the static factorized MLP and capacity-matched unstructured GRU; neither baseline is required to perform poorly."
+  },
+  "pass_criteria": {
+    "closed_loop_safe_recovery_min": 0.8,
+    "native_nominal_success_min": 0.75,
+    "heldout_ejection_safe_recovery_min": 0.75,
+    "permanent_safe_abstention_min": 0.8,
+    "violation_rate_max": 0.03,
+    "gain_over_strongest_non_oracle_min_pp": 5.0,
+    "gain_newcombe_95_lower_min_pp": 0.0,
+    "gain_cluster_bootstrap_95_lower_min_pp": 0.0,
+    "causal_heldout_offline_accuracy_min": 0.85,
+    "causal_heldout_offline_per_seed_min": 0.75,
+    "causal_heldout_gain_over_strongest_matched_min_pp": 5.0,
+    "minimum_independent_training_seeds": 3,
+    "confirmation_must_be_untouched": true
+  },
+  "development_seed_base": 421000000,
+  "selection_seed_base": 425000000,
+  "confirmation_seed_base": 429000000,
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "release_rule": "An A/A+ method claim requires the existing LearnedRecovery-v4 gate plus both V5 selection and untouched confirmation external-task gates to pass."
+}

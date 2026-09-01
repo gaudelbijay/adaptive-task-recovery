@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "scheduled_dependency_gated_development_only",
+  "config": "configs/external_peg_nominal_ppo_v9_smooth_insertion.json",
+  "v8_failure_diagnostic": "results/a_plus_audit/external_peg_nominal_v8_stage_diagnostic_10m",
+  "training_job": 1151553,
+  "fresh_nominal_competence_job": 1151556,
+  "nominal_competence_summary_job": 1151558,
+  "training_seeds": [9351, 4796, 1788],
+  "development_seed_base": 421900000,
+  "reserved_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "release_dependency": "No specialist or router job may consume V9 unless job 1151558 passes the unchanged competence gate.",
+  "claim_boundary": "Training-only reward shaping is disclosed and cannot change native evaluation success. README promotion still requires specialist, matched-router, selection, and untouched confirmation gates."
+}

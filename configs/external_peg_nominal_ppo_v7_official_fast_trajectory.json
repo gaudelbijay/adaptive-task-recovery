@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_after_complete_source_diff_before_v7_training_or_outcomes",
+  "name": "external_peg_nominal_ppo_v7_official_fast_trajectory",
+  "supersedes": "configs/external_peg_nominal_ppo_v6_official_fast_exact.json",
+  "supersession_reason": "The completed pinned ppo_fast.py diff identified reset-stream, CUDA permutation, stochastic-sampling, and evaluation-cadence differences after V6 began. V7 makes each semantic explicit and hashes the complete config into every checkpoint so a changed top-level contract cannot resume silently.",
+  "source_baseline": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "implementation": "examples/baselines/ppo/ppo_fast.py",
+    "command_source": "examples/baselines/ppo/baselines.sh lines 2 and 107-112",
+    "official_command": "PegInsertionSide-v1; seeds 9351,4796,1788; 2048 envs; 8 update epochs; 32 minibatches; gamma 0.97; gae_lambda 0.95; 75M transitions; 16-step rollouts; 100-step evaluation; 16 evaluation envs; CUDA graphs",
+    "matched_semantics": [
+      "zero-initialized actor log standard deviation",
+      "post-update target-KL stopping",
+      "globally seeded unseeded environment and evaluation resets",
+      "CUDA torch.randperm minibatch shuffling",
+      "randn_like Gaussian action sampling",
+      "evaluation at iterations 1,26,51,..."
+    ],
+    "implementation_difference": "Readable non-CUDA-graph execution with atomic checkpoint/resume and success-first best-checkpoint provenance. CUDA graphs change execution speed, not the declared policy, loss, optimizer, data, or environment contract."
+  },
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "method": "official_fast_trajectory_state_ppo_nominal",
+      "env_id": "PegInsertionSide-v1",
+      "total_timesteps": 75000000,
+      "num_envs": 2048,
+      "num_steps": 16,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {},
+      "eval_env_kwargs": {},
+      "competence_env_id": "PegInsertionRecovery-v1",
+      "competence_registration_module": "atr.envs.peg_insertion_recovery",
+      "competence_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "num_eval_envs": 16,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "eval_frequency_offset": 1,
+  "checkpoint_freq": 25,
+  "learning_rate": 0.0003,
+  "anneal_lr": false,
+  "actor_logstd_initial": 0.0,
+  "fast_action_sampling": true,
+  "explicit_environment_reset_seed": false,
+  "shuffle_backend": "torch_cuda",
+  "gamma": 0.97,
+  "gae_lambda": 0.95,
+  "target_kl": 0.1,
+  "target_kl_check_after_update": true,
+  "require_config_hash_match": true,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "This establishes only a shared nominal controller and fair-baseline transfer. It cannot release specialist/router claims without the independent competence gate."
+}

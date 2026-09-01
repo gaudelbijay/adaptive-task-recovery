@@ -22,5 +22,5 @@ run_dir="${run_root}/seed_${seed}"
   --episodes "${ATR_PEG_EVAL_EPISODES:-192}" \
   --num-envs "${ATR_PEG_EVAL_NUM_ENVS:-64}" \
   --seed-base "${ATR_PEG_EVAL_SEED_BASE:-421000000}" \
-  --steps "${ATR_PEG_EVAL_STEPS:-160}" \
+  --steps "${ATR_PEG_EVAL_STEPS:-100}" \
   --output "${audit_dir}/seed_${seed}.json"

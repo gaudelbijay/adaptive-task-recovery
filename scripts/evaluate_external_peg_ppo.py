@@ -53,6 +53,13 @@ def main() -> None:
     )
     if float(competence_kwargs.get("intervention_probability", 1.0)) != 0.0:
         raise ValueError("competence environment does not disable interventions")
+    episode_limit = int(
+        competence_kwargs.get("max_episode_steps", task.get("num_eval_steps", args.steps))
+    )
+    if args.steps > episode_limit:
+        raise ValueError(
+            f"evaluation horizon {args.steps} exceeds episode limit {episode_limit}"
+        )
 
     env_kwargs = {
         "obs_mode": task.get("obs_mode", "state"),

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_after_v7_development_diagnosis_before_bc_outcomes_or_v8_training",
+  "name": "external_peg_nominal_ppo_v8_demo_initialized",
+  "supersedes": "configs/external_peg_nominal_ppo_v7_official_fast_trajectory.json",
+  "supersession_reason": "V7 seed 4796 completed the official 75M budget at zero success. A fresh 128-episode geometric audit localized the failure to insertion-axis progress despite 92% Y/Z entry and 89% pre-insertion. V8 changes only initialization by behavior-cloning the benchmark's published successful RL demonstrations, directly targeting this local optimum without seed replacement or reserved-seed access.",
+  "demonstration_initialization": {
+    "source": "ManiSkill published PegInsertionSide-v1 RL demonstrations",
+    "downloaded_archive": "results/external_demos/PegInsertionSide-v1/rl/trajectory.h5",
+    "downloaded_archive_sha256": "6948b407728f3995db85b526f6f827ef26d16e60cc8a308af45938e4048a9666",
+    "converted_dataset": "results/external_demos/PegInsertionSide-v1/rl/state_actions_v1.npz",
+    "converted_dataset_sha256": "01d2b65365e6d6a4d07ed7d4550a3984ee2bc87fe359ca92fb6a2349f290b5dc",
+    "conversion": "Exact downloaded simulator states queried through the pinned PegInsertionSide-v1 state observation contract",
+    "demonstrations": 1000,
+    "rows": 50000,
+    "control_mode": "pd_joint_delta_pos",
+    "episode_horizon": 50,
+    "split": "sha256(episode_id) modulo 10; bucket 0 validation",
+    "bc_seeds": [9351, 4796, 1788],
+    "bc_epochs": 100,
+    "bc_batch_size": 2048,
+    "bc_learning_rate": 0.0003,
+    "selection": "minimum episode-disjoint validation action MSE",
+    "checkpoint_pattern": "results/manipulation_bc/external_peg_rl_demo_v1/seed_{seed}/best.pt"
+  },
+  "seeds": [9351, 4796, 1788],
+  "experiments": [
+    {
+      "method": "official_demo_initialized_fast_trajectory_state_ppo_nominal",
+      "env_id": "PegInsertionSide-v1",
+      "total_timesteps": 75000000,
+      "num_envs": 2048,
+      "num_steps": 16,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {},
+      "eval_env_kwargs": {},
+      "init_checkpoint": "results/manipulation_bc/external_peg_rl_demo_v1/seed_{seed}/best.pt",
+      "competence_env_id": "PegInsertionRecovery-v1",
+      "competence_registration_module": "atr.envs.peg_insertion_recovery",
+      "competence_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": ["positive_lateral_peg_ejection"],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "num_eval_envs": 16,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "eval_frequency_offset": 1,
+  "checkpoint_freq": 25,
+  "learning_rate": 0.0003,
+  "anneal_lr": false,
+  "actor_logstd_initial": 0.0,
+  "fast_action_sampling": true,
+  "explicit_environment_reset_seed": false,
+  "shuffle_backend": "torch_cuda",
+  "gamma": 0.97,
+  "gae_lambda": 0.95,
+  "target_kl": 0.1,
+  "target_kl_check_after_update": true,
+  "require_config_hash_match": true,
+  "competence_gate": {
+    "minimum_three_seed_mean_safe_success": 0.75,
+    "minimum_per_seed_safe_success": 0.6,
+    "maximum_constraint_violation_rate": 0.03
+  },
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "claim_boundary": "Published demonstrations are additional training data and must be reported. V8 must pass the same fresh three-seed competence gate before specialist or router work; BC validation MSE and training-side evaluations are not paper results."
+}

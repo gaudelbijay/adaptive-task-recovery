@@ -4,12 +4,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = (ROOT / "src/atr/envs/peg_insertion_recovery.py").read_text()
+SHAPED_SOURCE = (ROOT / "src/atr/envs/peg_insertion_shaped.py").read_text()
 
 
 def test_external_task_inherits_the_official_native_benchmark():
     assert "class PegInsertionRecoveryEnv(PegInsertionSideEnv)" in SOURCE
     assert 'register_env("PegInsertionRecovery-v1"' in SOURCE
     assert "super().evaluate()" in SOURCE
+
+
+def test_training_only_smooth_reward_preserves_native_dynamics_and_success():
+    assert "class PegInsertionSideSmoothRewardEnv(PegInsertionSideEnv)" in SHAPED_SOURCE
+    assert 'register_env("PegInsertionSideSmoothReward-v1"' in SHAPED_SOURCE
+    assert "super().compute_dense_reward" in SHAPED_SOURCE
+    assert "alignment_gate = torch.exp(-50.0 * yz_error)" in SHAPED_SOURCE
+    assert 'reward[info["success"]] = 10.0' in SHAPED_SOURCE
+    assert "set_pose" not in SHAPED_SOURCE
 
 
 def test_runtime_interventions_use_forces_not_pose_assignment():
@@ -138,7 +148,7 @@ def test_v2_is_rejected_and_v3_restores_native_episode_horizon():
     assert task["env_kwargs"]["max_episode_steps"] == 100
     assert task["eval_env_kwargs"]["max_episode_steps"] == 100
     wrapper = (ROOT / "scripts/slurm_evaluate_external_peg_ppo.sh").read_text()
-    assert '"${ATR_PEG_EVAL_STEPS:-160}"' in wrapper
+    assert '"${ATR_PEG_EVAL_STEPS:-100}"' in wrapper
 
 
 def test_v3_is_rejected_and_v4_uses_exact_official_training_environment():
@@ -156,6 +166,73 @@ def test_v3_is_rejected_and_v4_uses_exact_official_training_environment():
     assert task["competence_env_id"] == "PegInsertionRecovery-v1"
     assert task["competence_env_kwargs"]["intervention_probability"] == 0.0
     assert task["competence_env_kwargs"]["include_blocker_state_observation"] is False
+
+
+def test_v4_through_v6_are_rejected_and_v7_matches_pinned_fast_trajectory():
+    rejection = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v4_rejection.json").read_text()
+    )
+    assert rejection["status"] == "rejected_before_competence_evaluation_or_reserved_outcomes"
+    assert rejection["reserved_external_seed_status"]["selection_425000000"] == "untouched"
+    v5_rejection = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v5_rejection.json").read_text()
+    )
+    assert "source_parity_audit" in v5_rejection["status"]
+    assert v5_rejection["reserved_external_seed_status"]["confirmation_429000000"] == "untouched"
+    v6_rejection = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v6_rejection.json").read_text()
+    )
+    assert "full_source_parity_audit" in v6_rejection["status"]
+    v7 = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v7_official_fast_trajectory.json").read_text()
+    )
+    assert v7["seeds"] == [9351, 4796, 1788]
+    task = v7["experiments"][0]
+    assert task["env_id"] == "PegInsertionSide-v1"
+    assert task["num_envs"] == 2048
+    assert task["num_steps"] == 16
+    assert task["num_eval_steps"] == 100
+    assert task["total_timesteps"] == 75_000_000
+    assert v7["num_eval_envs"] == 16
+    assert v7["update_epochs"] == 8
+    assert v7["num_minibatches"] == 32
+    assert v7["gamma"] == 0.97
+    assert v7["gae_lambda"] == 0.95
+    assert v7["target_kl"] == 0.1
+    assert v7["actor_logstd_initial"] == 0.0
+    assert v7["target_kl_check_after_update"] is True
+    assert v7["explicit_environment_reset_seed"] is False
+    assert v7["fast_action_sampling"] is True
+    assert v7["shuffle_backend"] == "torch_cuda"
+    assert v7["eval_frequency_offset"] == 1
+    assert v7["require_config_hash_match"] is True
+    trainer = (ROOT / "scripts/train_manipulation_ppo.py").read_text()
+    assert 'actor_logstd_initial=float(config.get("actor_logstd_initial", -0.5))' in trainer
+    assert 'config.get("target_kl_check_after_update", False)' in trainer
+    assert 'config.get("fast_action_sampling", False)' in trainer
+    assert 'config.get("explicit_environment_reset_seed", True)' in trainer
+    assert 'torch.randperm(batch_size, device=device)' in trainer
+    assert 'checkpoint training-config hash mismatch' in trainer
+
+
+def test_v8_and_v9_keep_the_frozen_evaluation_contract():
+    v8 = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v8_demo_initialized.json").read_text()
+    )
+    assert v8["seeds"] == [9351, 4796, 1788]
+    assert v8["demonstration_initialization"]["demonstrations"] == 1000
+    assert len(v8["demonstration_initialization"]["converted_dataset_sha256"]) == 64
+    assert v8["experiments"][0]["init_checkpoint"].endswith("seed_{seed}/best.pt")
+    v9 = json.loads(
+        (ROOT / "configs/external_peg_nominal_ppo_v9_smooth_insertion.json").read_text()
+    )
+    task = v9["experiments"][0]
+    assert task["env_id"] == "PegInsertionSideSmoothReward-v1"
+    assert task["competence_env_id"] == "PegInsertionRecovery-v1"
+    assert task["competence_env_kwargs"]["intervention_probability"] == 0.0
+    assert v9["competence_gate"] == v8["competence_gate"]
+    assert v9["reserved_external_seed_status"]["selection_425000000"] == "untouched"
+    assert v9["reserved_external_seed_status"]["confirmation_429000000"] == "untouched"
 
 
 def test_unused_blocker_is_parked_off_the_insertion_axis_at_reset():
@@ -198,7 +275,7 @@ def test_external_specialists_are_required_and_initialized_from_nominal():
         (ROOT / "configs/external_peg_specialists_v1_directed_servo.json").read_text()
     )
     assert config["status"] == "preregistered_before_specialist_training_or_outcomes"
-    assert len(config["seeds"]) == 3
+    assert config["seeds"] == [9351, 4796, 1788]
     assert len(config["experiments"]) == 2
     assert {
         experiment["env_kwargs"]["intervention_types"][0]
@@ -206,19 +283,29 @@ def test_external_specialists_are_required_and_initialized_from_nominal():
     } == {"positive_lateral_peg_ejection", "negative_lateral_peg_ejection"}
     for experiment in config["experiments"]:
         assert experiment["compatible_init_env_ids"] == ["PegInsertionSide-v1"]
+        assert experiment["num_steps"] == 16
         assert experiment["env_kwargs"]["include_blocker_state_observation"] is False
         assert experiment["env_kwargs"]["ejection_target_displacement"] == 0.06
+    assert config["gamma"] == 0.97
+    assert config["gae_lambda"] == 0.95
+    assert config["fast_action_sampling"] is True
+    assert config["shuffle_backend"] == "torch_cuda"
+    assert config["target_kl_check_after_update"] is True
+    assert config["require_config_hash_match"] is True
     trainer = (ROOT / "scripts/train_manipulation_continuation_ppo.py").read_text()
     assert 'compatible_init_env_ids' in trainer
     assert 'source_task.get("env_id") not in compatible_init_env_ids' in trainer
     assert 'approximate_kl = ((ratio - 1.0) - logratio).mean()' in trainer
     assert 'approximate_kl > float(target_kl)' in trainer
+    assert 'anchor_actor_coefficient' in trainer
+    assert 'checkpoint training-config hash mismatch' in trainer
+    assert config["anchor_actor_coefficient"] == 0.1
 
 
 def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     collector = (ROOT / "scripts/collect_external_peg_router_data.py").read_text()
     assert '"router_task_geometry"' in collector
-    assert 'current_centered_geometry_dim": 12' in collector
+    assert 'current_centered_geometry_dim": 0' in collector
     assert '"heldout_option": 2' in collector
     assert '"heldout_option_cross_entropy": False' in collector
     assert '"physical_heldout"' in collector
@@ -229,7 +316,7 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
     assert "from atr.policies.peg_router_features import relative_geometry" in evaluator
     assert '"prefix_timestamp": "pre_action_observation_matching_deployment"' in collector
-    assert 'sign * (current_lateral - reference_lateral) > 0.01' in collector
+    assert 'directed_history.max(dim=1).values > 0.01' in collector
     assert '"sweep_readiness_rule"' in collector
     assert '"split_unit": "entire vectorized simulator reset batch"' in collector
     assert '"ejection_force": args.ejection_force' in collector
@@ -241,6 +328,28 @@ def test_external_router_collection_is_causal_group_disjoint_and_heldout():
     assert "ATR_PEG_TRAINING_SEEDS" in wrapper
     assert "ATR_PEG_RUN_ROOT" in wrapper
     assert "ATR_PEG_ROUTER_DATA_ROOT" in wrapper
+    assert 'ATR_PEG_ROUTER_BATCHES_PER_KIND:-12' in wrapper
+
+
+def test_external_specialists_have_a_fresh_fail_closed_gate():
+    evaluator = (ROOT / "scripts/evaluate_external_peg_specialist.py").read_text()
+    assert 'default=421_600_000' in evaluator
+    assert 'info["constraint_violated"]' in evaluator
+    assert 'info["intervention_finished"]' in evaluator
+    assert 'success_once & ~violation_once' in evaluator
+    summary = (ROOT / "scripts/summarize_external_peg_specialists.py").read_text()
+    assert 'minimum_mean_safe_success' in summary
+    assert 'minimum_seed_safe_success' in summary
+    assert 'maximum_violation_rate' in summary
+    assert 'specialist_gate_pass' in summary
+
+
+def test_external_nominal_gate_cannot_cross_the_episode_horizon():
+    evaluator = (ROOT / "scripts/evaluate_external_peg_ppo.py").read_text()
+    wrapper = (ROOT / "scripts/slurm_evaluate_external_peg_ppo.sh").read_text()
+    assert 'if args.steps > episode_limit' in evaluator
+    assert 'evaluation horizon {args.steps} exceeds episode limit' in evaluator
+    assert 'ATR_PEG_EVAL_STEPS:-100' in wrapper
 
 
 def test_external_v2_gate_holds_real_negative_physics_out_of_training():
@@ -303,6 +412,21 @@ def test_external_v4_gate_requires_directed_bounded_ejection():
     assert v4["pass_criteria"] == v3["pass_criteria"]
 
 
+def test_external_v5_uses_full_current_geometry_and_parameter_matched_baselines():
+    v5 = json.loads(
+        (ROOT / "configs/a_plus_external_peg_insertion_gate_v5_strong_baselines.json").read_text()
+    )
+    assert v5["representation_contract"]["current_centered_geometry_dim"] == 0
+    assert v5["matched_baselines"]["static_mlp_hidden_dim"] == 288
+    assert "static_heldout_offline_accuracy_max" not in v5["pass_criteria"]
+    assert v5["pass_criteria"]["causal_heldout_gain_over_strongest_matched_min_pp"] == 5.0
+    trainer = (ROOT / "scripts/train_v4_causal_option_router.py").read_text()
+    assert 'parser.add_argument("--static-hidden-dim", type=int, default=288)' in trainer
+    assert '"trainable_parameters"' in trainer
+    audit = (ROOT / "scripts/audit_temporal_composition_router.py").read_text()
+    assert '"causal_gain_over_strongest_matched"' in audit
+
+
 def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
     evaluator = (ROOT / "scripts/evaluate_external_peg_router.py").read_text()
     for method in (
@@ -317,6 +441,9 @@ def test_external_closed_loop_evaluator_is_matched_and_scores_abstention():
     assert 'safe_abstention |= abstained' in evaluator
     assert '"episode_safe_outcome": safe_outcome.cpu().tolist()' in evaluator
     assert 'available_success &= info["intervention_finished"].bool()' in evaluator
+    assert 'peg_lateral_displacement = geometry[:, 1] - initial_geometry[:, 1]' in evaluator
+    assert 'peg_lateral_displacement > 0.01' in evaluator
+    assert 'peg_lateral_displacement < -0.01' in evaluator
     assert 'blocker_protected & (peg_head_blocker_distance < blocker_clearance)' in SOURCE
     learned_runtime = evaluator.split("def learned_option", 1)[1].split(
         "def heuristic_option", 1
@@ -337,3 +464,6 @@ def test_external_gate_summarizer_enforces_every_frozen_endpoint():
     assert 'name not in set(args.oracle)' in summary
     assert "def seed_bootstrap_gain" in summary
     assert '"training_seed_bootstrap": hierarchical_gain' in summary
+    assert "def paired_episode_cluster_bootstrap_gain" in summary
+    assert '"paired_episode_cluster_bootstrap": paired_cluster_gain' in summary
+    assert 'criteria["gain_cluster_bootstrap_95_lower_min_pp"]' in summary

@@ -44,8 +44,13 @@ def _layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 
 
 class Agent(nn.Module):
-    def __init__(self, observation_dim: int, action_dim: int):
+    def __init__(
+        self, observation_dim: int, action_dim: int,
+        actor_logstd_initial: float = -0.5,
+        fast_action_sampling: bool = False,
+    ):
         super().__init__()
+        self.fast_action_sampling = bool(fast_action_sampling)
         def network(output_dim, output_std=np.sqrt(2)):
             return nn.Sequential(
                 _layer_init(nn.Linear(observation_dim, 256)), nn.Tanh(),
@@ -55,7 +60,9 @@ class Agent(nn.Module):
             )
         self.critic = network(1)
         self.actor_mean = network(action_dim, 0.01 * np.sqrt(2))
-        self.actor_logstd = nn.Parameter(torch.full((1, action_dim), -0.5))
+        self.actor_logstd = nn.Parameter(torch.full(
+            (1, action_dim), float(actor_logstd_initial),
+        ))
 
     def get_value(self, observation):
         return self.critic(observation)
@@ -64,13 +71,19 @@ class Agent(nn.Module):
         mean = self.actor_mean(observation)
         if deterministic:
             return mean
-        return Normal(mean, self.actor_logstd.exp().expand_as(mean)).sample()
+        std = self.actor_logstd.exp().expand_as(mean)
+        if self.fast_action_sampling:
+            return mean + std * torch.randn_like(mean)
+        return Normal(mean, std).sample()
 
     def get_action_and_value(self, observation, action=None):
         mean = self.actor_mean(observation)
         distribution = Normal(mean, self.actor_logstd.exp().expand_as(mean))
         if action is None:
-            action = distribution.sample()
+            if self.fast_action_sampling:
+                action = mean + distribution.scale * torch.randn_like(mean)
+            else:
+                action = distribution.sample()
         return (
             action,
             distribution.log_prob(action).sum(1),
@@ -110,7 +123,8 @@ def _restore_rng(state):
 
 
 def _checkpoint_payload(
-    agent, optimizer, iteration, global_step, best_score, best_success, best_metrics, task,
+    agent, optimizer, iteration, global_step, best_score, best_success, best_metrics,
+    task, config_sha256,
 ):
     return {
         "schema_version": 1,
@@ -122,6 +136,7 @@ def _checkpoint_payload(
         "best_score": best_score,
         "best_success": best_success,
         "best_metrics": best_metrics,
+        "config_sha256": config_sha256,
         "rng": _rng_state(),
     }
 
@@ -176,7 +191,10 @@ def main():
     parser.add_argument("--task-index", type=int, default=int(os.environ.get("SLURM_ARRAY_TASK_ID", "0")))
     parser.add_argument("--preflight", action="store_true")
     args = parser.parse_args()
-    config = json.loads(Path(args.config).read_text(encoding="utf-8"))
+    config_path = Path(args.config)
+    config_bytes = config_path.read_bytes()
+    config_sha256 = hashlib.sha256(config_bytes).hexdigest()
+    config = json.loads(config_bytes)
     task, task_count = _select_task(config, args.task_index)
     if args.preflight:
         print(json.dumps({"task_count": task_count, "task_index": args.task_index, **task}, indent=2))
@@ -213,7 +231,11 @@ def main():
     )
     observation_dim = int(np.prod(envs.single_observation_space.shape))
     action_dim = int(np.prod(envs.single_action_space.shape))
-    agent = Agent(observation_dim, action_dim).to(device)
+    agent = Agent(
+        observation_dim, action_dim,
+        actor_logstd_initial=float(config.get("actor_logstd_initial", -0.5)),
+        fast_action_sampling=bool(config.get("fast_action_sampling", False)),
+    ).to(device)
     optimizer = torch.optim.Adam(agent.parameters(), lr=config["learning_rate"], eps=1e-5)
     action_low = torch.as_tensor(envs.single_action_space.low, device=device)
     action_high = torch.as_tensor(envs.single_action_space.high, device=device)
@@ -226,6 +248,11 @@ def main():
         checkpoint = torch.load(latest_path, map_location=device, weights_only=False)
         if checkpoint["task"] != task:
             raise ValueError("checkpoint task does not match immutable task configuration")
+        if (
+            config.get("require_config_hash_match", False)
+            and checkpoint.get("config_sha256") != config_sha256
+        ):
+            raise ValueError("checkpoint training-config hash mismatch")
         agent.load_state_dict(checkpoint["agent"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         start_iteration = int(checkpoint["iteration"]) + 1
@@ -277,7 +304,10 @@ def main():
     rewards = torch.zeros((num_steps, num_envs), device=device)
     dones = torch.zeros((num_steps, num_envs), device=device)
     values = torch.zeros((num_steps, num_envs), device=device)
-    next_obs, _ = envs.reset(seed=seed)
+    if config.get("explicit_environment_reset_seed", True):
+        next_obs, _ = envs.reset(seed=seed)
+    else:
+        next_obs, _ = envs.reset()
     next_done = torch.zeros(num_envs, device=device)
     stop_requested = False
 
@@ -293,8 +323,18 @@ def main():
             fraction_remaining = 1.0 - (iteration - 1.0) / num_iterations
             optimizer.param_groups[0]["lr"] = fraction_remaining * config["learning_rate"]
         eval_success = float("nan")
-        if iteration == start_iteration or iteration % int(config["eval_freq"]) == 0:
-            eval_obs, _ = eval_envs.reset(seed=seed + iteration)
+        eval_frequency_offset = config.get("eval_frequency_offset")
+        should_evaluate = (
+            iteration == start_iteration
+            or iteration % int(config["eval_freq"]) == 0
+        ) if eval_frequency_offset is None else (
+            iteration % int(config["eval_freq"]) == int(eval_frequency_offset)
+        )
+        if should_evaluate:
+            if config.get("explicit_environment_reset_seed", True):
+                eval_obs, _ = eval_envs.reset(seed=seed + iteration)
+            else:
+                eval_obs, _ = eval_envs.reset()
             eval_metrics = defaultdict(list)
             with torch.no_grad():
                 for _ in range(int(task["num_eval_steps"])):
@@ -330,7 +370,7 @@ def main():
                 best_score, best_success, best_metrics = eval_score, eval_success, means
                 payload = _checkpoint_payload(
                     agent, optimizer, iteration - 1, global_step,
-                    best_score, best_success, best_metrics, task,
+                    best_score, best_success, best_metrics, task, config_sha256,
                 )
                 _atomic_torch_save(payload, best_path)
 
@@ -378,17 +418,30 @@ def main():
         b_returns = returns.reshape(-1)
         indices = np.arange(batch_size)
         agent.train()
+        target_kl = config.get("target_kl")
+        target_kl_check_after_update = bool(
+            config.get("target_kl_check_after_update", False)
+        )
+        stop_update = False
         for _ in range(int(config["update_epochs"])):
-            np.random.shuffle(indices)
+            if config.get("shuffle_backend", "numpy") == "torch_cuda":
+                epoch_indices = torch.randperm(batch_size, device=device)
+            else:
+                np.random.shuffle(indices)
+                epoch_indices = indices
             for start in range(0, batch_size, minibatch_size):
-                mb = indices[start:start + minibatch_size]
+                mb = epoch_indices[start:start + minibatch_size]
                 _, new_logprob, entropy, new_value = agent.get_action_and_value(b_obs[mb], b_actions[mb])
                 logratio = new_logprob - b_logprobs[mb]
                 ratio = logratio.exp()
                 with torch.no_grad():
                     approximate_kl = ((ratio - 1.0) - logratio).mean()
-                target_kl = config.get("target_kl")
-                if target_kl is not None and approximate_kl > float(target_kl):
+                if (
+                    target_kl is not None
+                    and not target_kl_check_after_update
+                    and approximate_kl > float(target_kl)
+                ):
+                    stop_update = True
                     break
                 adv = b_advantages[mb]
                 adv = (adv - adv.mean()) / (adv.std() + 1e-8)
@@ -411,7 +464,14 @@ def main():
                 loss.backward()
                 nn.utils.clip_grad_norm_(agent.parameters(), 0.5)
                 optimizer.step()
-            if target_kl is not None and approximate_kl > float(target_kl):
+                if (
+                    target_kl is not None
+                    and target_kl_check_after_update
+                    and approximate_kl > float(target_kl)
+                ):
+                    stop_update = True
+                    break
+            if stop_update:
                 break
 
         should_save = (
@@ -421,7 +481,7 @@ def main():
         if should_save:
             payload = _checkpoint_payload(
                 agent, optimizer, iteration, global_step,
-                best_score, best_success, best_metrics, task,
+                best_score, best_success, best_metrics, task, config_sha256,
             )
             _atomic_torch_save(payload, latest_path)
         if stop_requested:

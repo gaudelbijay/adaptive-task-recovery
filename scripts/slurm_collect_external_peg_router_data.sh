@@ -20,7 +20,7 @@ mkdir -p "${output_root}"
 checkpoint="${run_root}/seed_${seed}/best.pt"
 .venv/bin/python scripts/collect_external_peg_router_data.py \
   --checkpoint "${checkpoint}" \
-  --batches-per-kind "${ATR_PEG_ROUTER_BATCHES_PER_KIND:-4}" \
+  --batches-per-kind "${ATR_PEG_ROUTER_BATCHES_PER_KIND:-12}" \
   --num-envs "${ATR_PEG_ROUTER_NUM_ENVS:-64}" \
   --horizon "${ATR_PEG_ROUTER_HORIZON:-96}" \
   --seed-base "$((seed_base + SLURM_ARRAY_TASK_ID * 100000))" \

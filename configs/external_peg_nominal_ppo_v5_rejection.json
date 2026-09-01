@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "rejected_during_initial_source_parity_audit_before_competence_or_reserved_outcomes",
+  "candidate": "external_peg_nominal_ppo_v5_official_fair_baseline",
+  "reason": "V5 matched the fair baselines.sh command-line hyperparameters but inherited two ppo.py semantics that differ from the invoked ppo_fast.py: actor_logstd initializes to -0.5 instead of 0.0, and target-KL is checked before rather than after the optimizer step.",
+  "official_source": {
+    "repository": "https://github.com/haosulab/ManiSkill",
+    "commit": "62ff3a5896b4d5b4cf0ac4c8d79afe600c9404a3",
+    "file": "examples/baselines/ppo/ppo_fast.py",
+    "relevant_lines": "156 and 451-461"
+  },
+  "rejected_job": 1151123,
+  "scope_at_rejection": "Only initialization evaluation and early development updates existed; no competence, specialist, router, 425M selection, or 429M confirmation job ran.",
+  "reserved_external_seed_status": {
+    "selection_425000000": "untouched",
+    "confirmation_429000000": "untouched"
+  },
+  "consequence": "V5 and all dependent jobs are cancelled; V6 starts in a distinct immutable run directory with explicit ppo_fast semantics."
+}

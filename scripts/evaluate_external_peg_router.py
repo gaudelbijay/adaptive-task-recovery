@@ -14,8 +14,8 @@ import torch
 
 import mani_skill.envs  # noqa: F401
 import atr.envs.peg_insertion_recovery  # noqa: F401
-from atr.policies.causal_option_router import (
-    CausalOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
+from atr.policies.option_router import (
+    FactorizedOptionRouter, StaticOptionRouter, UnstructuredOptionGRU,
     current_centered_sequence,
 )
 from atr.policies.peg_router_features import relative_geometry
@@ -49,7 +49,7 @@ def load_router(path: Path, metadata_path: Path, device):
         raise ValueError("router feature metadata hash mismatch")
     name = checkpoint["model"]
     if name == "causal_gru":
-        model = CausalOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
+        model = FactorizedOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"], 2)
     elif name == "static_mlp":
         model = StaticOptionRouter(checkpoint["input_dim"], checkpoint["hidden_dim"])
     elif name == "unstructured_gru":
@@ -80,8 +80,12 @@ def learned_option(model, checkpoint, history, geometry_dim: int):
     return torch.where(accepted, option, torch.full_like(option, 5)), confidence
 
 
-def heuristic_option(geometry, initial_geometry, previous_geometry, blocker_seen):
-    peg_tcp_delta_y = geometry[:, 7] - previous_geometry[:, 7]
+def heuristic_option(geometry, initial_geometry, blocker_seen):
+    # Strong observable comparator: accumulate peg motion in the randomized
+    # hole frame from the episode's initial state. This uses the same 1 cm
+    # physical-evidence scale as the learned-router readiness target and does
+    # not depend on a single large simulator step.
+    peg_lateral_displacement = geometry[:, 1] - initial_geometry[:, 1]
     initial_blocker_distance = torch.linalg.vector_norm(initial_geometry[:, 3:6], dim=1)
     blocker_distance = torch.linalg.vector_norm(geometry[:, 3:6], dim=1)
     # The unused dynamic blocker has small servo/contact settling even in
@@ -92,8 +96,8 @@ def heuristic_option(geometry, initial_geometry, previous_geometry, blocker_seen
     blocker_cleared = blocker_seen & (blocker_progress < 0.015)
     blocker_seen |= blocker_now
     option = torch.zeros(len(geometry), dtype=torch.long, device=geometry.device)
-    option[peg_tcp_delta_y < -0.03] = 1
-    option[peg_tcp_delta_y > 0.03] = 2
+    option[peg_lateral_displacement > 0.01] = 1
+    option[peg_lateral_displacement < -0.01] = 2
     option[blocker_now] = 5
     option[blocker_cleared] = 4
     return option
@@ -240,7 +244,7 @@ def main() -> None:
                 )
             elif args.method == "heuristic":
                 final_option = heuristic_option(
-                    geometry, initial_geometry, previous_geometry, blocker_seen,
+                    geometry, initial_geometry, blocker_seen,
                 )
                 confidence.fill_(1.0)
             else:
