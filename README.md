@@ -196,8 +196,9 @@ follow-up that changed only the variance coefficient was also rejected, at
 So improved linear decodability of the state did not transfer to control, and
 twice moved against it. Representation probes are not a proxy for competence
 here, and a selector reading probe quality would have picked the worse policy
-both times. The frozen record is
-[`results/gates/integrated_visual_selection_v6.json`](results/gates/integrated_visual_selection_v6.json).
+both times. The frozen record is the selection gate
+`results/gates/integrated_visual_selection_v6.json`, whose config digest is
+pinned in `configs/integrated_visual_selection_v6.json`.
 
 ## What this does and does not establish
 
@@ -264,16 +265,22 @@ scripts/             the audit, training, evaluation and figure pipelines
 docs/                protocol, evidence standards, and the design record
 ai-notes/            decision log, risks, and the living status tracker
 configs/             frozen experiment configurations and their gates
-results/             committed measurements cited by the documents above
 tests/               contract tests for the environments and controls
 ```
+
+Runs write to a `results/` directory that is not tracked here. The documents
+cite paths inside it — a gate manifest, an aggregate, a per-seed record — as the
+authoritative source for each number, and `configs/` retains the frozen
+configuration and SHA-256 digest that identify the run each path came from. The
+figures are regenerated from those files, so reproducing a number means
+re-running its configuration rather than reading a checked-in artifact.
 
 Entry points worth knowing:
 
 - [`scripts/audit_shortcut_ladder.py`](scripts/audit_shortcut_ladder.py) — the
   control ladder and its statistical criterion.
 - [`scripts/plot_shortcut_ladder.py`](scripts/plot_shortcut_ladder.py) — renders
-  the figure above from committed measurements.
+  the figure above from the audit's output records.
 - [`src/atr/policies/option_router.py`](src/atr/policies/option_router.py) — the
   recurrent models and the matched controls they are compared against.
 - [`src/atr/policies/heuristic_option_router.py`](src/atr/policies/heuristic_option_router.py)
@@ -295,7 +302,7 @@ maintained: some expect a GPU or a checkpoint that is not in the repository and
 will stall rather than fail, so do not include them in a routine run.
 
 Training and closed-loop evaluation expect a GPU, and the checked-in Slurm
-wrappers show the exact invocations used to produce every committed result.
+wrappers show the exact invocations used to produce every result reported here.
 
 Experiment configurations are immutable once frozen: seed families, thresholds
 and checkpoint digests are recorded before a run and never edited afterwards.
