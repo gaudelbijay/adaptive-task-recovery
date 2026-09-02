@@ -83,7 +83,7 @@ def _render_frame(env):
     return image.astype(np.uint8)
 
 
-def _write_capture(args, condition, frames, options, router_checkpoint, success, violation):
+def _write_capture(args, condition, frames, options, resolution, router_checkpoint, success, violation):
     """Write the episode video plus a provenance record beside it."""
     import imageio.v2 as imageio
 
@@ -112,6 +112,9 @@ def _write_capture(args, condition, frames, options, router_checkpoint, success,
         "constraint_violated": bool(violation),
         "factorized_sweep_dispatch": bool(args.factorized_sweep_dispatch),
         "selected_option_by_step": options,
+        # Scoring stops at first resolution, so frames after this step are not
+        # measured and should not be shown as if they were.
+        "resolution_step": resolution,
         "option_names": list(OPTION_NAMES),
         "video": str(video),
     }
@@ -369,6 +372,7 @@ def main():
                 (args.num_envs,) + env.single_action_space.shape, device=device,
             )
             captured_frames, captured_options = [], []
+            captured_resolution = None
             if args.capture_video:
                 captured_frames.append(_render_frame(env))
             for step in range(1, args.steps + 1):
@@ -510,6 +514,12 @@ def main():
                 obs, _, _, _, info = env.step(action)
                 if args.capture_video:
                     captured_frames.append(_render_frame(env))
+                    if captured_resolution is None:
+                        index = args.capture_env_index
+                        if bool(info["success"][index]) or bool(
+                            info["constraint_violated"][index]
+                        ):
+                            captured_resolution = step
                 if args.terminate_score_on_first_resolution:
                     active = ~(success | violation)
                     success |= info["success"].bool() & active
@@ -520,7 +530,7 @@ def main():
             if args.capture_video:
                 _write_capture(
                     args, condition, captured_frames, captured_options,
-                    router_checkpoint,
+                    captured_resolution, router_checkpoint,
                     bool(success[args.capture_env_index]),
                     bool(violation[args.capture_env_index]),
                 )

@@ -46,10 +46,21 @@ def load_episode(record_path: Path):
         )
     frames = imageio.mimread(record["video"], memtest=False)
     options = [record["option_names"][o] for o in record["selected_option_by_step"]]
+    # The evaluator stops scoring at first resolution, so anything after it is
+    # unmeasured. Hold the resolved frame rather than showing the policy
+    # continuing to act with no task signal.
+    resolution = record.get("resolution_step")
+    if resolution is not None and resolution < len(frames):
+        frames = frames[: resolution + 1] + [frames[resolution]] * (
+            len(frames) - resolution - 1
+        )
+        options = options[:resolution] + [options[min(resolution, len(options) - 1)]] * (
+            len(options) - resolution
+        )
     return record, frames, options
 
 
-def annotate(frame, title, option, step, total, width):
+def annotate(frame, title, option, step, total, width, resolved_at=None):
     image = Image.fromarray(np.asarray(frame)[:, :, :3]).convert("RGB")
     scale = width / image.width
     image = image.resize((width, int(image.height * scale)), Image.LANCZOS)
@@ -59,9 +70,15 @@ def annotate(frame, title, option, step, total, width):
     draw.text((10, 6), title, font=_font(15), fill=INK)
     deferring = option == "defer"
     colour = ACCENT["defer"] if deferring else ACCENT["committed"]
-    caption = "observing…" if deferring else f"committed: {option}"
+    # The option name is drawn beside the timestamp, so the longest one is
+    # abbreviated to keep the two from colliding at this panel width.
+    shown = "temporary" if option == "temporary_recovery" else option
+    caption = "observing…" if deferring else f"committed: {shown}"
     draw.text((10, 24), caption, font=_font(13), fill=colour)
-    draw.text((width - 62, 24), f"t={step}/{total}", font=_font(12), fill=MUTED)
+    label = f"t={step}/{total}"
+    if resolved_at is not None and step >= resolved_at:
+        label = f"resolved t={resolved_at}"
+    draw.text((width - 104, 24), label, font=_font(12), fill=MUTED)
     return np.asarray(canvas)
 
 
@@ -73,6 +90,10 @@ def main() -> None:
     parser.add_argument("--panel-width", type=int, default=300)
     parser.add_argument("--fps", type=int, default=20)
     parser.add_argument("--stride", type=int, default=2)
+    parser.add_argument(
+        "--hold-frames", type=int, default=24,
+        help="Frames to hold after the last panel resolves. Scoring stops at\n             resolution, so the montage ends there rather than showing\n             unmeasured post-resolution motion.",
+    )
     args = parser.parse_args()
 
     panels = []
@@ -80,14 +101,21 @@ def main() -> None:
         record, frames, options = load_episode(Path(record_path))
         panels.append((title, record, frames, options))
 
+    resolutions = [
+        r.get("resolution_step") for _, r, _, _ in panels
+        if r.get("resolution_step") is not None
+    ]
     length = min(len(frames) for _, _, frames, _ in panels)
+    if resolutions:
+        length = min(length, max(resolutions) + args.hold_frames)
     montage = []
     for index in range(0, length, args.stride):
         row = []
-        for title, _, frames, options in panels:
+        for title, record, frames, options in panels:
             option = options[min(index, len(options) - 1)]
             row.append(annotate(
                 frames[index], title, option, index, length - 1, args.panel_width,
+                record.get("resolution_step"),
             ))
         height = max(cell.shape[0] for cell in row)
         row = [
