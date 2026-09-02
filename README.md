@@ -62,23 +62,67 @@ the two disagree only on REBOOT, and both readings are reported here rather
 than only the one the test returns. `LearnedRecovery-v4` and `PegInsertionSide-v1`
 are unambiguous under either.
 
-The result on `LearnedRecovery-v4` has a specific cause. Current-centering was
-introduced to remove an earlier shortcut in which instantaneous geometry
-identified the mechanism, and it succeeded: rung 1 falls to 0.0322. Because
-centering expresses every frame as a signed displacement relative to the
-present, however, it introduced a shortcut one rung up, where a single early
-frame carries the full answer. Removing a leakage path at one rung opened
-another at the next. Both non-recurrent controls above rung 1 reach 1.0000
-there, so this is not an artifact of one control's construction.
+The result on `LearnedRecovery-v4` has a specific cause, and it is structural.
+Forward and reverse ejection are produced by *separate actors*, so identifying
+the mechanism reduces to noticing which actor moved; a hand-written motion
+threshold reaches 97.40% closed-loop doing only that. A second cause compounds
+it: current-centering was introduced to remove an earlier shortcut in which
+instantaneous geometry identified the mechanism, and it succeeded — rung 1
+falls to 0.0322 — but expressing every frame as a signed displacement to the
+present made a single early frame carry the whole answer. Removing a leakage
+path at one rung opened another at the next.
 
-The corresponding closed-loop result narrows what temporal evidence is required
-for. Mechanism identification does not require it: the held-out reverse
-ejection is solved at 97.40% by the recurrent router, by a hand-written motion
-rule, and by a single-observation model alike. Distinguishing a permanent
-obstruction from a temporary one does require it. Both non-recurrent controls
-fail that pair in opposite directions, the motion rule committing to permanent
-(100.00% / 0.00%) and the one-frame model to temporary (0.00% / 84.38%), while
-both recurrent models solve both sides.
+### Which capability needs memory differs between benchmarks
+
+On `LearnedRecovery-v4`, distinguishing a permanent obstruction from a
+temporary one requires temporal evidence: both non-recurrent arms fail the pair
+in *opposite* directions while both recurrent arms solve both sides. Closed-loop
+on `PegInsertionSide-v1` that reverses — the memoryless arm is the best of the
+four on permanent blockage.
+
+| Arm | v4 permanent | v4 temporary | Peg permanent | Peg temporary |
+|---|---:|---:|---:|---:|
+| Factorized GRU | 0.9740 | 0.8438 | 0.4740 | 0.0052 |
+| Unstructured GRU | 0.9740 | 0.8420 | 0.5208 | 0.0156 |
+| Static, one frame | 0.0000 | 0.8438 | **0.5677** | 0.0312 |
+| Hand-written rule | 1.0000 | 0.0000 | 0.0000 | 0.0365 |
+
+No PegInsertion recovery specialists exist, so the nominal checkpoint filled all
+three specialist roles. Every arm shares that handicap, so the comparison
+between arms holds, but each scores at or below 0.0365 on temporary blockage:
+that column measures the missing specialist rather than the routing, and only
+the permanent column supports a conclusion.
+
+### PegInsertion leaks condition identity through episode timing
+
+Peg's features are current-centered, so a model reading only the final frame
+receives near-zero geometry. It nonetheless reaches 0.8034 and 0.8424 on the
+two blockage conditions. Zeroing `normalized_time` and changing nothing else
+removes that advantage entirely:
+
+| Model | Condition | With time | Without | Δ |
+|---|---|---:|---:|---:|
+| Static MLP | permanent | 0.8034 | 0.6094 | −0.1940 |
+| Static MLP | temporary | 0.8424 | 0.6027 | −0.2398 |
+| Static MLP | positive ejection | 0.6033 | 0.6071 | +0.0038 |
+| Factorized GRU | permanent | 0.7362 | 0.7468 | +0.0106 |
+
+The effect lands on the two blockage conditions and nowhere else, and the
+recurrent model is unaffected. This also explains the closed-loop result above:
+the memoryless arm won on permanent blockage by reading episode duration rather
+than physics. The lesson transfers — mechanisms that terminate episodes
+differently produce different clock distributions, so any recovery benchmark
+carrying a time feature should ablate it.
+
+### Preregistered gates that failed
+
+Both were frozen and committed before the runs they scored, and neither was
+reinterpreted afterwards.
+
+| Gate | Outcome |
+|---|---|
+| Peg nominal continuation | Failed 4 of 4. Competence regressed to a 0.6862 three-seed mean against a 0.84 baseline, and failures stayed 99–100% single-mode. |
+| `LearnedRecovery-v5` physics | Failed 3 of 4. Direction was never established: late separability 0.516 against 0.5 for indistinguishable. The shared-ejector design addressed the right cause; the implementation did not work. |
 
 ## Benchmark
 
@@ -164,9 +208,11 @@ gains 97.40 points [95.62, 98.42] on permanent blockage, is statistically
 indistinguishable on nominal, temporary, and held-out reverse, and is 7.12
 points lower on forward ejection.
 
-The supported claim is therefore restricted: temporal evidence is required to
-defer commitment on an obstruction whose persistence is not yet observable, and
-is not required elsewhere in this benchmark.
+The supported claim is therefore restricted, and restricted further by the
+cross-benchmark result above: on *this* benchmark temporal evidence is required
+to defer commitment on an obstruction whose persistence is not yet observable,
+and is not required elsewhere in it. That does not hold on PegInsertion, where
+the memoryless arm is the best of the four on permanent blockage.
 
 The static MLP's 0.00% is structural, not a defeated baseline: current-centering
 makes the final geometry frame exactly zero (audited, `final_geometry_max_abs =
@@ -332,6 +378,21 @@ ATR establishes closed-loop recovery in simulation and offline transfer on
 real-robot trajectories. All closed-loop control is simulated; the real-robot
 evidence is offline inference on recorded trajectories. Visual robustness holds
 within the declared camera and lighting distribution and degrades outside it.
+
+Three further limits bound what the results above license. The benchmark the
+audit flags is an easy manipulation task: 5 cm cubes onto 9 cm pads with a 4 cm
+tolerance and no orientation requirement, a primitive this repository's own
+PickCube policy solves at 98.31%. Its interventions are scripted exogenous
+events fired at step 0, so recovery here means recognising that a goal is gone
+and completing the other, which is goal filtering rather than recovery from
+execution failure. An attempt to replace them with emergent failures found the
+nominal controller's own failures to be 98.8% a single mode, so that route is
+not currently open.
+
+The audit is the contribution. The factorized architecture is reported as a
+disclosed negative: statistically indistinguishable from a capacity-matched
+plain GRU on REBOOT at −0.0021 [−0.0123, +0.0069] over ten optimizer seeds, and
+reaching 0.0199 on genuinely observed held-out prefixes on PegInsertion.
 
 Detailed negative results are intentionally retained in [`docs/`](docs/) and
 [`results/`](results/) so that the concise README does not become selective
