@@ -80,6 +80,37 @@ directions were produced by *separate actors* — a forward pusher and a reverse
 pusher — so identifying the mechanism reduced to noticing which one had moved.
 A hand-written threshold reaches 97.40% closed-loop doing exactly that.
 
+Here is the whole closed-loop benchmark, every arm on identical inputs. It is
+worth reading across rather than down: the rule in the third-to-last row is the
+finding, not the winner.
+
+| Arm | Recurrent | n | Safe success | Violations | permanent | temporary | held-out reverse |
+|---|:---:|---:|---:|---:|---:|---:|---:|
+| Factorized router (matched inputs) | yes | 2,880 | 88.99% | 0.83% | 97.40% | 84.38% | 97.40% |
+| Unstructured recurrent | yes | 2,880 | 81.74% | 4.83% | 97.40% | 84.20% | 46.88% |
+| Hand-written motion rule | no | 960 | 74.06% | 16.98% | 100.00% | 0.00% | 97.40% |
+| One past frame | no | 2,880 | 70.90% | 0.83% | 0.00% | 84.38% | 97.40% |
+| Current frame only | no | 2,880 | 0.00% | 0.00% | 0.00% | 0.00% | 0.00% |
+| Immediate oracle (privileged) | — | 960 | 89.79% | 1.87% | 99.48% | 76.04% | 90.10% |
+| Factorized router + sweep dispatch | yes | 2,880 | 92.19% | 0.83% | 97.40% | 84.38% | 97.40% |
+
+A rule with no learning matches the recurrent models on the held-out mechanism
+(97.40%) and beats them outright on permanent blockage (100%). It pays for that
+with a 16.98% violation rate — it acts confidently and is often wrong about what
+it is allowed to touch — but a benchmark where the held-out column can be topped
+without learning is not measuring what it advertises. The privileged oracle,
+which is told the mechanism outright, is statistically indistinguishable from
+the router that has to infer it (−0.80 points, [−2.93, +1.55]).
+
+Two rows need caveats, because the table flatters us without them. The
+**current-frame arm scores 0.00% by construction, not by finding**:
+current-centering forces the final geometry frame to exactly zero, so that arm
+is handed an all-zero vector. It cannot separate "history is required" from
+"this arm was given nothing", and a fair version would train on a non-final
+frame. And the **last row is unmatched** — the sweep dispatch it uses is
+available to no other arm, which is why the matched 88.99% is the number the
+comparison rests on.
+
 Worse, we had already fixed a shortcut here once. An earlier version leaked the
 mechanism through instantaneous geometry, so we re-expressed every frame as a
 displacement relative to the present. That worked: rung 1 falls to 0.0322. But
@@ -95,7 +126,8 @@ requires temporal evidence. Both non-recurrent controls fail that pair in
 while both recurrent models solve both.
 
 On the contact-rich task it reverses. There the memoryless control is the
-strongest arm on permanent blockage.
+strongest arm on permanent blockage. The same four arms, with that task set
+beside the two columns from the table above:
 
 | Arm | ours: permanent | ours: temporary | contact-rich: permanent |
 |---|---:|---:|---:|
