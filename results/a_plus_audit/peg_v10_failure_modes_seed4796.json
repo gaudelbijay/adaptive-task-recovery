@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "checkpoint": "results/manipulation_ppo/external_peg_nominal_ppo_v10_grasp_retention/external_peg_nominal_ppo_v10_grasp_retention_continuation/smooth_insertion_grasp_retention_continuation/seed_4796/best.pt",
+  "env_id": "PegInsertionRecovery-v1",
+  "intervention_probability": 0.0,
+  "episodes": 512,
+  "successes": 237,
+  "failures": 275,
+  "failure_rate": 0.537109375,
+  "terminal_mode_counts": {
+    "success": 237,
+    "never_grasped": 3,
+    "grasp_lost_in_transport": 272
+  },
+  "failure_mode_share": {
+    "never_grasped": 0.01090909090909091,
+    "grasp_lost_in_transport": 0.9890909090909091
+  }
+}
