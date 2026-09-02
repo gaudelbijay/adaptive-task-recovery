@@ -107,7 +107,13 @@ These are frozen identifiers with provenance attached. Renaming them breaks
 reproducibility of an already-opened confirmation.
 
 - Registered gym ids (`LearnedRecovery-v4`, `PegInsertionSide-v1`).
-- Preregistered gate config filenames and their SHA-256 digests.
+- Preregistered gate config filenames and their SHA-256 digests. These carry an
+  `a_plus_` prefix — an early internal label for "the bar a result had to clear",
+  nothing to do with the result it produced. The prefix is meaningless as a
+  quality signal and several of the gates it names were failed; it survives only
+  because the filenames are hashed into opened confirmations and the manifests
+  key on them. The standard those gates actually encode is in
+  [`19-evidence-standards.md`](19-evidence-standards.md).
 - The persisted `model` string inside a checkpoint (`"causal_gru"`), which gate
   manifests, `router_checkpoint_sha256` provenance, and audit scripts key on.
   See `src/atr/policies/option_router.py`.

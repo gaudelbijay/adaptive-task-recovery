@@ -162,7 +162,8 @@ world representation + encoded goals --> feasibility estimator     |
 
 The numbered documents cover the problem definition, related work, architecture,
 environment design, world-change taxonomy, policy design, training, evaluation,
-roadmap, portfolio packaging, and experiment logging. The `ai-notes/` directory
-tracks live decisions, risks, status, and work items. The rigorous equations,
+roadmap, and experiment logging; [`README.md`](README.md) indexes them in
+reading order. The `ai-notes/` directory tracks live decisions, risks, status,
+and work items. The rigorous equations,
 assumptions, conditional properties, and code correspondence are collected in
 [`math.md`](math.md).

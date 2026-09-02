@@ -38,7 +38,7 @@ first.
 disclosed negative: indistinguishable from a capacity-matched plain GRU on
 REBOOT at -0.0021 [-0.0123, +0.0069], and 0.0199 on genuinely observed held-out
 prefixes on PegInsertion. Evidence assembled for write-up in
-`docs/30-a-plus-recovery-protocol.md` and `docs/19-iros-publishability-gate.md`.
+`docs/30-recovery-audit-protocol.md` and `docs/19-evidence-standards.md`.
 
 
 **Latest method reset (D-230/D-231, 2026-08-30):** Independent V60 lineages
@@ -50,8 +50,8 @@ goal-interacted frozen-DINOv2 delta probe reaches 100%, 99.22%, 100%, 100%, and
 100% balanced accuracy on canonical, camera-left, camera-high, dim-light, and
 warm-light profiles respectively (256 goal examples each). This is not yet a
 controller or recovery result; completed-goal negatives, a second physical
-loss mechanism, and policy integration are mandatory before a paper claim.
-See `docs/19-iros-publishability-gate.md`.
+loss mechanism, and policy integration are mandatory before any general claim.
+See `docs/19-evidence-standards.md`.
 
 **Latest integrated result (D-146/D-147, 2026-08-28):** V19 is the first policy
 to pass every frozen restricted-input visual-control endpoint in

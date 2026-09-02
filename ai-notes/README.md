@@ -1,10 +1,14 @@
 # AI Project Notes
 
 This directory contains short, frequently updated notes used to track project
-execution. Stable design and research documentation lives in [`../docs`](../docs/).
-The current project direction is feasibility-aware vision-language RL after
-irreversible world changes; historical humanoid-recovery decisions are marked
-as superseded rather than silently removed.
+execution. Stable design and research documentation lives in
+[`../docs`](../docs/), indexed by [`../docs/README.md`](../docs/README.md).
+
+The work centres on auditing whether a recovery benchmark measures recovery or
+a shortcut, and on the recovery architecture evaluated against that audit.
+Earlier directions — humanoid recovery, and the vision-language line that
+preceded the audit — are marked superseded rather than silently removed, so the
+record shows what was tried and why it was set aside.
 
 ## Files
 

@@ -102,7 +102,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Consequences:** REBOOT's verdict moved three times as the audit was
   corrected -- no shortcut under an unmatched rung set, shortcut under the
   ratio cut, no shortcut under the paired test. The full history is recorded in
-  `docs/30-a-plus-recovery-protocol.md` rather than replaced. The bootstrap now
+  `docs/30-recovery-audit-protocol.md` rather than replaced. The bootstrap now
   resamples (seed, episode) pairs; it previously used seed 0 only.
 
 ## D-232: Complete the declared router comparison and isolate the dispatch confound
@@ -164,9 +164,9 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Decision:** Reject V60 as an integrated controller and close the successive
   canonicalizer/router/expert patching line. Do not render or evaluate the
   reserved seed-133M suite. A development-suite pass from seed 1788 does not
-  survive independent lineages and cannot support an IROS robustness claim.
+  survive independent lineages and cannot support an a general claim robustness claim.
   Move to an explicit reference-conditioned feasibility belief separated from
-  motor control; see D-231 and `docs/19-iros-publishability-gate.md`.
+  motor control; see D-231 and `docs/19-evidence-standards.md`.
 
 ## D-229: V60 passes development; freeze three independent confirmation lineages
 

@@ -1,4 +1,4 @@
-# A/A+ recovery protocol (frozen before development)
+# recovery audit protocol (frozen before development)
 
 > **Naming.** Counters in this document belong to the *recovery router* series
 > unless marked otherwise; V19 and V28 are *visual*-series artifacts. A counter
@@ -244,9 +244,9 @@ machine-readable record is
 `configs/temporal_composition_v10_confirmation.json`.
 
 This closes the input-matched positive-method blocker on LearnedRecovery-v4.
-It does not close the paper gate. The independently preregistered, no-teleport
-`PegInsertionSide-v1` closed-loop experiment must still pass before an A/A+
-general recovery claim or README headline promotion.
+It does not close the evidence standard. The independently preregistered, no-teleport
+`PegInsertionSide-v1` closed-loop experiment must still pass before a
+general recovery claim or a change to the README headline.
 
 ### V10 completed method list and mechanism attribution
 

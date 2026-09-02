@@ -104,7 +104,7 @@ state query, ~zero cost) before committing to the physical reach, and skips
 With no intervention, both policies achieve 2/2 goals with zero waste (see
 `tests/drafts/test_tidy_up_policies.py`).
 
-This is a toy-scale, existence-only version of H2, not a publishable result:
+This is a toy-scale, existence-only version of H2, not an established result:
 no learned feasibility estimation (the check is a direct privileged-state
 query), no language, and "wasted steps" is a simplified proxy for cost, not
 a full reward/regret formulation. But it's the first time any part of this

@@ -171,7 +171,7 @@ The result is not promoted until all nine checkpoints, 4,608 held-out episodes,
 branch labels, and paired comparisons are complete.
 
 **Scaled execution (D-125):** the frozen v1 matrix and cluster workflow
-are specified in [`docs/11-scaled-experiments.md`](11-scaled-experiments.md).
+are specified in [`docs/09-scaled-experiments.md`](09-scaled-experiments.md).
 Unlike the original in-process harness, it uses content-addressed cases,
 stable paired shards, atomic per-episode artifacts, resume/retry, exact code and
 runtime provenance, manifest-aware completeness checks, and stratified paired
