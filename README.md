@@ -132,12 +132,15 @@ reinterpreted afterwards.
 
 <p align="center"><sub>
 The frozen router on <code>LearnedRecovery-v4</code>, one panel per mechanism,
-annotated with the option it has committed to at each step. It commits to
-reverse ejection at step 2, and observes for 38 and 52 steps respectively
-before committing on temporary and permanent blockage. Each panel holds at the
-step its episode resolves — 24, 76 and 66 — because scoring stops at first
-resolution and later motion is not measured. All three are verified safe
-successes; capture provenance is in <code>results/v4_capture2/</code>.
+annotated with the option it has committed to and how the episode resolved. It
+settles on reverse ejection at step 2 but observes for 38 and 52 steps before
+committing on temporary and permanent blockage. The outcome line distinguishes
+the conditions: the two irreversible mechanisms end with one cube placed and
+one permanently gone, while temporary blockage ends with <b>both placed</b> —
+the router waits for the obstruction to clear rather than writing the goal off.
+Each panel holds at its resolution step, because scoring stops there and later
+motion is not measured. Provenance in <code>results/v4_capture3/</code> and
+<code>results/v4_goalcheck/</code>.
 </sub></p>
 
 The deferral asymmetry is the behavioural counterpart of the result above:

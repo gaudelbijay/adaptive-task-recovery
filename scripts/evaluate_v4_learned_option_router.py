@@ -83,7 +83,7 @@ def _render_frame(env):
     return image.astype(np.uint8)
 
 
-def _write_capture(args, condition, frames, options, resolution, router_checkpoint, success, violation):
+def _write_capture(args, condition, frames, options, resolution, goals, router_checkpoint, success, violation):
     """Write the episode video plus a provenance record beside it."""
     import imageio.v2 as imageio
 
@@ -115,6 +115,7 @@ def _write_capture(args, condition, frames, options, resolution, router_checkpoi
         # Scoring stops at first resolution, so frames after this step are not
         # measured and should not be shown as if they were.
         "resolution_step": resolution,
+        "goals_at_resolution": goals,
         "option_names": list(OPTION_NAMES),
         "video": str(video),
     }
@@ -373,6 +374,7 @@ def main():
             )
             captured_frames, captured_options = [], []
             captured_resolution = None
+            captured_goals = None
             if args.capture_video:
                 captured_frames.append(_render_frame(env))
             for step in range(1, args.steps + 1):
@@ -520,6 +522,17 @@ def main():
                             info["constraint_violated"][index]
                         ):
                             captured_resolution = step
+                            # Whether the episode was resolved by completing
+                            # the goals or by one becoming unavailable is the
+                            # difference between recovery and abandonment.
+                            captured_goals = {
+                                "goals_completed": float(
+                                    info["goals_completed"][index]
+                                ),
+                                "goals_unavailable": float(
+                                    info["goals_unavailable"][index]
+                                ),
+                            }
                 if args.terminate_score_on_first_resolution:
                     active = ~(success | violation)
                     success |= info["success"].bool() & active
@@ -530,7 +543,7 @@ def main():
             if args.capture_video:
                 _write_capture(
                     args, condition, captured_frames, captured_options,
-                    captured_resolution, router_checkpoint,
+                    captured_resolution, captured_goals, router_checkpoint,
                     bool(success[args.capture_env_index]),
                     bool(violation[args.capture_env_index]),
                 )

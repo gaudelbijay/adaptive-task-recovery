@@ -20,7 +20,7 @@ import imageio.v2 as imageio
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-LABEL_BAND = 54
+LABEL_BAND = 68
 TRACK_H = 5
 INK = (18, 18, 18)
 MUTED = (95, 94, 88)
@@ -64,8 +64,18 @@ def load_episode(record_path: Path):
     return record, frames, options
 
 
+def _goal_label(record):
+    """Summarise how the episode resolved: placed, or written off."""
+    goals = record.get("goals_at_resolution")
+    if not goals:
+        return None
+    done = int(goals.get("goals_completed") or 0)
+    gone = int(goals.get("goals_unavailable") or 0)
+    return f"{done}/2 placed" if not gone else f"{done}/2 placed, {gone} gone"
+
+
 def annotate(frame, title, option, step, total, width,
-             resolved_at=None, commit_at=None, onset=None):
+             resolved_at=None, commit_at=None, onset=None, goals=None):
     """Draw one panel: the render, its state caption, and a progress track.
 
     The track is what makes the panels comparable at a glance. It marks when
@@ -87,13 +97,18 @@ def annotate(frame, title, option, step, total, width,
     caption = "observing\u2026" if deferring else f"committed: {shown}"
     draw.text((10, 24), caption, font=_font(13), fill=colour)
 
-    right = f"resolved t={resolved_at}" if (
-        resolved_at is not None and step >= resolved_at
-    ) else f"t={step}"
-    draw.text((width - 104, 24), right, font=_font(12), fill=MUTED)
+    if resolved_at is not None and step >= resolved_at:
+        outcome = f"resolved t={resolved_at}"
+        if goals:
+            outcome += f"  \u00b7  {goals}"
+        fill = RESOLVED
+    else:
+        outcome = f"step {step} of {total}"
+        fill = MUTED
+    draw.text((10, 41), outcome, font=_font(12), fill=fill)
 
     # Progress track with intervention, commit and resolution markers.
-    x0, x1, y = 10, width - 10, LABEL_BAND - TRACK_H - 4
+    x0, x1, y = 10, width - 10, LABEL_BAND - TRACK_H - 3
     span = max(total, 1)
     draw.rectangle([x0, y, x1, y + TRACK_H], fill=TRACK_BG)
     filled = x0 + int((x1 - x0) * min(step, span) / span)
@@ -144,7 +159,7 @@ def main() -> None:
             row.append(annotate(
                 frames[index], title, option, index, length - 1,
                 args.panel_width, record.get("resolution_step"), commit,
-                record.get("onset_step", 1),
+                record.get("onset_step", 1), _goal_label(record),
             ))
         height = max(cell.shape[0] for cell in row)
         row = [
