@@ -210,9 +210,11 @@ pytest tests -q --ignore=tests/drafts --ignore=tests/spikes
 ```
 
 That runs the maintained contract tests for the environments, the routers and
-the audit. `tests/drafts/` and `tests/spikes/` hold the per-candidate tests
-written alongside experiments that were later abandoned; they are kept as part
-of the record, and running the whole tree takes considerably longer.
+the audit — 126 tests, about a minute and a half. `tests/drafts/` and
+`tests/spikes/` hold the per-candidate tests written alongside experiments that
+were later abandoned. They are kept as part of the record but are not
+maintained: some expect a GPU or a checkpoint that is not in the repository and
+will stall rather than fail, so do not include them in a routine run.
 
 Training and closed-loop evaluation expect a GPU, and the checked-in Slurm
 wrappers show the exact invocations used to produce every committed result.
