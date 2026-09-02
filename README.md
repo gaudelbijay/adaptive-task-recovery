@@ -232,8 +232,6 @@ corrected, is in
 
 ## Limitations
 
-Stated here rather than buried, because they bound everything above.
-
 The task is easy. Five-centimetre cubes onto nine-centimetre pads with a
 four-centimetre tolerance and no orientation requirement; the same
 pick-and-place primitive reaches 98.31% elsewhere in this repository. The
