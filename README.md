@@ -160,6 +160,45 @@ recurrent model is untouched. Mechanisms that end episodes at different times
 produce different duration distributions, so an elapsed-time feature encodes
 which mechanism fired. **Any recovery benchmark carrying one should ablate it.**
 
+## A separate thread: control from restricted vision
+
+Everything above reads privileged state. A parallel line asked whether the same
+recovery behaviour survives when the deployed policy has to look at the scene
+instead. The controller executes continuous joint control from RGB, robot
+proprioception, and the instruction. Object poses, intervention labels, and
+evaluator domains are not available to it at deployment.
+
+Its gate was frozen in advance and ranked candidates on the **minimum** of four
+endpoints rather than their mean, so a policy could not average away a weak
+regime. Across three seeds and 768 held-out episodes per regime:
+
+| Regime | Safe success | Violations |
+|---|---:|---:|
+| Strict physical removal | 96.35% | 1.30% |
+| Nominal two-goal task | 91.41% | 3.65% |
+| First goal removed | 97.06% | — |
+| Second goal removed | 95.69% | — |
+
+It passes, at a 91.41% worst endpoint against a 90% floor. The honest framing is
+narrow: training uses two privileged specialists and a training-only label to
+route supervision, so this is expert distillation with PPO under privileged
+training, **not** pixel RL and not a self-supervision result. Only deployment is
+restricted.
+
+The useful finding here is a failure. A variant with full-strength
+anti-collapse self-supervision learned measurably *better* representations —
+matched-pixel pose R² +0.0106 [0.0016, 0.0212], task-semantic R² +0.0146 [0.0010,
+0.0377], both intervals excluding zero — and controlled measurably *worse*:
+85.42% strict, and 74.06% on the first-removal branch against 97.06%. A narrower
+follow-up that changed only the variance coefficient was also rejected, at
+87.63% strict and 78.34% first-removal.
+
+So improved linear decodability of the state did not transfer to control, and
+twice moved against it. Representation probes are not a proxy for competence
+here, and a selector reading probe quality would have picked the worse policy
+both times. The frozen record is
+[`results/gates/integrated_visual_selection_v6.json`](results/gates/integrated_visual_selection_v6.json).
+
 ## What this does and does not establish
 
 The audit is the contribution, and it holds: a reusable procedure with a
@@ -171,6 +210,13 @@ real-robot trajectories it is statistically indistinguishable from a
 capacity-matched plain recurrent model (−0.0021, interval [−0.0123, +0.0069],
 ten seeds). On the benchmark without a shortcut it reaches 0.0199 on genuinely
 observed held-out prefixes.
+
+The restricted-vision result stands on its own gate and does not carry over to
+the audit: it was frozen as a post-hoc extension and explicitly cannot revise
+any preregistered verdict above. It also runs in the same environment family the
+audit flagged, so it inherits that family's ease — it shows a vision-deployed
+policy clearing a preregistered bar on goal removal, not that the underlying
+task is hard.
 
 Two preregistered gates were frozen before the runs they scored, and both
 failed; both are kept as results rather than removed. A continuation intended to
