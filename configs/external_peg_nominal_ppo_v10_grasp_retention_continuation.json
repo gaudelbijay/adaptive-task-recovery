@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_continuation_training_or_outcomes",
+  "name": "external_peg_nominal_ppo_v10_grasp_retention_continuation",
+  "supersedes": "configs/external_peg_nominal_ppo_v9_smooth_insertion.json",
+  "supersession_reason": "The v9 nominal controller plateaued: its best checkpoint is at 62,259,200 of a 75,000,000 budget, and a 512-episode characterization found 84 of 85 emergent failures are the peg grasped and then lost before reaching within 8 cm of the hole. Those failures occur before the contact-rich part of the task, so they cannot support a recovery benchmark. This continuation fine-tunes from the frozen v9 checkpoint at a reduced learning rate to test whether grasp retention improves and failures move toward the hole.",
+  "purpose": "Establish whether a stronger nominal controller produces a diverse emergent failure distribution. This is a precondition for a non-scripted recovery benchmark, not a recovery result.",
+  "seeds": [
+    9351,
+    4796,
+    1788
+  ],
+  "experiments": [
+    {
+      "method": "smooth_insertion_grasp_retention_continuation",
+      "env_id": "PegInsertionSideSmoothReward-v1",
+      "registration_module": "atr.envs.peg_insertion_shaped",
+      "total_timesteps": 30000000,
+      "num_envs": 2048,
+      "num_steps": 16,
+      "num_eval_steps": 100,
+      "control_mode": "pd_joint_delta_pos",
+      "env_kwargs": {
+        "insertion_shaping_coefficient": 1.0
+      },
+      "eval_env_kwargs": {
+        "insertion_shaping_coefficient": 1.0
+      },
+      "init_checkpoint": "results/manipulation_ppo/external_peg_nominal_ppo_v9_smooth_insertion/demo_initialized_smooth_insertion_fast_ppo_nominal/seed_{seed}/best.pt",
+      "competence_env_id": "PegInsertionRecovery-v1",
+      "competence_registration_module": "atr.envs.peg_insertion_recovery",
+      "competence_env_kwargs": {
+        "max_episode_steps": 100,
+        "intervention_probability": 0.0,
+        "intervention_types": [
+          "positive_lateral_peg_ejection"
+        ],
+        "include_blocker_state_observation": false
+      }
+    }
+  ],
+  "learning_rate": 5e-05,
+  "anneal_lr": true,
+  "num_eval_envs": 16,
+  "update_epochs": 8,
+  "num_minibatches": 32,
+  "eval_freq": 25,
+  "eval_frequency_offset": 1,
+  "checkpoint_freq": 25,
+  "actor_logstd_initial": 0.0,
+  "fast_action_sampling": true,
+  "explicit_environment_reset_seed": false,
+  "shuffle_backend": "torch_cuda",
+  "gamma": 0.97,
+  "gae_lambda": 0.95,
+  "target_kl": 0.1,
+  "target_kl_check_after_update": true,
+  "require_config_hash_match": true,
+  "allocation_gate": {
+    "note": "Frozen before training. The continuation is retained only if it improves nominal competence and diversifies emergent failures; either check failing means the non-scripted benchmark route is not opened on this controller.",
+    "minimum_three_seed_mean_safe_success": 0.9,
+    "minimum_per_seed_safe_success": 0.85,
+    "maximum_constraint_violation_rate": 0.03,
+    "maximum_single_failure_mode_share": 0.7,
+    "minimum_distinct_failure_modes_above_10pct": 2
+  },
+  "claim_boundary": "Nominal competence and emergent failure diversity only. No recovery, routing, or shortcut-audit claim follows from this configuration. The 425000000 and 429000000 families remain unopened."
+}

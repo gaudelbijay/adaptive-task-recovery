@@ -238,20 +238,34 @@ def main() -> None:
     # model's advantage over it is not distinguishable from zero, i.e. the
     # paired group-bootstrap interval on (rung4 - lower) includes zero. This
     # replaces an arbitrary ratio cut with a test that has an error rate.
+    def pooled(entry):
+        """Concatenate rows over training seeds, keeping (seed, episode) as the
+        resampling unit so the interval reflects seed variance as well as
+        episode variance. Scoring only the first seed understates uncertainty.
+        """
+        rows, groups = [], []
+        for index, seed_result in enumerate(entry["seeds"]):
+            rows.extend(seed_result["heldout_correct_by_row"])
+            groups.extend(
+                (index, group) for group in seed_result["heldout_group_by_row"]
+            )
+        return rows, groups
+
     top_entry = report["rungs"].get("recurrent_factorized")
     top = top_entry["heldout_option_accuracy_mean"] if top_entry else None
     comparisons, flagged = {}, []
     if top_entry:
-        top_seed = top_entry["seeds"][0]
+        top_rows, top_groups = pooled(top_entry)
         for name, entry in report["rungs"].items():
             if entry["rung"] >= RUNG["recurrent"]:
                 continue
-            low_seed = entry["seeds"][0]
+            low_rows, low_groups = pooled(entry)
             test = group_bootstrap_difference(
-                top_seed["heldout_correct_by_row"], top_seed["heldout_group_by_row"],
-                low_seed["heldout_correct_by_row"], low_seed["heldout_group_by_row"],
+                top_rows, top_groups, low_rows, low_groups,
             )
-            if test is None:
+            test = test or {}
+            test["training_seeds_pooled"] = len(entry["seeds"])
+            if not test:
                 continue
             test["indistinguishable_from_rung4"] = bool(test["group_bootstrap_95"][0] <= 0)
             test["ratio_to_rung4"] = (
