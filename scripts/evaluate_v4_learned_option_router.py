@@ -73,6 +73,18 @@ def router_output(model, history, geometry_dim=0):
     return output, logp.exp()
 
 
+def _placement_distances(env, index):
+    """Measured XY distance from each cube to its own goal, in metres."""
+    base = env.unwrapped
+    cubes = torch.stack([base.red_cube.pose.p, base.blue_cube.pose.p], dim=1)
+    goals = torch.stack([base.red_goal.pose.p, base.blue_goal.pose.p], dim=1)
+    distance = torch.linalg.norm(cubes[..., :2] - goals[..., :2], dim=2)
+    return {
+        "red": float(distance[index, 0]),
+        "blue": float(distance[index, 1]),
+    }
+
+
 def _render_frame(env):
     image = env.render()
     if hasattr(image, "cpu"):
@@ -83,7 +95,7 @@ def _render_frame(env):
     return image.astype(np.uint8)
 
 
-def _write_capture(args, condition, frames, options, resolution, goals, router_checkpoint, success, violation):
+def _write_capture(args, condition, frames, options, resolution, goals, final_distances, router_checkpoint, success, violation):
     """Write the episode video plus a provenance record beside it."""
     import imageio.v2 as imageio
 
@@ -116,6 +128,8 @@ def _write_capture(args, condition, frames, options, resolution, goals, router_c
         # measured and should not be shown as if they were.
         "resolution_step": resolution,
         "goals_at_resolution": goals,
+        "cube_to_goal_xy_at_end": final_distances,
+        "placement_threshold_xy": 0.04,
         "option_names": list(OPTION_NAMES),
         "video": str(video),
     }
@@ -375,6 +389,7 @@ def main():
             captured_frames, captured_options = [], []
             captured_resolution = None
             captured_goals = None
+            captured_final_distances = None
             if args.capture_video:
                 captured_frames.append(_render_frame(env))
             for step in range(1, args.steps + 1):
@@ -516,6 +531,9 @@ def main():
                 obs, _, _, _, info = env.step(action)
                 if args.capture_video:
                     captured_frames.append(_render_frame(env))
+                    captured_final_distances = _placement_distances(
+                        env, args.capture_env_index
+                    )
                     if captured_resolution is None:
                         index = args.capture_env_index
                         if bool(info["success"][index]) or bool(
@@ -532,6 +550,12 @@ def main():
                                 "goals_unavailable": float(
                                     info["goals_unavailable"][index]
                                 ),
+                                # goals_completed latches, so record where the
+                                # cubes physically are as well. A latched count
+                                # can disagree with the rendered frame.
+                                "cube_to_goal_xy": _placement_distances(
+                                    env, index
+                                ),
                             }
                 if args.terminate_score_on_first_resolution:
                     active = ~(success | violation)
@@ -543,7 +567,8 @@ def main():
             if args.capture_video:
                 _write_capture(
                     args, condition, captured_frames, captured_options,
-                    captured_resolution, captured_goals, router_checkpoint,
+                    captured_resolution, captured_goals,
+                    captured_final_distances, router_checkpoint,
                     bool(success[args.capture_env_index]),
                     bool(violation[args.capture_env_index]),
                 )

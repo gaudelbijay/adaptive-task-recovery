@@ -655,3 +655,38 @@ The lesson is transferable and concrete: a normalized-time feature in a
 recovery benchmark leaks condition identity through episode duration, because
 mechanisms that terminate the episode differently produce different clock
 distributions. Any benchmark including such a feature should ablate it.
+
+### Placement tolerance is loose enough that success can look like failure
+
+Inspecting the temporary-blockage capture raised a question the artifacts could
+not answer: the panel reports both goals placed, but the render reads as a
+near-miss. `goals_completed` also latches, so a count of 2.0 does not by itself
+prove the cubes are on their pads at that moment.
+
+Measuring the physics directly at the resolution step and again at episode end:
+
+| | red cube to goal | blue cube to goal |
+|---|---:|---:|
+| At resolution, step 76 | 0.0347 m | 0.0293 m |
+| Threshold | 0.04 | 0.04 |
+| At episode end, step 240 | 0.206 m | 0.219 m |
+
+Three separate facts follow. The count is correct: both cubes are inside the
+threshold at resolution, so the policy does complete both goals after the
+obstruction clears, and this is genuine recovery rather than abandonment.
+
+The margin is thin. At 0.035 and 0.029 against a 0.04 limit, with 5 cm cubes on
+9 cm pads, a cube counted as placed can be overhanging the edge of its pad. The
+success criterion admits placements that read as failures, which compounds the
+task-difficulty limitation already recorded: a 4 cm tolerance with no
+orientation requirement is generous, and the visual ambiguity is a symptom of
+that rather than a rendering artifact.
+
+The cubes are then displaced to roughly 0.21 m by the end of the episode. Those
+164 steps are after scoring stops and are not measured, which is why captures
+now hold the resolution frame. Before that change the figure showed cubes being
+scattered after the episode had already been scored a success.
+
+Captures now record `cube_to_goal_xy` at resolution and `cube_to_goal_xy_at_end`
+so a latched count can always be checked against measured positions.
+Artifact: `results/v4_place/router_temporary_block.json`.
