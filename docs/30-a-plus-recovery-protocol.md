@@ -584,3 +584,41 @@ without changing its conclusion.
 
 Artifacts: `results/router/ladder/*.json`,
 `results/a_plus_audit/reboot_ladder_v5_aggregate.json`.
+
+### The confusion pair does not replicate on PegInsertion
+
+The permanent/temporary result was the one finding that survived every audit on
+`LearnedRecovery-v4`: both non-recurrent arms failed the pair in opposite
+directions while both recurrent arms solved both sides. Closed-loop on
+PegInsertion, it does not hold.
+
+| Arm | v4 permanent | v4 temporary | Peg permanent | Peg temporary |
+|---|---:|---:|---:|---:|
+| causal GRU | 0.9740 | 0.8438 | 0.4740 | 0.0052 |
+| unstructured GRU | 0.9740 | 0.8420 | 0.5208 | 0.0156 |
+| static, one frame | 0.0000 | 0.8438 | 0.5677 | 0.0312 |
+| hand-written rule | 1.0000 | 0.0000 | 0.0000 | 0.0365 |
+
+On permanent blockage the memoryless model is the *best* arm at 0.5677, ahead
+of both recurrent models. Memory does not help there, which reverses the v4
+result directly and matches what the offline per-condition accuracies already
+suggested.
+
+**A limitation of this experiment, stated plainly.** No PegInsertion recovery
+specialists exist, so the nominal checkpoint was supplied for the nominal,
+forward, and reverse roles. Every arm therefore shares identical and
+recovery-incapable specialists. The relative comparison between arms remains
+meaningful because they share them, but the absolute numbers are depressed and
+the temporary column, where every arm scores at or below 0.0365, cannot support
+a conclusion about routing: no arm had a policy capable of resuming after
+clearance. The permanent column is the informative one.
+
+The defensible reading is therefore narrow. Memory does not help on permanent
+blockage in a contact-rich task, contradicting the v4 finding. The temporary
+side is unresolved and needs Peg recovery specialists before it can be tested.
+
+This is the third instance of one pattern: a result that appears fundamental on
+`LearnedRecovery-v4` does not survive a harder or externally grounded
+benchmark. The first was the held-out mechanism falling to a one-frame model,
+the second was REBOOT's verdict depending on which control was nominated, and
+this is the third.
