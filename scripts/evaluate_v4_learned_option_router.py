@@ -85,13 +85,19 @@ def _placement_distances(env, index):
     }
 
 
-def _render_frame(env):
+def _render_frame(env, index=0):
+    """Render one environment of the batch.
+
+    The index must match the environment every annotation is taken from.
+    Rendering environment 0 while labelling environment N silently produces a
+    panel whose video and captions come from different episodes.
+    """
     image = env.render()
     if hasattr(image, "cpu"):
         image = image.cpu().numpy()
     image = np.asarray(image)
     if image.ndim == 4:
-        image = image[0]
+        image = image[min(index, image.shape[0] - 1)]
     return image.astype(np.uint8)
 
 
@@ -391,7 +397,7 @@ def main():
             captured_goals = None
             captured_final_distances = None
             if args.capture_video:
-                captured_frames.append(_render_frame(env))
+                captured_frames.append(_render_frame(env, args.capture_env_index))
             for step in range(1, args.steps + 1):
                 if args.fixed_option is None and step <= router_horizon:
                     feature, positions = extract_features(
@@ -530,7 +536,7 @@ def main():
                 option_histogram += torch.bincount(effective_option, minlength=6)
                 obs, _, _, _, info = env.step(action)
                 if args.capture_video:
-                    captured_frames.append(_render_frame(env))
+                    captured_frames.append(_render_frame(env, args.capture_env_index))
                     captured_final_distances = _placement_distances(
                         env, args.capture_env_index
                     )

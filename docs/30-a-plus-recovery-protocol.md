@@ -690,3 +690,12 @@ scattered after the episode had already been scored a success.
 Captures now record `cube_to_goal_xy` at resolution and `cube_to_goal_xy_at_end`
 so a latched count can always be checked against measured positions.
 Artifact: `results/v4_place/router_temporary_block.json`.
+
+**Render/annotation index mismatch, found and fixed.** `_render_frame` took
+`image[0]` from the batched render while every annotation was read from
+`args.capture_env_index`. Any capture taken from an environment other than 0
+therefore produced a panel whose video and captions came from different
+episodes. The temporary-blockage panel was captured from environment 2, whose
+episode succeeds, while the video showed environment 0, whose episode never
+resolves. The mismatch was visible as a robot that kept working after its
+caption said the task was complete. Rendering now uses the capture index.

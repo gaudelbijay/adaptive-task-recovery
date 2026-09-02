@@ -139,9 +139,9 @@ the conditions: the two irreversible mechanisms end with one cube placed and
 one permanently gone, while temporary blockage ends with <b>both placed</b> —
 the router waits for the obstruction to clear rather than writing the goal off.
 Each panel holds at its resolution step, because scoring stops there and later
-motion is not measured. Provenance in <code>results/v4_capture3/</code> and
-<code>results/v4_place/</code>, which also record measured cube-to-goal
-distance at resolution, since the completion count latches.
+motion is not measured. Provenance in <code>results/v4_final/</code> and
+<code>results/v4_finalt/</code>, which record measured cube-to-goal distance at
+resolution as well as the completion count, since that count latches.
 </sub></p>
 
 The deferral asymmetry is the behavioural counterpart of the result above:
