@@ -20,11 +20,15 @@ import imageio.v2 as imageio
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-LABEL_BAND = 42
+LABEL_BAND = 54
+TRACK_H = 5
 INK = (18, 18, 18)
 MUTED = (95, 94, 88)
 SURFACE = (252, 252, 251)
 ACCENT = {"defer": (140, 138, 130), "committed": (42, 120, 214)}
+TRACK_BG = (226, 226, 221)
+ONSET = (179, 64, 31)      # the step the intervention fires
+RESOLVED = (47, 107, 87)
 
 
 def _font(size: int):
@@ -60,25 +64,46 @@ def load_episode(record_path: Path):
     return record, frames, options
 
 
-def annotate(frame, title, option, step, total, width, resolved_at=None):
+def annotate(frame, title, option, step, total, width,
+             resolved_at=None, commit_at=None, onset=None):
+    """Draw one panel: the render, its state caption, and a progress track.
+
+    The track is what makes the panels comparable at a glance. It marks when
+    the intervention fires, how long the router observes before committing,
+    and where the episode resolves, so the deferral asymmetry is visible
+    without reading the timestamps.
+    """
     image = Image.fromarray(np.asarray(frame)[:, :, :3]).convert("RGB")
     scale = width / image.width
     image = image.resize((width, int(image.height * scale)), Image.LANCZOS)
     canvas = Image.new("RGB", (width, image.height + LABEL_BAND), SURFACE)
     canvas.paste(image, (0, LABEL_BAND))
     draw = ImageDraw.Draw(canvas)
-    draw.text((10, 6), title, font=_font(15), fill=INK)
+
+    draw.text((10, 5), title, font=_font(15), fill=INK)
     deferring = option == "defer"
     colour = ACCENT["defer"] if deferring else ACCENT["committed"]
-    # The option name is drawn beside the timestamp, so the longest one is
-    # abbreviated to keep the two from colliding at this panel width.
     shown = "temporary" if option == "temporary_recovery" else option
-    caption = "observing…" if deferring else f"committed: {shown}"
+    caption = "observing\u2026" if deferring else f"committed: {shown}"
     draw.text((10, 24), caption, font=_font(13), fill=colour)
-    label = f"t={step}/{total}"
-    if resolved_at is not None and step >= resolved_at:
-        label = f"resolved t={resolved_at}"
-    draw.text((width - 104, 24), label, font=_font(12), fill=MUTED)
+
+    right = f"resolved t={resolved_at}" if (
+        resolved_at is not None and step >= resolved_at
+    ) else f"t={step}"
+    draw.text((width - 104, 24), right, font=_font(12), fill=MUTED)
+
+    # Progress track with intervention, commit and resolution markers.
+    x0, x1, y = 10, width - 10, LABEL_BAND - TRACK_H - 4
+    span = max(total, 1)
+    draw.rectangle([x0, y, x1, y + TRACK_H], fill=TRACK_BG)
+    filled = x0 + int((x1 - x0) * min(step, span) / span)
+    draw.rectangle([x0, y, filled, y + TRACK_H], fill=colour)
+    for at, mark in ((onset, ONSET), (commit_at, ACCENT["committed"]),
+                     (resolved_at, RESOLVED)):
+        if at is None or at > span:
+            continue
+        mx = x0 + int((x1 - x0) * at / span)
+        draw.rectangle([mx - 1, y - 3, mx + 1, y + TRACK_H + 3], fill=mark)
     return np.asarray(canvas)
 
 
@@ -113,9 +138,13 @@ def main() -> None:
         row = []
         for title, record, frames, options in panels:
             option = options[min(index, len(options) - 1)]
+            commit = next(
+                (i + 1 for i, o in enumerate(options) if o != "defer"), None
+            )
             row.append(annotate(
-                frames[index], title, option, index, length - 1, args.panel_width,
-                record.get("resolution_step"),
+                frames[index], title, option, index, length - 1,
+                args.panel_width, record.get("resolution_step"), commit,
+                record.get("onset_step", 1),
             ))
         height = max(cell.shape[0] for cell in row)
         row = [

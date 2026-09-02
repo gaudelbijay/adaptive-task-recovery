@@ -216,5 +216,5 @@ pulled an older mental model of the layout.
 `ai-notes/status.md`, `todo.md`, and `recent_changes.md` were stale
 (untouched since 2026-07-26) as of the first draft of this document; they've
 since been consolidated into short stubs pointing at the root-level
-`STATUS.md`, which is what's actually kept current. Nothing left to
+`status.md`, which is what's actually kept current. Nothing left to
 reconcile there.

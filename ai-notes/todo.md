@@ -1,6 +1,6 @@
 # Todo
 
-**Superseded — see [`../STATUS.md`](../STATUS.md)'s "Todo" table for
+**Superseded — see [`status.md`](status.md)'s "Todo" table for
 current, per-owner actionable work.**
 
 This file drifted stale (last real update: 2026-07-26 — most items here

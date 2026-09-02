@@ -3,7 +3,7 @@ task schema: "a language instruction compiled into atomic goals, priorities,
 dependencies, and hard constraints."
 
 This is a DRAFT for the "Shared: select the task family and
-irreversible/reversible intervention set" item in STATUS.md — a concrete
+irreversible/reversible intervention set" item in ai-notes/status.md — a concrete
 starting point for review, not a committed schema. See ../README.md.
 """
 

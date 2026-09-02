@@ -2,6 +2,128 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-237: PegInsertion leaks blockage identity through episode timing
+
+- **Status:** Confirmed by ablation
+- **Date:** 2026-09-02
+- **Evidence:** Zeroing `normalized_time` and changing nothing else drops the
+  static model from 0.8034 to 0.6094 on permanent blockage and 0.8424 to 0.6027
+  on temporary, landing near the per-condition base rate. The same ablation
+  moves both ejection conditions by under half a point and the factorized GRU
+  by at most 0.011 on any condition.
+- **Decision:** Record the time feature as a shortcut and require any recovery
+  benchmark carrying one to ablate it.
+- **Reason:** Peg features are current-centered, so a model reading the final
+  frame receives near-zero geometry. Its blockage advantage was the clock.
+  Mechanisms that terminate episodes differently produce different duration
+  distributions, so a normalized-time feature encodes condition identity.
+- **Consequences:** This explains the closed-loop result in D-236: the
+  memoryless arm won on permanent blockage by reading duration, not physics.
+  It is the most transferable finding in the set, because it applies to
+  benchmarks built by other groups.
+
+## D-236: The permanent/temporary result does not replicate on PegInsertion
+
+- **Status:** Closed-loop, with a stated limitation
+- **Date:** 2026-09-02
+- **Evidence:** On `LearnedRecovery-v4` both non-recurrent arms fail the pair in
+  opposite directions (motion rule 1.0000/0.0000, one-frame 0.0000/0.8438)
+  while both recurrent arms solve both sides. Closed-loop on PegInsertion the
+  memoryless arm is best on permanent blockage at 0.5677, ahead of the
+  unstructured GRU at 0.5208 and the factorized GRU at 0.4740.
+- **Decision:** Scope the claim to `LearnedRecovery-v4`. Do not present
+  "temporal evidence is required for persistence disambiguation" as general.
+- **Reason:** The finding reverses on a contact-rich task. Combined with D-232
+  and D-237 this is the third instance of one pattern: a result that looks
+  fundamental on v4 does not survive a harder or externally grounded benchmark.
+- **Consequences:** No PegInsertion recovery specialists exist, so the nominal
+  checkpoint filled all three specialist roles. Arms share that handicap so the
+  comparison holds, but every arm scores at or below 0.0365 on temporary
+  blockage: that column measures the missing specialist, not the routing, and
+  only the permanent column supports a conclusion.
+
+## D-235: Reject LearnedRecovery-v5; the deferred-direction physics does not eject
+
+- **Status:** Rejected on its frozen physics smoke gate, 3 of 4 checks failed
+- **Date:** 2026-09-02
+- **Evidence:** Observed ejection rate 0.2188 against a 0.90 floor, direction
+  correctness 0.0000 against 0.95, collateral target loss 0.2227 against a 0.02
+  ceiling. Delay variety passed at 24 distinct values. Late lateral
+  separability is 0.516 against 0.5 for indistinguishable, so direction is
+  never established at any point in the episode.
+- **Decision:** Reject the environment. Do not train against it.
+- **Reason:** The design intent was correct: v4 produces forward and reverse
+  ejection with separate actors, so identifying the mechanism reduces to
+  noticing which actor moved. Replacing them with one ejector whose direction
+  is deferred removes that affordance. The implementation is what failed --
+  driving an intermediary block laterally after an axial approach does not push
+  the cube, because the block slides past rather than bearing on it.
+- **Consequences:** A correct implementation applies the deferred lateral
+  impulse to the cube directly, keeping the approach as a common disturbance.
+  No training was spent, because the smoke gate ran first. Artifact:
+  `results/a_plus_audit/learned_recovery_v5_physics_smoke.json`.
+
+## D-234: Reject the Peg nominal continuation; emergent failures are single-mode
+
+- **Status:** Rejected on its frozen allocation gate, 4 of 4 checks failed
+- **Date:** 2026-09-02
+- **Evidence:** Three-seed mean safe success 0.6862 against a 0.90 floor,
+  minimum per seed 0.4629 against 0.85, largest single failure mode 1.0000
+  against a 0.70 ceiling, and one distinct mode above 10% against a floor of
+  two. Seed 1788 fell from 0.8438 to 0.7422 and seed 4796 to 0.4629.
+- **Decision:** Reject the continuation and close the emergent-failure route on
+  this controller family.
+- **Reason:** The continuation was meant to test whether a stronger nominal
+  controller produces diverse emergent failures, since the v9 controller's own
+  failures were 98.8% a single mode. It did not diversify them and it degraded
+  competence: fine-tuning a plateaued policy at 5e-5 for 30M steps moved it off
+  the competence measure.
+- **Consequences:** The training stream reported success_once 0.9375 while
+  held-out is 0.6862, which is why the gate scores held-out episodes. Emergent
+  failures remain 99 to 100 percent "grasp lost in transport" on every seed:
+  the policy fails before reaching the contact-rich part of the task. The next
+  informative change is task geometry, not further training.
+
+## D-233: Replace the ratio cut with a paired test and pool training seeds
+
+- **Status:** Method correction; verdicts recomputed
+- **Date:** 2026-09-02
+- **Evidence:** The audit called a lower rung matching when it reached 0.9 of
+  the recurrent score, a threshold chosen by this project with no error rate.
+  Under a paired bootstrap on the difference, resampling whole episodes on the
+  simulated benchmarks and object families on REBOOT: v4 +0.0000
+  [0.0000, 0.0000] matches; PegInsertion +0.3240 [0.1344, 0.5231] does not;
+  REBOOT +0.0626 [0.0035, 0.1367] does not, on ten optimizer seeds.
+- **Decision:** Adopt the paired test as the criterion. Report ratios alongside
+  it, because REBOOT sits close to the old line.
+- **Reason:** A verdict must not rest on an arbitrary cut, and the rung set must
+  be identical across benchmarks. REBOOT previously had an order-free summary
+  control that the simulated benchmarks lacked.
+- **Consequences:** REBOOT's verdict moved three times as the audit was
+  corrected -- no shortcut under an unmatched rung set, shortcut under the
+  ratio cut, no shortcut under the paired test. The full history is recorded in
+  `docs/30-a-plus-recovery-protocol.md` rather than replaced. The bootstrap now
+  resamples (seed, episode) pairs; it previously used seed 0 only.
+
+## D-232: Complete the declared router comparison and isolate the dispatch confound
+
+- **Status:** Correction to a scored gate; development evidence on an opened family
+- **Date:** 2026-09-02
+- **Evidence:** The V10 gate declared five methods and scored three;
+  `heuristic_v28_router` and `oracle_mechanism_router_upper_bound` had no
+  implementation. Both are now built and run. The factorized arm additionally
+  ran a sweep dispatch no other arm can execute; disabling it leaves held-out
+  reverse at exactly 561/576 and changes only forward ejection. Matched gain
+  over the unstructured GRU is 7.26 points [5.44, 9.07], not 10.45.
+- **Decision:** Quote 7.26 as the matched gain. Report the dispatch separately.
+  Treat the static MLP's 0.00% as a representation check, not a defeated
+  baseline, since current-centering hands it an all-zero input.
+- **Reason:** A comparison that omits declared arms and gives one arm an
+  exclusive mechanism cannot support a method claim.
+- **Consequences:** The audit that followed showed the held-out mechanism is
+  identifiable by a one-frame model at exactly the recurrent score, so no
+  composition claim survives regardless of the margin.
+
 # D-231: Replace absolute-view probing with goal-conditioned DINOv2 change features
 
 - **Status:** Perception-only development gate passed; controller not yet allocated
@@ -5104,7 +5226,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 
 - **Date:** 2026-08-05
 - **Status:** Accepted
-- **Decision:** STATUS.md flagged held-out scene-layout and
+- **Decision:** status.md flagged held-out scene-layout and
   held-out-intervention splits as impossible — only 2 scene layouts and 2
   intervention kinds existed at all. Before building either, checked
   what a 3rd intervention kind would actually need to mean: the existing
@@ -5229,7 +5351,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 
 - **Date:** 2026-08-04
 - **Status:** Accepted
-- **Decision:** STATUS.md's shared row has listed experiment tracking as
+- **Decision:** status.md's shared row has listed experiment tracking as
   not started since D-042/D-043. Considered and rejected pulling in a
   dependency (wandb/mlflow/a hosted service) -- nothing about this
   project's toy-scale, single-machine, local-only reality justifies one
@@ -5274,7 +5396,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 - **Status:** Accepted
 - **Decision:** `docs/03-system-architecture.md`'s data-flow step 6 has said
   "Log predictions, decisions, violations, and oracle labels for
-  analysis" since the diagram was first drawn; STATUS.md's interfaces
+  analysis" since the diagram was first drawn; status.md's interfaces
   row still listed it as not started. Rather than write a speculative
   schema first (the mistake D-040 already found and corrected for
   `AdaptivePolicy`/`EmbodimentInterface`), inventoried what every policy
@@ -6334,14 +6456,14 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   `.drawio` export already had (silently, for a week, since nothing
   caught it). A dedicated diagramming tool wasn't available in this
   environment either way. Ownership folded into the same diagram rather
-  than added as a separate one, since `STATUS.md`'s todo asked for
+  than added as a separate one, since `status.md`'s todo asked for
   "ownership and module boundaries" together, and they're genuinely the
   same picture, not two.
 - **Consequences:** `docs/03-system-architecture.md` is now the single
   source of truth for both the module graph and who owns what; `README.md`
   links to it. Diagram content still describes the *conceptual*
   architecture from `docs/00`/`docs/03`, not current implementation
-  status — added a note in `docs/03` pointing to `STATUS.md`/
+  status — added a note in `docs/03` pointing to `status.md`/
   `ai-notes/decisions.md` for that, rather than overloading one diagram
   with both.
 
@@ -6430,7 +6552,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 
 - **Date:** 2026-08-02
 - **Status:** Accepted
-- **Decision:** Created the directory structure the `STATUS.md` todo has
+- **Decision:** Created the directory structure the `status.md` todo has
   named since the project's reframing: `src/atr/` (with an `__init__.py`
   and README explaining why it's empty), `configs/`, and `data/`
   (`scripts/` and `tests/` already existed). Deliberately did **not**
@@ -7198,7 +7320,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   control (a distractor object that appears and disappears), per docs/04's
   explicit requirement to include matched pairs.
 - **Reason:** This was the single biggest bottleneck blocking further
-  progress on both the representation and policy tracks (STATUS.md). A
+  progress on both the representation and policy tracks (status.md). A
   concrete, runnable draft is easier to react to and critique than more
   prose in docs/04.
 - **Consequences:** Not yet covered: language (deliberately the

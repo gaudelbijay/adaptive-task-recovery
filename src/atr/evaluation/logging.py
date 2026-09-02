@@ -1,7 +1,7 @@
 """The log interface docs/03-system-architecture.md's data-flow step 6 has
 described since the diagram was first drawn ("Log predictions, decisions,
 violations, and oracle labels for analysis") but nothing ever built --
-STATUS.md's interfaces row still listed it as not started as of D-055.
+ai-notes/status.md's interfaces row still listed it as not started as of D-055.
 
 Same discipline D-040 used for `AdaptivePolicy`/`EmbodimentInterface`:
 don't invent a schema first and check code against it later. Every policy

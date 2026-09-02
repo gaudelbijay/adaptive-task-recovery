@@ -1,4 +1,4 @@
-"""Experiment tracking (D-056 changelog's flagged next step; STATUS.md's
+"""Experiment tracking (D-056 changelog's flagged next step; ai-notes/status.md's
 shared row has listed it as not started since D-042/D-043). No new
 dependency (wandb/mlflow, a cloud service, a database) -- nothing in this
 project's toy-scale, local, single-machine reality justifies one yet, and

@@ -91,7 +91,7 @@ state feeds the oracle and evaluation paths, never the live
 Current implementation status (not shown above, changes faster than the
 module diagram should): every module here has at least a toy-scale,
 tested spike implementation in `spikes/task_schema_draft/` — see
-`STATUS.md` for the up-to-date mapping and `ai-notes/decisions.md`
+`../ai-notes/status.md` for the up-to-date mapping and `ai-notes/decisions.md`
 D-013–D-037 for what was actually built. The goal-graph/oracle-feasibility/
 intent-guard core of `InstructionEncoder`, `FeasibilityModel`, and
 `IntentGuard` moved into `src/atr/` 2026-08-02 (D-037) — see that
