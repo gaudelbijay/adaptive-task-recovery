@@ -622,3 +622,36 @@ This is the third instance of one pattern: a result that appears fundamental on
 benchmark. The first was the held-out mechanism falling to a one-frame model,
 the second was REBOOT's verdict depending on which control was nominated, and
 this is the third.
+
+### PegInsertion leaks blockage identity through episode timing
+
+The static model on PegInsertion reaches 0.803 and 0.842 on permanent and
+temporary blockage despite current-centering leaving its geometry input near
+zero, and it beat both recurrent models closed-loop on permanent blockage. The
+remaining input is `normalized_time`.
+
+Zeroing that one column and retraining, with every other column, label, split
+and group id unchanged:
+
+| Model | Condition | With time | Without | Delta |
+|---|---|---:|---:|---:|
+| static MLP | permanent | 0.8034 | 0.6094 | -0.1940 |
+| static MLP | temporary | 0.8424 | 0.6027 | -0.2398 |
+| static MLP | positive ejection | 0.6033 | 0.6071 | +0.0038 |
+| static MLP | negative ejection | 0.5989 | 0.6025 | +0.0036 |
+| causal GRU | permanent | 0.7362 | 0.7468 | +0.0106 |
+| causal GRU | temporary | 0.7731 | 0.7806 | +0.0075 |
+
+The static model's entire blockage advantage is the clock. It loses 19 to 24
+points on exactly the two blockage conditions and nothing at all on the two
+ejection conditions, landing near the per-condition base rate. The recurrent
+model is unaffected, so it was not relying on timing.
+
+This also explains the closed-loop result. The memoryless arm won on permanent
+blockage not by reading the physics but by reading episode duration, which
+differs systematically between blockage and ejection episodes.
+
+The lesson is transferable and concrete: a normalized-time feature in a
+recovery benchmark leaks condition identity through episode duration, because
+mechanisms that terminate the episode differently produce different clock
+distributions. Any benchmark including such a feature should ablate it.
