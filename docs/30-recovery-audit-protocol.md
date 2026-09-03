@@ -581,6 +581,48 @@ averaged over the nine resampled groups. Different aggregations of the same
 runs give different values, and the paired difference is the one the verdict
 rests on.
 
+### Pooling hides per-family shortcuts
+
+The pooled verdict says only whether rung 4 beats the strongest lower rung *on
+average* over the nine leave-one-object-out folds. Averaging is exactly the
+operation that would hide a family whose held-out object is shortcut-solved, so
+`scripts/audit_reboot_per_family.py` re-runs the matching criterion inside each
+family. It retrains nothing -- it reads the same per-seed fold records that
+produced the pooled figures, and asserts it reproduces every pooled rung mean
+to six decimals before reporting.
+
+| Family | Best lower | Rung 4 | difference | 95% CI | |
+|---|---|---:|---:|---|:---:|
+| han10e | r2b | 0.7831 | +0.1870 | [+0.1248, +0.2456] | |
+| rca | r2 | 0.7879 | +0.1807 | [+0.1389, +0.2201] | |
+| cylinder_16mm | r2b | 0.8014 | +0.0739 | [+0.0352, +0.1078] | |
+| usb_a | r2b | 0.8482 | +0.0517 | [+0.0258, +0.0763] | |
+| usb_c | r2b | 0.9831 | +0.0020 | [-0.0028, +0.0062] | **match** |
+| nema | r2b | 0.8628 | -0.0037 | [-0.0190, +0.0120] | **match** |
+| bar_16mm | r2b | 0.7240 | -0.0042 | [-0.0416, +0.0310] | **match** |
+| rj45 | r2b | 0.8985 | -0.0117 | [-0.0325, +0.0090] | **match** |
+| m12 | r2b | 0.6079 | -0.0254 | [-0.0536, +0.0037] | **match** |
+
+**Five of nine families match.** The pooled +0.0626 is an average over a split
+population: four families carry the entire margin, two of them by more than
+0.18, while in the remaining five the order-free control is indistinguishable
+from the recurrent model and in four of those it is numerically ahead. A
+benchmark can clear the audit in aggregate while most of its held-out families
+individually cannot support the claim the aggregate licenses.
+
+Two qualifications. The replication unit within a family is the optimizer seed,
+so a match means "not distinguishable under optimizer noise across ten seeds",
+which is weaker than "no difference exists". But the matched families are not
+merely underpowered -- four of five have negative point estimates against
++0.187 and +0.181 for the clearest non-matches -- and with nine families tested
+at 95% roughly half a false match would be expected by chance, not five.
+
+This also explains why the pooled margin was thin enough to need a ratio quoted
+beside the verdict: the pooled statistic was averaging over families that do not
+agree. **An audit reported only in aggregate is not sufficient.**
+
+Artifact: `results/a_plus_audit/reboot_per_family_v1.json`.
+
 **REBOOT's verdict history.** It was first recorded as no shortcut, using an
 endpoint-pair control and three seeds; that was unsound because the rung set
 was not matched across benchmarks. It was then recorded as a shortcut, using

@@ -81,6 +81,22 @@ difference is what the verdict rests on.
 One positive, two negatives. The audit discriminates rather than firing
 everywhere, which is what makes the positive worth reading.
 
+### A pooled verdict is not enough
+
+That last row clears the audit — but only on average. Scoring each of its nine
+held-out object families separately tells a different story: **in five of the
+nine, the order-free control is statistically indistinguishable from the
+recurrent model**, and in four of those it is numerically ahead. The pooled
++0.0626 is an average over a split population, where four families carry the
+entire margin and two of them do so by more than 0.18.
+
+So a benchmark can clear the audit overall while most of its held-out families
+individually cannot support the claim the aggregate licenses. The check costs
+nothing extra — `scripts/audit_reboot_per_family.py` retrains no model, reads
+the fold records the evaluation already wrote, and refuses to report unless it
+reproduces the pooled numbers first. Report per family whenever the held-out
+axis has more than one.
+
 That positive has a specific and slightly embarrassing cause. Our two ejection
 directions were produced by *separate actors* — a forward pusher and a reverse
 pusher — so identifying the mechanism reduced to noticing which one had moved.
