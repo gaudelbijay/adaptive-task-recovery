@@ -21,6 +21,7 @@ from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
 import mani_skill.envs  # noqa: F401
 import atr.envs.learned_recovery_v4  # noqa: F401
+import atr.envs.learned_recovery_v5  # noqa: F401
 from train_visual_recovery_dual_teacher_ppo import (
     VisualAgent, extract_observation, observation_contract,
     privileged_aux_dim, select_task,
@@ -41,7 +42,8 @@ FORBIDDEN_FEATURE_KEYS = (
 )
 
 
-def make_env(num_envs: int, kind: str, *, onset: int, force_scale: float, return_delay: int):
+def make_env(num_envs: int, kind: str, *, onset: int, force_scale: float, return_delay: int,
+             env_id: str = "LearnedRecovery-v4"):
     kwargs = dict(
         num_envs=num_envs, obs_mode="rgb", render_mode=None,
         sim_backend="physx_cuda", control_mode="pd_joint_delta_pos",
@@ -56,7 +58,7 @@ def make_env(num_envs: int, kind: str, *, onset: int, force_scale: float, return
         terminate_on_violation=True, safety_proximity_weight=5.0,
         constraint_violation_penalty=20.0, vision_camera_size=64,
     )
-    env = gym.make("LearnedRecovery-v4", **kwargs)
+    env = gym.make(env_id, **kwargs)
     if isinstance(env.action_space, gym.spaces.Dict):
         env = FlattenActionSpaceWrapper(env)
     return ManiSkillVectorEnv(env, num_envs, ignore_terminations=True, record_metrics=False)
@@ -141,7 +143,8 @@ def collect_kind(args, kind: str, kind_index: int, rows: dict[str, list], behavi
         onset = int(rng.integers(args.onset_min, args.onset_max + 1))
         force_scale = float(rng.uniform(args.force_scale_min, args.force_scale_max))
         return_delay = int(rng.integers(args.return_delay_min, args.return_delay_max + 1))
-        env = make_env(args.num_envs, kind, onset=onset, force_scale=force_scale, return_delay=return_delay)
+        env = make_env(args.num_envs, kind, onset=onset, force_scale=force_scale,
+                       return_delay=return_delay, env_id=args.env_id)
         try:
             episode_seed = args.seed_base + kind_index * 10_000_000 + batch * args.num_envs
             obs, info = env.reset(seed=episode_seed)
@@ -210,6 +213,8 @@ def collect_kind(args, kind: str, kind_index: int, rows: dict[str, list], behavi
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--env", dest="env_id", default="LearnedRecovery-v4",
+                        help="Registered env id to collect prefixes from.")
     parser.add_argument("--output", default="results/router/v4_option_prefixes_train_v1.npz")
     parser.add_argument("--metadata-output", default="results/router/v4_option_prefixes_train_v1.json")
     parser.add_argument("--batches-per-kind", type=int, default=20)
@@ -244,7 +249,8 @@ def main():
     if args.behavior == "nominal":
         config = json.loads(Path(args.config).read_text())
         task, _ = select_task(config, args.policy_index)
-        bootstrap = make_env(1, "nominal", onset=0, force_scale=1.0, return_delay=30)
+        bootstrap = make_env(1, "nominal", onset=0, force_scale=1.0, return_delay=30,
+                             env_id=args.env_id)
         try:
             obs, _ = bootstrap.reset(seed=args.seed_base - 2)
             rgb, proprio, critic = extract_observation(
@@ -281,7 +287,8 @@ def main():
     np.savez_compressed(output, **packed)
     # Infer the exact contract with a small bootstrap environment after data
     # collection, keeping names and stored width mechanically tied.
-    env = make_env(1, "nominal", onset=0, force_scale=1.0, return_delay=30)
+    env = make_env(1, "nominal", onset=0, force_scale=1.0, return_delay=30,
+                   env_id=args.env_id)
     try:
         obs, _ = env.reset(seed=args.seed_base - 1)
         contract = feature_contract(obs)
