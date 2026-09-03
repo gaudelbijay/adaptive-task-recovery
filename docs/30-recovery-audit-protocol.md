@@ -413,7 +413,9 @@ motion-threshold rule, and the recurrent models. A held-out mechanism that a
 lower rung identifies as well as the top rung is a shortcut and cannot support
 a composition claim.
 
-Held-out-option accuracy, three seeds where applicable:
+Held-out-option accuracy, three seeds where applicable. These were the
+first-run levels; the ten-seed levels that supersede them are in the paired-test
+table below.
 
 | Rung | Control | LearnedRecovery-v4 | PegInsertion (cf) | PegInsertion (real) |
 |---|---|---:|---:|---:|
@@ -516,6 +518,10 @@ deviation over the valid prefix. It is the strongest order-free control.
 | PegInsertionSide-v1 | 0.0000 | 0.0909 | 0.0503 | 0.0000 | 0.4015 | 0.226 | none |
 | REBOOT | 0.5740 | 0.6080 | 0.7466 | n/a | 0.8045 | 0.928 | shortcut |
 
+These are three-seed levels under the ratio cut, superseded by the ten-seed
+paired-test table below. They are kept because the verdict revision they forced
+is part of the record.
+
 Two revisions follow, and both are recorded rather than quietly absorbed.
 
 REBOOT was previously reported here and in the README as a clean negative on
@@ -553,13 +559,27 @@ between rung 4 and each lower rung, resampling the correlated unit: whole
 episodes on the simulated benchmarks, object families on REBOOT. A lower rung
 matches when that interval includes zero.
 
-**Seeds.** REBOOT now uses ten optimizer seeds rather than three.
+**Seeds.** Every learned rung now uses ten optimizer seeds rather than three,
+on all three benchmarks. The hand-written rule has no learned parameters and is
+run once.
 
 | Benchmark | Best lower | Rung 4 | rung4 - lower | Verdict |
 |---|---:|---:|---|---|
 | LearnedRecovery-v4 | 1.0000 | 1.0000 | +0.0000 [+0.0000, +0.0000] | shortcut |
-| PegInsertionSide-v1 | 0.0909 | 0.4015 | +0.3240 [+0.1344, +0.5231] | none |
-| REBOOT (10 seeds) | 0.7482 | 0.8108 | +0.0626 [+0.0035, +0.1367] | none |
+| PegInsertionSide-v1 | 0.0874 | 0.3983 | +0.3240 [+0.1344, +0.5231] | none |
+| REBOOT | 0.7482 | 0.8108 | +0.0626 [+0.0035, +0.1367] | none |
+
+These are the authoritative levels, taken from `results/router/ladder/*.json`
+and `results/a_plus_audit/reboot_ladder_v5_aggregate.json`. They supersede the
+three-seed levels in the two tables above, which are kept as the record of what
+the earlier runs produced.
+
+**The difference does not equal the subtraction, and should not.** For
+PegInsertion, 0.3983 - 0.0874 = 0.3109 while the reported difference is 0.3240.
+The rung levels are averaged over ten optimizer seeds; the paired difference is
+averaged over the nine resampled groups. Different aggregations of the same
+runs give different values, and the paired difference is the one the verdict
+rests on.
 
 **REBOOT's verdict history.** It was first recorded as no shortcut, using an
 endpoint-pair control and three seeds; that was unsound because the rung set

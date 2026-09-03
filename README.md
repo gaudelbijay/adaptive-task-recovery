@@ -69,8 +69,14 @@ Run on three benchmarks with an identical rung set:
 | Benchmark | Best lower rung | Rung 4 | Difference | Verdict |
 |---|---:|---:|---|:---:|
 | `LearnedRecovery-v4` — ours, two-cube tabletop | 1.0000 | 1.0000 | +0.0000 [0.0000, 0.0000] | shortcut |
-| `PegInsertionSide-v1` — contact-rich insertion | 0.0909 | 0.4015 | +0.3240 [0.1344, 0.5231] | none |
-| Recorded real-robot trajectories, ten seeds | 0.7482 | 0.8108 | +0.0626 [0.0035, 0.1367] | none |
+| `PegInsertionSide-v1` — contact-rich insertion | 0.0874 | 0.3983 | +0.3240 [0.1344, 0.5231] | none |
+| Recorded real-robot trajectories | 0.7482 | 0.8108 | +0.0626 [0.0035, 0.1367] | none |
+
+Every learned rung uses ten optimizer seeds; the hand-written rule has no
+learned parameters and is run once. On the middle row the difference is not the
+subtraction of the two columns beside it, and should not be: the rung scores are
+averaged over seeds, the paired difference over resampled groups. The paired
+difference is what the verdict rests on.
 
 One positive, two negatives. The audit discriminates rather than firing
 everywhere, which is what makes the positive worth reading.
@@ -113,7 +119,7 @@ comparison rests on.
 
 Worse, we had already fixed a shortcut here once. An earlier version leaked the
 mechanism through instantaneous geometry, so we re-expressed every frame as a
-displacement relative to the present. That worked: rung 1 falls to 0.0322. But
+displacement relative to the present. That worked: rung 1 falls to 0.0294. But
 because every frame now carried a signed displacement, a single early frame
 carried the whole answer instead. **Closing one leak opened a subtler one a rung
 up**, and only a ladder of controls makes that visible.
