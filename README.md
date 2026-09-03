@@ -137,13 +137,13 @@ We then fixed it. `LearnedRecovery-v5` replaces the two sweepers with one
 ejector per cube whose direction is deferred by a per-episode delay, and the
 prediction was frozen before any of it was trained: rung 2 must fall well below
 rung 4, and the diagnosis is wrong if it does not. It fell from **1.0000 to
-0.5510**, and no rung now matches. The affordance was the cause, and the audit
+0.5527**, and no rung now matches. The affordance was the cause, and the audit
 turns out to be actionable rather than only diagnostic.
 
-Two caveats keep that honest. Rung 2 still reaches 0.9643 of rung 4 — under the
+Two caveats keep that honest. Rung 2 still reaches 0.9561 of rung 4 — under the
 0.9 ratio cut we abandoned, v5 would read as a shortcut, so its verdict depends
 on the criterion just as the recorded-trajectory benchmark's did. And rung 4
-itself fell from 1.0000 to 0.5714, so v5 is harder for everything, not just for
+itself fell from 1.0000 to 0.5781, so v5 is harder for everything, not just for
 the memoryless controls. The shortcut is gone; "memory is required" is not
 thereby shown.
 

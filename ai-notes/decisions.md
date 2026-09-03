@@ -55,28 +55,30 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
 | Rung | Control | v4 | v5 |
 |---|---|---:|---:|
 | 1 | instantaneous | 0.0294 | 0.0000 |
-| 2 | one past frame | **1.0000** | 0.5510 |
-| 2b | order-free summary | **1.0000** | 0.5534 |
+| 2 | one past frame | **1.0000** | 0.5527 |
+| 2b | order-free summary | **1.0000** | 0.5537 |
 | 3 | hand-written rule | 0.1195 | 0.1020 |
-| 4 | recurrent factorized | 1.0000 | 0.5714 |
+| 4 | recurrent factorized | 1.0000 | 0.5781 |
 | 4 | recurrent unstructured | 0.0000 | 0.0000 |
 
-- **Verdict:** No shortcut. one_past_frame +0.0205 [+0.0161, +0.0249],
-  moment_summary +0.0181 [+0.0132, +0.0231]; both intervals exclude zero.
-  Three seeds, fifteen episode groups.
+- **Verdict:** No shortcut. one_past_frame +0.0258 [+0.0203, +0.0321],
+  moment_summary +0.0247 [+0.0193, +0.0308]; both intervals exclude zero.
+  Ten seeds, fifty episode groups, matching the seed count used elsewhere.
+  The three-seed run gave 0.5510 / 0.5534 / 0.5714 and the same verdict, so
+  the result is not sensitive to seed count.
 - **What this establishes:** the actor-identity affordance was the cause. Rung 2
   went from matching rung 4 *exactly* -- 1.0000 against 1.0000, a zero-width
   interval -- to being statistically separable. Replacing two directional
   sweepers with one direction-deferred ejector removed it. The diagnosis in the
   shortcut-ladder section is confirmed rather than merely asserted.
 - **What it does not establish, and must not be written as if it does.** Rung 2
-  still reaches 0.9643 of rung 4, and rung 2b 0.9684. Under the 0.9 ratio cut
+  still reaches 0.9561 of rung 4, and rung 2b 0.9577. Under the 0.9 ratio cut
   this project abandoned in D-233, both would count as matches and v5 would read
   as a shortcut. Under the paired test they do not. **v5's verdict depends on
   the criterion**, exactly as REBOOT's did. The recurrent advantage is about two
   points, so v5 removes the shortcut without demonstrating that the mechanism
   requires memory. Report the ratio beside the verdict.
-- **Also note:** rung 4 fell from 1.0000 to 0.5714. v5 is much harder for every
+- **Also note:** rung 4 fell from 1.0000 to 0.5781. v5 is much harder for every
   arm, not just for the lower rungs. The unstructured GRU remains at 0.0000 on
   both environments.
 - **Consequences:** The audit is demonstrably actionable: flag, diagnose,
