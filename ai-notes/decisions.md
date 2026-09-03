@@ -42,6 +42,36 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   blockage: that column measures the missing specialist, not the routing, and
   only the permanent column supports a conclusion.
 
+## D-238: v5 revision two still fails; the earlier diagnosis was incomplete
+
+- **Status:** Rejected again on the same frozen physics gate, 3 of 4 checks failed
+- **Date:** 2026-09-03
+- **Evidence:** Observed ejection 0.1719 against a 0.90 floor, direction
+  correctness 0.0000 against 0.95, collateral loss 0.1602 against 0.02. Late
+  lateral separability 0.5156, still indistinguishable.
+- **What changed:** D-235 concluded the fix was to apply the deferred impulse to
+  the cube directly rather than through an intermediary block. That was done.
+  Instrumenting the run also exposed a second, independent defect D-235 missed:
+  the inherited ejection window is 12 steps while the direction delay is drawn
+  from [10, 34), so the two overlap only for delays of 10 or 11. In 92% of
+  episodes the window closed before the direction was ever applied. The window
+  is now widened to `delay_max + push_steps` = 54, identically for both
+  directions so episode duration still carries no directional information.
+- **Why it still fails:** With both corrections in place the lateral force is
+  confirmed to run -- 510 applications, total |F| 29340 -- and the cube's
+  lateral coordinate does not change *at all*, maximum displacement exactly
+  0.0 m, while it moves 0.0118 m axially from ejector contact.
+  `_apply_batched_force` transfers to the sweeper and blocker boxes but not to
+  the cubes, which no v4 mechanism ever forced directly. The remaining defect is
+  in force application to that actor, not in the mechanism design.
+- **Decision:** Keep the environment rejected. Do not train against it.
+- **Consequences:** The preregistered ladder prediction in
+  `configs/learned_recovery_v5_deferred_direction.json` is still unrun, so the
+  separate-actor diagnosis for v4's shortcut remains untested rather than
+  confirmed or falsified. Two of three causes are now fixed and recorded, which
+  makes the next attempt cheaper. Artifact:
+  `results/a_plus_audit/learned_recovery_v5_physics_smoke_v2.json`.
+
 ## D-235: Reject LearnedRecovery-v5; the deferred-direction physics does not eject
 
 - **Status:** Rejected on its frozen physics smoke gate, 3 of 4 checks failed

@@ -52,6 +52,7 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
         direction_delay_range: tuple[int, int] = (10, 34),
         approach_force: float = 4.0,
         lateral_force: float = 6.0,
+        push_steps: int = 20,
         **kwargs,
     ):
         self.direction_delay_range = (
@@ -59,12 +60,25 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
         )
         self.approach_force = float(approach_force)
         self.lateral_force = float(lateral_force)
+        self.push_steps = int(push_steps)
         if self.direction_delay_range[0] < 1:
             raise ValueError("direction delay must be at least one step")
         if self.direction_delay_range[0] >= self.direction_delay_range[1]:
             raise ValueError("direction delay range must be non-empty")
         self._direction_delay = None
         super().__init__(*args, **kwargs)
+        # The inherited ejection window is 12 steps, but the direction does not
+        # fire until `direction_delay` steps have passed and that delay is drawn
+        # from [10, 34). The two overlap only for delays of 10 or 11, so in 92%
+        # of episodes the window closed before the direction was ever applied.
+        # That, not what the impulse acts on, is why the first revision measured
+        # 0.0 direction correctness: the lateral force almost never ran. The
+        # window must outlast the longest delay and then leave time to move the
+        # cube. It is widened identically for both directions, so episode
+        # duration still carries no directional information.
+        required = self.direction_delay_range[1] + self.push_steps
+        if self.intervention_steps < required:
+            self.intervention_steps = required
 
     def _load_scene(self, options: dict):
         super()._load_scene(options)
@@ -122,17 +136,28 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
             torch.full_like(self._direction_delay, 1.0, dtype=torch.float32),
         )
 
-        for ejector, target in (
-            (self.red_ejector, self._intervention_target == 0),
-            (self.blue_ejector, self._intervention_target == 1),
+        for ejector, cube, target in (
+            (self.red_ejector, self.red_cube, self._intervention_target == 0),
+            (self.blue_ejector, self.blue_cube, self._intervention_target == 1),
         ):
             active = ejecting & target
-            force = torch.zeros((self.num_envs, 3), device=self.device)
-            # Approach is identical for both directions.
-            force[:, 0] = self.approach_force * active.float()
-            # Direction is applied laterally only once the delay has elapsed.
-            force[:, 1] = (
+            # The ejector only ever approaches, and does so identically for both
+            # directions. It is the visible common disturbance; it carries no
+            # directional information at any point in the episode.
+            approach = torch.zeros((self.num_envs, 3), device=self.device)
+            approach[:, 0] = self.approach_force * active.float()
+            self._apply_batched_force(ejector, approach)
+
+            # The direction is applied to the cube itself. The first revision
+            # drove the ejector laterally and expected contact to carry the
+            # impulse across, but an axially-approaching block slides past the
+            # cube instead of bearing on it: observed ejection was 0.2188
+            # against a 0.90 floor and direction correctness was 0.0000. Forcing
+            # the cube directly keeps the mechanism's observable onset tied to
+            # the approach while making the deferred direction actually happen.
+            lateral = torch.zeros((self.num_envs, 3), device=self.device)
+            lateral[:, 1] = (
                 self.lateral_force * sign * (active & diverged).float()
             )
-            self._apply_batched_force(ejector, force)
+            self._apply_batched_force(cube, lateral)
 
