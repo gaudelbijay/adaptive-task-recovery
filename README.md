@@ -81,6 +81,22 @@ difference is what the verdict rests on.
 One positive, two negatives. The audit discriminates rather than firing
 everywhere, which is what makes the positive worth reading.
 
+The middle row is the one that clears most decisively, so it is worth seeing.
+The same four mechanisms, on a contact-rich insertion task instead of a tabletop
+pick-and-place:
+
+<p align="center">
+  <img src="media/demos/peg-recovery-montage.gif" width="760" alt="Four panels of a Panda arm inserting a peg, one per failure mechanism: the peg knocked aside, the peg knocked the other way, the hole blocked permanently, and the hole blocked then cleared.">
+</p>
+
+<p align="center"><sub>
+The two ejections separate immediately — you can see which way the peg went. The
+two blockages do not: early on, one that will clear and one that will not look
+the same, and telling them apart is what the benchmark is asking for. Here no
+control below the recurrent model gets close, which is why this task clears the
+audit while ours does not.
+</sub></p>
+
 ### A pooled verdict is not enough
 
 That last row clears the audit — but only on average. Scoring each of its nine
