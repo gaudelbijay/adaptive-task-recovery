@@ -42,6 +42,50 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   blockage: that column measures the missing specialist, not the routing, and
   only the permanent column supports a conclusion.
 
+## D-241: Reject the ALOHA provenance benchmark as a second external target
+
+- **Status:** Built, run over ten seeds, rejected. Not used in the write-up.
+- **Date:** 2026-09-03
+- **Why it was attempted:** one external benchmark is a narrow base for a claim
+  about how held-out-family protocols behave. A search of public robot corpora
+  for REBOOT's structure -- a binary label shared across families, with families
+  that can be held out one at a time -- returned exactly one candidate:
+  `lerobot/aloha_sim_*`, where two tasks are each collected under human
+  teleoperation and under a scripted policy. Label is provenance, family is task.
+- **Evidence, ten seeds, leave-one-task-out:**
+
+| Rung | Control | mean AUROC | sd |
+|---|---|---:|---:|
+| 1 | instantaneous | 0.3579 | 0.2259 |
+| 2 | endpoint pair | 0.6692 | 0.1276 |
+| 2b | order-free summary | 0.6578 | 0.1387 |
+| 4 | unstructured GRU | 0.4783 | 0.2072 |
+| 4 | causal dynamics GRU | 0.4351 | 0.1599 |
+
+- **Why it is rejected.** Rung 4 is *below chance* in 6 of 10 seeds, and every
+  lower rung beats it. The ladder asks whether a lower rung matches the top
+  rung; that question presupposes the top rung is the capability ceiling, and
+  here it is not. Per-fold AUROC ranges from 0.000 to 1.000 across seeds on the
+  same fold, so no verdict is stable enough to report.
+- **Diagnosis.** Two families is the root cause. With one task held out, there is
+  no third family to validate on, training is ~75 episodes, and the shift between
+  insertion and transfer-cube is large enough that a provenance cue learned on
+  one inverts on the other -- which is what an AUROC near 0.0 means. REBOOT works
+  because it has nine families and each is collected under both conditions.
+- **Decision:** Do not report it as a benchmark result. Reporting "the audit
+  flags a second external benchmark" would be wrong: the benchmark is unstable,
+  not shortcut-solved.
+- **What a usable second benchmark needs:** at least five families, each
+  containing both label classes, and enough episodes per family that a held-out
+  family does not collapse training. That structure is rare in public corpora --
+  most released demonstration sets are all-success, single-condition, or lack a
+  label shared across their groups.
+- **Consequences:** the external evidence remains REBOOT alone, and the write-up
+  continues to say so. Scripts are kept so the attempt is reproducible:
+  `scripts/prepare_aloha_provenance_benchmark.py`,
+  `scripts/evaluate_aloha_provenance_ladder.py`. Artifacts:
+  `results/aloha/aloha_ladder_seed*.json`.
+
 ## D-240: v5 clears the ladder; the separate-actor diagnosis is confirmed
 
 - **Status:** Preregistered ladder prediction confirmed, no rung matches rung 4
