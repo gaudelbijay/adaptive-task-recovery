@@ -64,66 +64,35 @@ baseline looked.
 
 ## What it found
 
-Run on three benchmarks with an identical rung set:
+Run on three independent benchmarks with an identical rung set. The second row
+is not a fourth benchmark: it is `LearnedRecovery-v4` after we repaired the
+defect the audit found in it, shown here so the before and after sit together.
 
 | Benchmark | Best lower rung | Rung 4 | Difference | Verdict |
 |---|---:|---:|---|:---:|
-| `LearnedRecovery-v4` — ours, two-cube tabletop | 1.0000 | 1.0000 | +0.0000 [0.0000, 0.0000] | shortcut |
+| `LearnedRecovery-v4` — ours, two-cube tabletop | 1.0000 | 1.0000 | +0.0000 [0.0000, 0.0000] | **shortcut** |
+| `LearnedRecovery-v5` — ours, after the repair | 0.5537 | 0.5781 | +0.0247 [0.0193, 0.0308] | none |
 | `PegInsertionSide-v1` — contact-rich insertion | 0.0874 | 0.3983 | +0.3240 [0.1344, 0.5231] | none |
 | Recorded real-robot trajectories | 0.7482 | 0.8108 | +0.0626 [0.0035, 0.1367] | none |
 
 Every learned rung uses ten optimizer seeds; the hand-written rule has no
-learned parameters and is run once. On the middle row the difference is not the
-subtraction of the two columns beside it, and should not be: the rung scores are
-averaged over seeds, the paired difference over resampled groups. The paired
-difference is what the verdict rests on.
+learned parameters and is run once. On the `PegInsertionSide-v1` row the difference
+is not the subtraction of the two columns beside it, and should not be: the rung
+scores are averaged over seeds, the paired difference over resampled groups. The
+paired difference is what the verdict rests on.
 
-One positive, two negatives. The audit discriminates rather than firing
-everywhere, which is what makes the positive worth reading.
+**One flag and two clears** across the three independent benchmarks. The audit
+discriminates rather than firing everywhere, which is what makes the flag worth
+reading. The second row is not a fourth benchmark — it is the flagged one after
+the defect the audit identified was removed, and it clears, which is what makes
+the audit actionable rather than merely diagnostic.
 
-The middle row is the one that clears most decisively, so it is worth seeing.
-The same four mechanisms, on a contact-rich insertion task instead of a tabletop
-pick-and-place:
+The rest of this section follows that thread in order: what caused the flag,
+what the repair did, and what each of the clears is actually worth.
 
-<p align="center">
-  <img src="media/demos/peg-recovery-montage.gif" width="760" alt="Four panels of a Panda arm inserting a peg, one per failure mechanism: the peg knocked aside, the peg knocked the other way, the hole blocked permanently, and the hole blocked then cleared.">
-</p>
+### What caused the flag
 
-<p align="center"><sub>
-The nominal controller reaches, grasps the peg, and presses it into the hole
-while the mechanism fires. <b>The four panels look almost the same, and that is
-not a rendering artifact.</b> Measured directly, the two ejections separate the
-peg by at most 1.25 cm — at step 47, settling to 0.2 cm — because the gripper is
-holding it when the impulse lands. Compare our tabletop task above, where an
-ejected cube leaves the workspace entirely and which way it went is obvious from
-a single frame. That difference is the whole finding.
-</sub></p>
-
-The similarity is worth dwelling on, because it qualifies the clear. On our
-tabletop task the mechanisms are trivially separable and a memoryless model
-reads them perfectly. Here they are barely separable *physically*, which is a
-different reason to clear the audit than being a well-posed harder problem — the
-recurrent model only reaches 0.3983 itself. A benchmark whose mechanisms are
-nearly indistinguishable will pass the ladder, and passing means the held-out
-mechanism is not shortcut-solved, not that the benchmark is good.
-
-### A pooled verdict is not enough
-
-That last row clears the audit — but only on average. Scoring each of its nine
-held-out object families separately tells a different story: **in five of the
-nine, the order-free control is statistically indistinguishable from the
-recurrent model**, and in four of those it is numerically ahead. The pooled
-+0.0626 is an average over a split population, where four families carry the
-entire margin and two of them do so by more than 0.18.
-
-So a benchmark can clear the audit overall while most of its held-out families
-individually cannot support the claim the aggregate licenses. The check costs
-nothing extra — `scripts/audit_reboot_per_family.py` retrains no model, reads
-the fold records the evaluation already wrote, and refuses to report unless it
-reproduces the pooled numbers first. Report per family whenever the held-out
-axis has more than one.
-
-That positive has a specific and slightly embarrassing cause. Our two ejection
+The flag has a specific and slightly embarrassing cause. Our two ejection
 directions were produced by *separate actors* — a forward pusher and a reverse
 pusher — so identifying the mechanism reduced to noticing which one had moved.
 A hand-written threshold reaches 97.40% closed-loop doing exactly that.
@@ -159,47 +128,57 @@ frame. And the **last row is unmatched** — the sweep dispatch it uses is
 available to no other arm, which is why the matched 88.99% is the number the
 comparison rests on.
 
-We then fixed it. `LearnedRecovery-v5` replaces the two sweepers with one
-ejector per cube whose direction is deferred by a per-episode delay, and the
-prediction was frozen before any of it was trained: rung 2 must fall well below
-rung 4, and the diagnosis is wrong if it does not. It fell from **1.0000 to
-0.5527**, and no rung now matches. The affordance was the cause, and the audit
-turns out to be actionable rather than only diagnostic.
+### Why the contact-rich task clears, and what that is worth
 
-Two caveats keep that honest. Rung 2 still reaches 0.9561 of rung 4 — under the
-0.9 ratio cut we abandoned, v5 would read as a shortcut, so its verdict depends
-on the criterion just as the recorded-trajectory benchmark's did. And rung 4
-itself fell from 1.0000 to 0.5781, so v5 is harder for everything, not just for
-the memoryless controls. The shortcut is gone; "memory is required" is not
-thereby shown.
+The benchmark that clears most decisively is worth seeing, so here are the
+same four mechanisms on a contact-rich insertion task:
 
-Worse, we had already fixed a shortcut here once. An earlier version leaked the
+<p align="center">
+  <img src="media/demos/peg-recovery-montage.gif" width="760" alt="Four panels of a Panda arm inserting a peg, one per failure mechanism: the peg knocked aside, the peg knocked the other way, the hole blocked permanently, and the hole blocked then cleared.">
+</p>
+
+<p align="center"><sub>
+The nominal controller reaches, grasps the peg, and presses it into the hole
+while the mechanism fires. <b>The four panels look almost the same, and that is
+not a rendering artifact.</b> Measured directly, the two ejections separate the
+peg by at most 0.0125 m — at step 47, settling to 0.0021 m — because the gripper is
+holding it when the impulse lands. Compare our tabletop task above, where an
+ejected cube leaves the workspace entirely and which way it went is obvious from
+a single frame. That difference is the whole finding.
+</sub></p>
+
+The similarity is worth dwelling on, because it qualifies the clear. On our
+tabletop task the mechanisms are trivially separable and a memoryless model
+reads them perfectly. Here they are barely separable *physically*, which is a
+different reason to clear the audit than being a well-posed harder problem — the
+recurrent model only reaches 0.3983 itself. A benchmark whose mechanisms are
+nearly indistinguishable will pass the ladder, and passing means the held-out
+mechanism is not shortcut-solved, not that the benchmark is good.
+
+### Fixing a leak moved it up a rung
+
+We had already fixed a shortcut here once. An earlier version leaked the
 mechanism through instantaneous geometry, so we re-expressed every frame as a
 displacement relative to the present. That worked: rung 1 falls to 0.0294. But
 because every frame now carried a signed displacement, a single early frame
 carried the whole answer instead. **Closing one leak opened a subtler one a rung
 up**, and only a ladder of controls makes that visible.
 
-### Which capability needs memory is not stable across benchmarks
+### A pooled verdict is not enough
 
-On our benchmark, telling a permanent obstruction from a temporary one genuinely
-requires temporal evidence. Both non-recurrent controls fail that pair in
-*opposite* directions, each solving one side and scoring zero on the other,
-while both recurrent models solve both.
+The recorded-trajectory row clears the audit — but only on average. Scoring each of its nine
+held-out object families separately tells a different story: **in five of the
+nine, the order-free control is statistically indistinguishable from the
+recurrent model**, and in four of those it is numerically ahead. The pooled
++0.0626 is an average over a split population, where four families carry the
+entire margin and two of them do so by more than 0.18.
 
-On the contact-rich task it reverses. There the memoryless control is the
-strongest arm on permanent blockage. The same four arms, with that task set
-beside the two columns from the table above:
-
-| Arm | ours: permanent | ours: temporary | contact-rich: permanent |
-|---|---:|---:|---:|
-| Recurrent, factorized | 0.9740 | 0.8438 | 0.4740 |
-| Recurrent, unstructured | 0.9740 | 0.8420 | 0.5208 |
-| One past frame | 0.0000 | 0.8438 | **0.5677** |
-| Hand-written rule | 1.0000 | 0.0000 | 0.0000 |
-
-So "temporal evidence is needed to judge persistence" is a property of the
-benchmark it was measured on, not a fact about recovery.
+So a benchmark can clear the audit overall while most of its held-out families
+individually cannot support the claim the aggregate licenses. The check costs
+nothing extra — `scripts/audit_reboot_per_family.py` retrains no model, reads
+the fold records the evaluation already wrote, and refuses to report unless it
+reproduces the pooled numbers first. Report per family whenever the held-out
+axis has more than one.
 
 ### A benchmark can leak through its clock
 
@@ -222,7 +201,47 @@ recurrent model is untouched. Mechanisms that end episodes at different times
 produce different duration distributions, so an elapsed-time feature encodes
 which mechanism fired. **Any recovery benchmark carrying one should ablate it.**
 
+### Which capability needs memory is not stable across benchmarks
+
+On our benchmark, telling a permanent obstruction from a temporary one genuinely
+requires temporal evidence. Both non-recurrent controls fail that pair in
+*opposite* directions, each solving one side and scoring zero on the other,
+while both recurrent models solve both.
+
+On the contact-rich task it reverses. There the memoryless control is the
+strongest arm on permanent blockage. The same four arms, with that task set
+beside the two columns from the closed-loop table:
+
+| Arm | ours: permanent | ours: temporary | contact-rich: permanent |
+|---|---:|---:|---:|
+| Recurrent, factorized | 0.9740 | 0.8438 | 0.4740 |
+| Recurrent, unstructured | 0.9740 | 0.8420 | 0.5208 |
+| One past frame | 0.0000 | 0.8438 | **0.5677** |
+| Hand-written rule | 1.0000 | 0.0000 | 0.0000 |
+
+So "temporal evidence is needed to judge persistence" is a property of the
+benchmark it was measured on, not a fact about recovery.
+
+### Closing the loop: the repair removes the shortcut
+
+`LearnedRecovery-v5` replaces the two sweepers with one
+ejector per cube whose direction is deferred by a per-episode delay, and the
+prediction was frozen before any of it was trained: rung 2 must fall well below
+rung 4, and the diagnosis is wrong if it does not. It fell from **1.0000 to
+0.5527**, and no rung now matches. The affordance was the cause, and the audit
+turns out to be actionable rather than only diagnostic.
+
+Two caveats keep that honest. Rung 2 still reaches 0.9561 of rung 4 — under the
+0.9 ratio cut we abandoned, v5 would read as a shortcut, so its verdict depends
+on the criterion just as the recorded-trajectory benchmark's did. And rung 4
+itself fell from 1.0000 to 0.5781, so v5 is harder for everything, not just for
+the memoryless controls. The shortcut is gone; "memory is required" is not
+thereby shown.
+
 ## A separate thread: control from restricted vision
+
+*This section is repository-only: it is a parallel line of work, not part of the
+audit, and its gate cannot revise any verdict above.*
 
 Everything above reads privileged state. A parallel line asked whether the same
 recovery behaviour survives when the deployed policy has to look at the scene
