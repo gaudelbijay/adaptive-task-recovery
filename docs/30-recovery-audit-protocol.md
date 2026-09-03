@@ -457,6 +457,32 @@ reverse, is the meaningful one. The shortcut verdict rests on rungs 1, 2, and
 Artifacts: `results/router/ladder/learned_recovery_v4.json`,
 `peg_insertion.json`, and `peg_insertion_physical_only.json`.
 
+### PegInsertion's mechanisms are barely separable physically
+
+Rendering the four PegInsertion mechanisms under the nominal controller produced
+four panels that look almost identical. That is not a rendering artifact.
+Measuring peg displacement from its own start, per mechanism, over 140 steps:
+the two ejections separate by at most **0.0125 m**, at step 47, and settle to
+0.0021 m. The gripper is holding the peg when the impulse lands, so it resists
+it.
+
+Compare `LearnedRecovery-v4`, where an ejected cube leaves the reachable
+workspace entirely and direction is obvious from one frame -- which is exactly
+the affordance the ladder flagged there.
+
+**This qualifies the PegInsertion clear rather than undermining it.** The audit
+asks whether a held-out mechanism is identifiable below the claimed capability,
+and on this benchmark it is not: no lower rung exceeds 0.0874 against 0.3983.
+But the reason is at least partly that the mechanisms are close to physically
+indistinguishable, not that the benchmark poses a well-formed harder problem.
+Rung 4 itself only reaches 0.3983. A benchmark whose mechanisms are nearly
+unidentifiable will clear the ladder, and clearing means "not shortcut-solved",
+never "well designed". The ladder tests identifiability, not quality, and this
+is the sharpest illustration of that limit in the project.
+
+Artifact: measured with the montage capture in
+`scripts/capture_peg_recovery_montage.py`.
+
 ### Closing the loop: v5 removes the shortcut
 
 The flag on `LearnedRecovery-v4` was diagnosed as an actor-identity affordance:

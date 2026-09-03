@@ -7,9 +7,9 @@ what makes the flag informative, and a reader should be able to watch the task
 whose held-out mechanism is genuinely unsolved.
 
 One panel per mechanism, each labelled with what is happening rather than with
-an internal identifier. No policy is loaded -- these are the mechanisms acting
-on the nominal controller's starting state, so the panels show what the
-environment does, not how well anything responds to it.
+an internal identifier. The nominal controller is loaded and actually driving
+the arm: a montage stepped with zero actions shows a frozen robot and a peg
+moving on its own, which is a picture of nothing.
 """
 
 from __future__ import annotations
@@ -20,6 +20,10 @@ from pathlib import Path
 import gymnasium as gym
 import numpy as np
 import torch
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from train_manipulation_ppo import Agent  # noqa: E402
 from mani_skill.utils.wrappers.flatten import FlattenActionSpaceWrapper
 from mani_skill.vector.wrappers.gymnasium import ManiSkillVectorEnv
 
@@ -66,26 +70,62 @@ def label(frame: np.ndarray, text: str, subtitle: str) -> np.ndarray:
     return np.asarray(canvas)
 
 
+def load_agents(paths, observation_dim: int, action_dim: int, device):
+    """Load the nominal controller. Several seeds are averaged, as the
+    closed-loop evaluation does, so the montage shows the same policy the
+    numbers describe."""
+    agents = []
+    for path in paths:
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        agent = Agent(observation_dim, action_dim).to(device)
+        agent.load_state_dict(checkpoint["agent"], strict=True)
+        agent.eval()
+        agents.append(agent)
+    return agents
+
+
+def blocker_observation_flag(paths) -> bool:
+    """Read the observation contract off the checkpoints, as the closed-loop
+    evaluation does. Constructing the env with the wrong flag changes the
+    observation width and the agent will not load."""
+    flags = set()
+    for path in paths:
+        task = torch.load(path, map_location="cpu", weights_only=False)["task"]
+        kwargs = task.get("competence_env_kwargs", task.get("env_kwargs", {}))
+        flags.add(bool(kwargs.get("include_blocker_state_observation", True)))
+    if len(flags) != 1:
+        raise SystemExit("nominal checkpoints disagree on the blocker observation contract")
+    return next(iter(flags))
+
+
 def rollout(kind: str, caption: str, args) -> list[np.ndarray]:
     env = gym.make(
         "PegInsertionRecovery-v1", num_envs=args.num_envs, reconfiguration_freq=1,
         max_episode_steps=args.steps + 40, obs_mode="state", render_mode="rgb_array",
         sim_backend="physx_cuda", control_mode="pd_joint_delta_pos",
+        reward_mode="normalized_dense", onset_step_range=(18, 42),
         intervention_probability=1.0, intervention_types=(kind,),
+        include_blocker_state_observation=blocker_observation_flag(
+            args.nominal_checkpoint),
     )
     if isinstance(env.action_space, gym.spaces.Dict):
         env = FlattenActionSpaceWrapper(env)
     env = ManiSkillVectorEnv(env, args.num_envs, ignore_terminations=True,
                              record_metrics=False)
-    env.reset(seed=args.seed)
+    observation, _ = env.reset(seed=args.seed)
     base = env.unwrapped
     onset = int(base._onset_step[args.index])
+    agents = load_agents(args.nominal_checkpoint,
+                         int(np.prod(env.single_observation_space.shape)),
+                         int(np.prod(env.single_action_space.shape)), base.device)
 
     frames = []
-    action = torch.zeros((args.num_envs,) + env.single_action_space.shape,
-                         device=base.device)
     for step in range(args.steps):
-        env.step(action)
+        with torch.no_grad():
+            action = torch.stack(
+                [a.get_action(observation, True) for a in agents]
+            ).mean(0)
+        observation, _, _, _, _ = env.step(action)
         if step % args.stride:
             continue
         phase = "before the disturbance" if step < onset else f"step {step}, after onset"
@@ -105,6 +145,8 @@ def main() -> None:
                         help="Keep every Nth frame; the GIF is long enough to read.")
     parser.add_argument("--fps", type=int, default=12)
     parser.add_argument("--seed", type=int, default=511_000_000)
+    parser.add_argument("--nominal-checkpoint", action="append", type=Path,
+                        required=True, help="Nominal controller; repeat to average seeds.")
     args = parser.parse_args()
 
     columns = [rollout(kind, caption, args) for kind, caption in PANELS]

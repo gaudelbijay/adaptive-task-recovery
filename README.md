@@ -90,12 +90,22 @@ pick-and-place:
 </p>
 
 <p align="center"><sub>
-The two ejections separate immediately — you can see which way the peg went. The
-two blockages do not: early on, one that will clear and one that will not look
-the same, and telling them apart is what the benchmark is asking for. Here no
-control below the recurrent model gets close, which is why this task clears the
-audit while ours does not.
+The nominal controller reaches, grasps the peg, and presses it into the hole
+while the mechanism fires. <b>The four panels look almost the same, and that is
+not a rendering artifact.</b> Measured directly, the two ejections separate the
+peg by at most 1.25 cm — at step 47, settling to 0.2 cm — because the gripper is
+holding it when the impulse lands. Compare our tabletop task above, where an
+ejected cube leaves the workspace entirely and which way it went is obvious from
+a single frame. That difference is the whole finding.
 </sub></p>
+
+The similarity is worth dwelling on, because it qualifies the clear. On our
+tabletop task the mechanisms are trivially separable and a memoryless model
+reads them perfectly. Here they are barely separable *physically*, which is a
+different reason to clear the audit than being a well-posed harder problem — the
+recurrent model only reaches 0.3983 itself. A benchmark whose mechanisms are
+nearly indistinguishable will pass the ladder, and passing means the held-out
+mechanism is not shortcut-solved, not that the benchmark is good.
 
 ### A pooled verdict is not enough
 
