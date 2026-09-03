@@ -42,6 +42,46 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   blockage: that column measures the missing specialist, not the routing, and
   only the permanent column supports a conclusion.
 
+## D-242: DROID is a second external benchmark, and the audit flags it
+
+- **Status:** Accepted. Structure verified before building; ladder run over ten seeds.
+- **Date:** 2026-09-03
+- **Why DROID and not the ALOHA attempt.** D-241 failed because only one of three
+  structural requirements was checked. `check_droid_family_structure.py` checks
+  all three first, on a 2,000-episode sample: DROID carries an annotated
+  `is_episode_successful` label, a `building` field spanning the thirteen
+  contributing institutions, and **23 buildings with both outcome classes and at
+  least twenty episodes**, against a requirement of five. Per-family success
+  rates span 0.55 to 0.95.
+- **Benchmark:** 2,725 episodes over the ten largest eligible buildings, 428
+  failures and 2,297 successes, 128-frame prefixes, 32-dim relative-coordinate
+  features. Episode duration is excluded because it correlates with success.
+  Task: predict episode outcome from a prefix at a building never trained on.
+- **Aggregate verdict: flagged.** Rung 4 minus the strongest lower rung is
+  **-0.0213, family bootstrap [-0.0487, +0.0084]**. The interval contains zero,
+  so the order-free control matches -- and the point estimate is negative, so on
+  average it is *better*. Pooled rung means: order-free 0.6119, recurrent
+  factorized 0.5975, recurrent unstructured 0.5916, instantaneous 0.5661,
+  endpoint pair 0.5594.
+- **Per-family, the heterogeneity is stronger than REBOOT's.** Differences range
+  from -0.0892 (BAIR) to +0.0720 (RAIL); seven of ten families favour the
+  order-free control, and families disagree in *sign* rather than only in
+  magnitude. Three of ten match by the interval test. The pooled -0.0144
+  describes no individual family.
+- **What this does not show, and must not be written as if it does.** Absolute
+  performance is weak everywhere: rung 4 reaches 0.5975 AUROC and 0.5784
+  balanced accuracy against a 0.82 base rate. The honest reading is that neither
+  approach predicts outcome well from proprioception alone, and the recurrent
+  model has no advantage -- not that the order-free summary is a good success
+  detector.
+- **Consequences.** The audit now has two external benchmarks, one clearing
+  (REBOOT) and one flagging (DROID), which strengthens the discrimination claim
+  and removes the objection that only our own benchmark flags. The per-family
+  finding replicates on independent data collected by a different consortium.
+  Artifacts: `results/droid/droid_ladder_seed*.json`,
+  `results/droid/droid_per_family_v1.json`,
+  `results/droid/droid_family_structure.json`.
+
 ## D-241: Reject the ALOHA provenance benchmark as a second external target
 
 - **Status:** Built, run over ten seeds, rejected. Not used in the write-up.
