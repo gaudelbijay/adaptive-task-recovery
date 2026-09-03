@@ -457,6 +457,42 @@ reverse, is the meaningful one. The shortcut verdict rests on rungs 1, 2, and
 Artifacts: `results/router/ladder/learned_recovery_v4.json`,
 `peg_insertion.json`, and `peg_insertion_physical_only.json`.
 
+### Closing the loop: v5 removes the shortcut
+
+The flag on `LearnedRecovery-v4` was diagnosed as an actor-identity affordance:
+forward and reverse ejection were produced by separate sweepers, so naming the
+mechanism reduced to noticing which one moved. `LearnedRecovery-v5` replaces the
+pair with one ejector per cube whose direction is deferred by a per-episode
+delay. The prediction was frozen before any v5 training and states its own
+falsifier: rung 2 must fall well below rung 4, and the diagnosis is wrong if
+rung 2 remains statistically indistinguishable from it.
+
+| Rung | Control | v4 | v5 |
+|---|---|---:|---:|
+| 1 | instantaneous | 0.0294 | 0.0000 |
+| 2 | one past frame | **1.0000** | 0.5510 |
+| 2b | order-free summary | **1.0000** | 0.5534 |
+| 3 | hand-written rule | 0.1195 | 0.1020 |
+| 4 | recurrent factorized | 1.0000 | 0.5714 |
+| 4 | recurrent unstructured | 0.0000 | 0.0000 |
+
+No rung matches: one past frame +0.0205 [+0.0161, +0.0249], order-free summary
++0.0181 [+0.0132, +0.0231], both excluding zero over three seeds and fifteen
+episode groups. Rung 2 went from matching rung 4 *exactly*, 1.0000 against
+1.0000 with a zero-width interval, to being separable. **The diagnosis is
+confirmed, and the audit is actionable rather than merely diagnostic.**
+
+**Two things this does not show.** Rung 2 still reaches 0.9643 of rung 4 and
+rung 2b reaches 0.9684. Under the 0.9 ratio cut abandoned in D-233 both would
+count as matches and v5 would read as a shortcut; under the paired test they do
+not. v5's verdict therefore depends on the criterion in the same way REBOOT's
+did, and the ratio should be quoted beside the verdict. The recurrent advantage
+is roughly two points, so v5 removes the shortcut without establishing that the
+mechanism requires memory. And rung 4 itself fell from 1.0000 to 0.5714: v5 is
+harder for every arm, not only for the lower rungs.
+
+Artifact: `results/router/ladder/learned_recovery_v5.json`.
+
 ### The ladder on REBOOT: the audit's negative control
 
 The same four-rung audit was run on the external REBOOT benchmark: 2,072
