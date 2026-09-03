@@ -37,6 +37,14 @@ def main() -> None:
     parser.add_argument("--num-envs", type=int, default=64)
     parser.add_argument("--batches", type=int, default=4)
     parser.add_argument("--steps", type=int, default=140)
+    # The first revision passed `--steps` as max_episode_steps and then ran
+    # exactly that many steps, so truncation fired and every cube was restored
+    # to its reset pose before being measured. Displacement was then identically
+    # zero and direction correctness identically 0.0, which is what rejected the
+    # environment twice. The horizon must outlast the measurement.
+    parser.add_argument("--max-episode-steps", type=int, default=240)
+    parser.add_argument("--direction-axis", type=int, default=0,
+                        help="0 for axial (x), 1 for lateral (y).")
     parser.add_argument("--seed", type=int, default=511_000_000)
     parser.add_argument("--early-offset", type=int, default=6,
                         help="Steps after onset at which to sample early displacement.")
@@ -50,7 +58,7 @@ def main() -> None:
     for batch in range(args.batches):
         env = gym.make(
             "LearnedRecovery-v5", num_envs=args.num_envs, reconfiguration_freq=1,
-            max_episode_steps=args.steps, obs_mode="state",
+            max_episode_steps=args.max_episode_steps, obs_mode="state",
             control_mode="pd_joint_delta_pos",
             intervention_probability=1.0,
             intervention_types=("ejection", "reverse_ejection"),
@@ -97,15 +105,16 @@ def main() -> None:
     is_forward = mechanism == FORWARD
     is_reverse = mechanism == REVERSE
     moved = np.linalg.norm(late, axis=1) > 0.02
-    # Direction is carried on the lateral axis.
-    direction_correct = np.where(is_forward, late[:, 1] > 0, late[:, 1] < 0)
+    # Direction is carried on `--direction-axis`.
+    axis = args.direction_axis
+    direction_correct = np.where(is_forward, late[:, axis] > 0, late[:, axis] < 0)
 
     def separability(displacement):
         """Fraction correctly classified by the sign of lateral displacement.
 
         0.5 means the two directions are indistinguishable at that point.
         """
-        guess = displacement[:, 1] > 0
+        guess = displacement[:, axis] > 0
         return float(np.mean(guess == is_forward))
 
     report = {
@@ -118,6 +127,8 @@ def main() -> None:
         "early_direction_separability": separability(early),
         "late_direction_separability": separability(late),
         "early_offset_steps": args.early_offset,
+        "direction_axis": axis,
+        "max_episode_steps": args.max_episode_steps,
     }
     report["checks"] = {
         "observed_ejection_rate": report["observed_ejection_rate"] >= gate["minimum_observed_ejection_rate"],

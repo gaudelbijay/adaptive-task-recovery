@@ -42,6 +42,39 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   blockage: that column measures the missing specialist, not the routing, and
   only the permanent column supports a conclusion.
 
+## D-239: The v5 physics gate was measuring after a reset; v5 passes
+
+- **Status:** Accepted on the corrected gate, 4 of 4 checks pass, design_works true
+- **Date:** 2026-09-03
+- **The instrument was broken.** `smoke_learned_recovery_v5.py` passed `--steps`
+  as `max_episode_steps` and then ran exactly that many steps, so truncation
+  fired and every cube was restored to its reset pose before being measured.
+  Displacement was identically 0.0 m and direction correctness identically
+  0.0000. **Both prior rejections, D-235 and D-238, rest on that measurement.**
+  Holding the horizon at 240 while measuring at 140 changes ejection from 0.3125
+  to 1.0000 and direction correctness from 0.0000 to 1.0000 with no change to
+  the environment.
+- **A real design defect, found once the instrument worked.** The lateral (y)
+  design ejects and directs perfectly but fires the target cube into the
+  protected one: collateral target loss 0.5938 against a 0.02 ceiling, identical
+  at 0.6, 1.2 and 6.0 N because the cause is geometric, not energetic -- the two
+  cubes are separated along y. Moving the direction to x, the axis v4 ejects
+  along and the one `_unavailable` reads, drops collateral to 0.0000.
+- **Evidence:** ejection 1.0000 against a 0.90 floor, direction correctness
+  1.0000 against 0.95, collateral 0.0000 against a 0.02 ceiling, 24 distinct
+  delays, late separability 1.0000 against 0.90.
+- **Decision:** Accept `LearnedRecovery-v5` for training and for the ladder.
+- **Caveat:** early separability is 0.6406 against a 0.65 ceiling -- passing but
+  close. The early snapshot is taken at the first step where *every* env has
+  passed `onset + 6`, so envs with early onsets are sampled well past their own
+  delay. The margin reflects that sampling rule, not early leakage by design.
+- **Consequences:** The preregistered ladder prediction in
+  `configs/learned_recovery_v5_axial_direction_v2.json` is now runnable, so the
+  separate-actor diagnosis of v4's shortcut can finally be tested. Thresholds
+  were copied verbatim into the new config; only the instrument and the
+  direction axis changed. Artifact:
+  `results/a_plus_audit/learned_recovery_v5_axial_smoke_v1.json`.
+
 ## D-238: v5 revision two still fails; the earlier diagnosis was incomplete
 
 - **Status:** Rejected again on the same frozen physics gate, 3 of 4 checks failed

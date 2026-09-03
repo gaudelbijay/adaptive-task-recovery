@@ -11,8 +11,8 @@ This environment removes that affordance. Both ejection directions are produced
 by *one* ejector per cube, which:
 
 1. approaches the cube identically in both variants during an approach phase,
-2. then, after a per-episode delay drawn from a range, receives a lateral force
-   whose sign determines the direction.
+2. then, after a per-episode delay drawn from a range, the cube receives an
+   axial force whose sign determines the direction.
 
 Early frames are therefore identical in distribution across the two directions,
 and the delay varies so no fixed decision step is correct. Distinguishing them
@@ -51,7 +51,7 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
         *args,
         direction_delay_range: tuple[int, int] = (10, 34),
         approach_force: float = 4.0,
-        lateral_force: float = 6.0,
+        direction_force: float = 1.2,
         push_steps: int = 20,
         **kwargs,
     ):
@@ -59,7 +59,7 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
             int(direction_delay_range[0]), int(direction_delay_range[1]),
         )
         self.approach_force = float(approach_force)
-        self.lateral_force = float(lateral_force)
+        self.direction_force = float(direction_force)
         self.push_steps = int(push_steps)
         if self.direction_delay_range[0] < 1:
             raise ValueError("direction delay must be at least one step")
@@ -148,16 +148,19 @@ class LearnedRecoveryDeferredDirectionEnv(LearnedRecoveryMechanismDiverseEnv):
             approach[:, 0] = self.approach_force * active.float()
             self._apply_batched_force(ejector, approach)
 
-            # The direction is applied to the cube itself. The first revision
-            # drove the ejector laterally and expected contact to carry the
-            # impulse across, but an axially-approaching block slides past the
-            # cube instead of bearing on it: observed ejection was 0.2188
-            # against a 0.90 floor and direction correctness was 0.0000. Forcing
-            # the cube directly keeps the mechanism's observable onset tied to
-            # the approach while making the deferred direction actually happen.
-            lateral = torch.zeros((self.num_envs, 3), device=self.device)
-            lateral[:, 1] = (
-                self.lateral_force * sign * (active & diverged).float()
+            # The direction is applied to the cube itself, along x. The first
+            # revision drove the ejector laterally and expected contact to carry
+            # the impulse across; an axially-approaching block slides past the
+            # cube instead of bearing on it. The second revision forced the cube
+            # directly but along y, which is the axis separating the two cubes,
+            # so the ejected cube was fired straight into the protected one:
+            # collateral target loss 0.5938 against a 0.02 ceiling, and
+            # unchanged across a tenfold force sweep because the cause is
+            # geometric rather than energetic. x is the axis v4 ejects along and
+            # the one `_unavailable` reads, and it separates neither cube pair.
+            impulse = torch.zeros((self.num_envs, 3), device=self.device)
+            impulse[:, 0] = (
+                self.direction_force * sign * (active & diverged).float()
             )
-            self._apply_batched_force(cube, lateral)
+            self._apply_batched_force(cube, impulse)
 

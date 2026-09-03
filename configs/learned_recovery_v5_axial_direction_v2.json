@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "status": "preregistered_before_v5_axial_smoke_or_ladder_outcomes",
+  "name": "learned_recovery_v5_axial_direction_v2",
+  "supersedes": "learned_recovery_v5_deferred_direction",
+  "purpose": "LearnedRecovery-v4 implements forward and reverse ejection with separate actors, so identifying the held-out mechanism reduces to noticing which actor moved. The shortcut audit confirms this: a one-frame model and a hand-written motion rule both match the recurrent model exactly. V5 uses one ejector per cube for both directions and defers the direction-bearing force by a per-episode delay, so early frames are uninformative about direction.",
+  "environment": "LearnedRecovery-v5",
+  "why_a_second_config": [
+    "The first gate script passed --steps as max_episode_steps and then ran exactly that many steps, so truncation reset every cube to its initial pose before measurement. Displacement was identically 0.0 and direction correctness identically 0.0. Both prior rejections (D-235, D-238) rest on that invalid measurement.",
+    "With the measurement taken before truncation, the lateral design ejects and directs perfectly but fires the target cube into the protected one: collateral target loss 0.5938 against a 0.02 ceiling, unchanged across a tenfold force sweep because the cause is geometric. The cubes are separated along y.",
+    "The direction is therefore moved to x, the axis v4 ejects along and the one _unavailable() reads. Thresholds are unchanged from the superseded config."
+  ],
+  "changes_from_v4": [
+    "one shared ejector per cube replaces the separate forward and reverse sweepers",
+    "an axial approach force identical across directions",
+    "a lateral direction force applied only after a per-episode delay",
+    "delay drawn uniformly from [10, 34) so no fixed decision step is correct"
+  ],
+  "unchanged_from_v4": [
+    "task, reward, protected-object constraint, blockage mechanisms",
+    "observation contract",
+    "no runtime pose assignment"
+  ],
+  "physics_smoke_gate": {
+    "note": "Thresholds copied verbatim from the superseded config. Only the instrument and the direction axis change.",
+    "minimum_observed_ejection_rate": 0.9,
+    "minimum_direction_correctness": 0.95,
+    "maximum_collateral_target_loss": 0.02,
+    "minimum_delay_distinct_values": 8
+  },
+  "ladder_prediction": {
+    "note": "Recorded before the audit runs, so the outcome cannot be reframed.",
+    "expected": "Rung 2 held-out accuracy falls well below rung 4. If it does not, the shortcut is not caused by separate actors and this diagnosis is wrong.",
+    "falsifies_the_diagnosis_if": "rung 2 remains statistically indistinguishable from rung 4"
+  },
+  "claim_boundary": "A benchmark-construction change only. No recovery, routing, or method claim follows until the ladder and a closed-loop evaluation are run."
+}
