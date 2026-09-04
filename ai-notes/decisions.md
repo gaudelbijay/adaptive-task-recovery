@@ -42,6 +42,56 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   blockage: that column measures the missing specialist, not the routing, and
   only the permanent column supports a conclusion.
 
+## D-243: Vision does not rescue DROID; the inconclusive verdict is stress-tested
+
+- **Status:** Four feature constructions tried; DROID remains inconclusive.
+- **Date:** 2026-09-04
+- **Why.** D-242 reported DROID as inconclusive because no rung cleared the
+  competence precondition, and noted the restriction to proprioception was ours:
+  success in DROID often depends on objects and scene. That made the verdict
+  vulnerable to the obvious objection that we simply had not given the models
+  enough. So we gave them the scene.
+- **What was built.** All 2,725 episodes re-fetched with their exterior-camera
+  clips, 32 frames each embedded by a frozen DINO ViT-S/16, concatenated with
+  proprioception at the same timesteps. A proprioception-only tensor at the
+  identical 32 timesteps was written alongside as a control, so any change could
+  be attributed to vision rather than to the shorter horizon.
+
+| Rung | proprio(128) | proprio(32) | vision raw | vision PCA-24 |
+|---|---:|---:|---:|---:|
+| 1 instantaneous | 0.5661 | 0.5648 | 0.5114 | 0.5251 |
+| 2 endpoint pair | 0.5594 | 0.5647 | 0.4890 | 0.5355 |
+| 2b order-free | **0.6119** | **0.6161** | 0.5031 | **0.5738** |
+| 4 unstructured | 0.5916 | 0.6058 | 0.5042 | 0.5714 |
+| 4 factorized | 0.5975 | 0.6040 | 0.5102 | 0.5624 |
+
+- **Raw vision made it worse, and that was our error.** Every rung fell to chance
+  once 384-dimensional embeddings were concatenated with 32 dimensions of
+  proprioception: the visual block is 92% of the input width against roughly
+  2,400 training episodes. Reducing it per fold to 24 components, fitted on
+  training buildings only, recovers most of the loss (0.5031 to 0.5738 for the
+  order-free rung), which confirms dimensionality as the cause.
+- **But vision never beats proprioception alone.** The best visual variant
+  reaches 0.5738 against 0.6161 for proprioception at the same timesteps, and no
+  variant clears the competence precondition; the best margin over chance is
+  +0.0738.
+- **The horizon control did its job.** Proprioception at 32 steps reproduces the
+  128-step result (0.6161 / 0.6040 against 0.6119 / 0.5975), so the original
+  finding was not an artifact of prefix length.
+- **Decision:** DROID stays inconclusive, and the label is now stress-tested
+  rather than assumed. We tried two horizons, raw visual features, and reduced
+  visual features; none reached competence.
+- **One pattern worth noting, not claiming.** The order-free rung leads in three
+  of four constructions, ahead of both recurrent models. That is consistent with
+  temporal structure not helping on this task, but every rung is too close to
+  chance for the comparison to license it -- which is exactly what the
+  precondition exists to prevent us from asserting.
+- **Honest ceiling.** 2,725 episodes over ten buildings is small for learning
+  visual success prediction. The limit may be the data budget we chose rather
+  than the task; settling that needs the full 95,600 episodes, a different-sized
+  experiment. Artifacts: `results/droid/vision_ladder*_seed*.json`,
+  `results/droid/vision_pca_ladder_seed*.json`.
+
 ## D-242: DROID is a second external benchmark, and the audit flags it
 
 - **Status:** Accepted. Structure verified before building; ladder run over ten seeds.
