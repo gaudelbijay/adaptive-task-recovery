@@ -2,10 +2,16 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
-## D-247: Three of four LIBERO suites do not require their language instruction
+## D-247: LIBERO shortcut confirmed, but the finding was already published
 
-- **Status:** Verified against two artifact hypotheses
+- **Status:** Verified, then found to be prior work
 - **Date:** 2026-09-05
+- **Prior work:** Jiang et al., arXiv:2606.04233, 2 June 2026, report a 0.09B
+  probe with no language encoder within one percentage point of the best
+  published result on three of four LIBERO splits. That is a stronger
+  instrument than ours and predates this by three months. We do not claim the
+  finding. The novelty check should have run before the experiment, not after
+  it had a results section, a figure and two commits.
 - **Evidence:** 10-way task classification from the single frame a policy sees
   before acting, 500 demos per suite, repeated 5-fold CV over 5 seeds, chance
   0.100. \textsc{Object} 1.000 [1.000, 1.000]; \textsc{Long} 0.920
