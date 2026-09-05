@@ -2,6 +2,42 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-246: We fabricated the claim the external audit was built to test
+
+- **Status:** Corrected in paper, scripts and D-244/D-245
+- **Date:** 2026-09-05
+- **Evidence:** The audit was framed throughout as testing Robo-Dopamine's
+  argument that reward models relying on "static before-after observations"
+  suffer "temporal ambiguity", remedied by "history conditioning". None of those
+  phrases appear in their paper. Checked against the released README (0 hits for
+  "static before-after", "temporal ambiguity", "history", "REFERENCE START") and
+  against the arXiv abstract and full HTML text of arXiv:2512.23703 (0 hits for
+  the same). Their stated contributions are step-aware understanding, multi-view
+  perception, Step-wise Reward Discretization, Multi-Perspective Reward Fusion
+  and policy-invariant reward shaping. There is also no "2.0"; the paper is
+  titled "Robo-Dopamine: General Process Reward Modeling for High-Precision
+  Robotic Manipulation".
+- **Decision:** Never attribute a claim to an external work without quoting from
+  that work's own text, fetched and checked in the same session the attribution
+  is written. Reframe this experiment as what it is: an ablation of a documented
+  component, with the necessity question ours rather than theirs.
+- **Reason:** What is real is that their method describes the model as
+  conditioned "on multi-view images of initial, goal, 'before,' and 'after'
+  states", and the reference panel supplies the initial and goal frames. So the
+  component is genuine and the measurement is sound. The invented part was the
+  motivation attached to it, which then propagated into a script docstring, two
+  decision records, a paper section and a commit message before anything checked
+  it against the source. The quote was never read from their paper; it was
+  written from memory of what a paper of that kind would argue.
+- **Consequences:** The empirical work stands unchanged -- the sweep, the 0.5
+  trivial floor, the ceiling condition -- because none of it depended on the
+  attribution. What changes is the framing: this is a component ablation, not a
+  refutation of a published claim, and the paper now says so explicitly and
+  disclaims any representation about what the authors credit the panel for. The
+  near-miss is that a fabricated quote came within one commit of a submission
+  draft criticising another group. A citation was pending in the bibliography
+  the whole time, which is what finally forced the check.
+
 ## D-245: The panel is necessary; our first verdict was a ceiling artefact
 
 - **Status:** Settled by a difficulty sweep
@@ -30,7 +66,7 @@ Lightweight architecture decision log. Stable research design is in `docs/`.
   rung sits near a trivial predictor. This establishes the ceiling: a match is
   equally meaningless when both rungs are saturated, because the benchmark has
   no room to show a difference. Our audit would have published a false shortcut
-  verdict against someone else's claim had the sweep not been run, and the sweep
+  verdict against a component of someone else's released system had the sweep not been run, and the sweep
   was only run because the ceiling diagnostic flagged 3 of 6 domains as
   uninformative. Every ladder verdict in the paper must now report its headroom.
   Note the scoping distinction that keeps our own results intact: a

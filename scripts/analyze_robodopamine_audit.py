@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Analyse the Robo-Dopamine history-conditioning audit.
 
-The claim under test is that history conditioning -- a REFERENCE START/END
-panel supplied alongside the queried BEFORE/AFTER sets -- is what lifts the
-model above "static before-after observations". The matched control is the same
-released model on the same episodes with that panel removed.
+What is measured is the contribution of Robo-Dopamine's reference panel -- the
+initial and goal frames, supplied alongside the queried BEFORE/AFTER sets -- to
+their own VOC metric. The matched control is the same released model on the same
+episodes with that panel removed. The necessity of the panel is our question,
+not a claim of theirs; see the note in audit_robodopamine_history.py.
 
 Two things decide the verdict, in this order:
 
@@ -210,9 +211,9 @@ def main() -> None:
     out = Path(args.output); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({
         "schema_version": 1,
-        "claim_under_test": (
-            "Robo-Dopamine 2.0 attributes its gain to history conditioning via a "
-            "reference panel, against static before-after baselines."),
+        "measured": (
+            "contribution of Robo-Dopamine's reference panel (initial/goal frames) "
+            "to their own VOC metric; the necessity question is ours, not theirs"),
         "n_records": len(records), "parse_failures": failures,
         "episodes_paired": len(all_pairs),
         "trivial_baselines": trivial, "competence_floor": floor,

@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
-"""Audit a published claim: does Robo-Dopamine's history conditioning help?
+"""Measure what Robo-Dopamine's reference panel contributes to their metric.
 
-Robo-Dopamine 2.0 argues that "existing learned visual reward models often rely
-on static before-after observations, causing temporal ambiguity and weak
-discrimination", and its remedy is a history-conditioned reward that adds a
-reference panel: a REFERENCE START and REFERENCE END frame alongside the queried
-BEFORE/AFTER sets.
+Robo-Dopamine (arXiv:2512.23703) releases a general reward model conditioned,
+in their words, "on multi-view images of initial, goal, 'before,' and 'after'
+states". Their evaluation supplies the initial and goal frames as a
+REFERENCE START/END panel alongside the queried BEFORE/AFTER sets.
 
-That is a capability claim of exactly the shape the ladder audits, and it is
-testable because the model, the benchmark and the evaluation code are released.
-The matched control is the baseline they describe: the same released model, the
-same queried endpoints, the same scoring instructions, with the reference panel
-removed. If the panel is doing the work claimed, removing it should cost
-accuracy on their own metric.
+The necessity of that panel is *our* question, not a claim of theirs. They
+attribute their results to step-wise reward discretization and multi-perspective
+fusion; this script makes no representation about what they assert the panel
+contributes. It is a clean target for a matched control only because the model,
+benchmark and evaluation code are all released, so the control can be exact:
+the same released model, the same queried endpoints, the same scoring
+instructions, with the panel removed.
+
+(An earlier version of this docstring attributed to them a claim about
+"static before-after observations" causing "temporal ambiguity". That sentence
+does not appear in their paper and was not theirs. Their abstract and method
+make no argument of that shape.)
 
 Fairness notes, since a sloppy ablation would prove nothing:
   * the prompt instructs the model to calibrate against the references, so the
@@ -20,6 +25,10 @@ Fairness notes, since a sloppy ablation would prove nothing:
     model told to use anchors it cannot see;
   * both conditions score the identical episodes, frame pairs, and directions;
   * the metric is their own VOC, computed by their own function.
+
+Read the result against two properties of that metric, both measured rather
+than assumed: its floor is 0.5 for an image-blind predictor, not 0, and it
+saturates at their default frame interval. See D-244 and D-245.
 """
 
 from __future__ import annotations
@@ -270,9 +279,9 @@ def main() -> None:
     out = Path(args.output); out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({
         "schema_version": 1,
-        "claim_under_test": (
-            "Robo-Dopamine 2.0 attributes its gain to history conditioning via a "
-            "reference panel, against static before-after baselines."
+        "measured": (
+            "contribution of Robo-Dopamine's reference panel (initial/goal frames) "
+            "to their own VOC metric; the necessity question is ours, not theirs"
         ),
         "control": "same released model and queried endpoints, reference panel removed",
         "model": args.model, "episodes_per_domain": args.episodes,
