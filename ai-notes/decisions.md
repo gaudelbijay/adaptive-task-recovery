@@ -2,6 +2,37 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-247: Three of four LIBERO suites do not require their language instruction
+
+- **Status:** Verified against two artifact hypotheses
+- **Date:** 2026-09-05
+- **Evidence:** 10-way task classification from the single frame a policy sees
+  before acting, 500 demos per suite, repeated 5-fold CV over 5 seeds, chance
+  0.100. \textsc{Object} 1.000 [1.000, 1.000]; \textsc{Long} 0.920
+  [0.898, 0.940]; \textsc{Spatial} 0.902 [0.878, 0.924]; \textsc{Goal} 0.126
+  [0.104, 0.148]. Demonstration length alone, with no vision at all, reaches
+  0.354, 0.328, 0.243 and 0.172 respectively.
+- **Decision:** Report that success on LIBERO Object, Spatial and Long is not
+  evidence of language grounding, since the task is identifiable before the
+  policy acts. Goal is the one suite where the instruction is load-bearing.
+- **Reason:** The mechanism is visible in the task definitions. Object is ten
+  copies of "pick up the X and place it in the basket" with a different X
+  present in each scene, so the scene names the task. Long likewise varies
+  objects and scenes. Goal holds the kitchen and its objects fixed and varies
+  only the goal, which is why it alone requires the instruction.
+- **Consequences:** Two artifact hypotheses were tested and both fail, which is
+  why the perfect score stands. Initial states do vary within a task (mean
+  pixel std 0.0181 on Object), so the classifier is not memorizing ten fixed
+  images. And the result does not depend on the learned embedding: raw 16x16
+  downsampled pixels also give 1.000 on Object while giving 0.102 on Goal, so
+  the same trivial pipeline returns chance exactly where chance is correct.
+  This is the external flag the audit had been missing. It is not a claim that
+  LIBERO is broken: Object is designed to vary objects, and that is the point of
+  the suite. The claim is narrower and about inference, that success on these
+  three suites cannot distinguish a policy which grounds language from one which
+  maps scene to behavior, so papers citing LIBERO success as evidence of
+  instruction following are unsupported on three of its four suites.
+
 ## D-246: We fabricated the claim the external audit was built to test
 
 - **Status:** Corrected in paper, scripts and D-244/D-245
