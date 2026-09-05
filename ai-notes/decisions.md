@@ -2,6 +2,73 @@
 
 Lightweight architecture decision log. Stable research design is in `docs/`.
 
+## D-245: The panel is necessary; our first verdict was a ceiling artefact
+
+- **Status:** Settled by a difficulty sweep
+- **Date:** 2026-09-04
+- **Evidence:** Same model, episodes and ablation at three sampling intervals,
+  pooled over agibot, droid_oxe and human_egodex (148 paired episodes each,
+  0 parse failures throughout). Interval 30, their default: full 0.918, ablated
+  0.917, pooled +0.0019 [-0.0197, +0.0210], ceiling fraction 0.51 -- match.
+  Interval 15: full 0.900, ablated 0.860, pooled +0.0404 [+0.0059, +0.0756],
+  ceiling 0.19. Interval 10: full 0.860, ablated 0.779, pooled
+  +0.0808 [+0.0278, +0.1307], ceiling 0.07. Headroom-only tracks it:
+  +0.0030, +0.0497, +0.0873. Per domain at interval 10, droid_oxe
+  +0.1580 [+0.0571, +0.2525] and agibot +0.0933 [+0.0393, +0.1605] both show the
+  effect; human_egodex -0.0084 [-0.1054, +0.0818] still matches.
+- **Decision:** Report that the reference panel carries measurable weight, that
+  the effect grows monotonically as sampling interval shrinks, and that our own
+  initial "not necessary" reading was an artefact of a saturated metric.
+- **Reason:** The ablated condition degrades from 0.917 to 0.779 across the
+  sweep while the full condition barely moves. Closer frames make the
+  before/after judgement ambiguous, which is exactly the failure their reference
+  panel is designed to absorb, so the panel's value appears only once the task
+  is hard enough to need it. Their default interval leaves both conditions near
+  ceiling, where no ablation can express a difference.
+- **Consequences:** The ladder needs a two-sided precondition, not a one-sided
+  one. D-244 established the floor: a match is meaningless when the matching
+  rung sits near a trivial predictor. This establishes the ceiling: a match is
+  equally meaningless when both rungs are saturated, because the benchmark has
+  no room to show a difference. Our audit would have published a false shortcut
+  verdict against someone else's claim had the sweep not been run, and the sweep
+  was only run because the ceiling diagnostic flagged 3 of 6 domains as
+  uninformative. Every ladder verdict in the paper must now report its headroom.
+  Note the scoping distinction that keeps our own results intact: a
+  ceiling-affected match still supports "this benchmark does not require the
+  capability", which is what the Tabletop flag claims; it does not support "the
+  capability is unnecessary", which is what we briefly and wrongly claimed here.
+
+## D-244: VOC has a 0.5 trivial floor, and our first transcription of it was wrong
+
+- **Status:** Measured; audit re-run on the corrected pipeline
+- **Date:** 2026-09-04
+- **Evidence:** Image-blind predictors scored on the real episode lengths reach
+  mean VOC 0.499 (constant positive: forward 0.999, inverse 0.000) and 0.500
+  (constant negative: forward 0.000, inverse 1.000). A random-sign predictor
+  reaches 0.067. Their progress accumulator is monotone in the sign of the
+  score, so a fixed-sign output saturates whichever direction matches its bias.
+- **Decision:** Read every VOC against a 0.5 floor averaged over both
+  directions, never against 0, and require both conditions to clear that floor
+  by a stated margin before any full-versus-ablated comparison is interpreted.
+- **Reason:** A single-direction VOC near 1.0 is achievable without perceiving
+  anything, so the two directions together are what make the metric non-trivial.
+  This is the competence precondition applied to an external benchmark.
+- **Consequences:** Three faults in our first transcription had to be fixed
+  before any of this was measurable, and all three inflated the result in the
+  same direction. The score parser was a regex requiring digits flush against
+  the percent sign; it fell through to a loose fallback that matched the
+  *fractional* digit, so `-100.0%` parsed as `+0.0` and `+31.6%` as `+0.06`.
+  Every score became small and positive, the curve rose monotonically, and VOC
+  read +1.000 in all four cells — a clean, entirely artefactual result. The
+  accumulator was a cumulative sum rather than their saturating interpolation
+  bounded in [0, 1], and the frame sampler was a fixed stride that never reached
+  the final frame rather than their evenly spaced inclusive-endpoint sampler.
+  `tests/test_robodopamine_transcription.py` now pins all three against literal
+  restatements of their functions, including a randomised equivalence check on
+  the accumulator in both directions. The general lesson: a smoke test that
+  prints plausible numbers is not evidence the pipeline is right, and logging
+  the raw model text beside the parsed value is what exposed this.
+
 ## D-237: PegInsertion leaks blockage identity through episode timing
 
 - **Status:** Confirmed by ablation
