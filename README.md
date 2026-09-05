@@ -421,6 +421,11 @@ posted yet. Once it is, replace the `note` line with the real identifier:
   primaryClass  = {cs.RO},
 ```
 
+Post under `cs.RO` as the primary category, cross-listed to `cs.LG`. The
+subject matter is robotics, but the contribution is an evaluation method, and
+the readers most likely to apply it to their own benchmarks follow the machine
+learning listing.
+
 If you use a specific result rather than the method, the numbers in the paper
 are reproduced by the scripts in [`scripts/`](scripts/) against the frozen
 configurations described under [Getting started](#getting-started). The
