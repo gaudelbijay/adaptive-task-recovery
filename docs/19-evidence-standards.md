@@ -27,14 +27,14 @@ A result is described as established only when all of the following hold.
    trajectory data — and pools every training seed.
 4. Its threshold was fixed before the outcome was observed, and the outcome is
    reported against that threshold whether it passes or fails.
-5. Any held-out mechanism has survived the control ladder in
+5. Any held-out mechanism has survived the capability ladder in
    [`30-recovery-audit-protocol.md`](30-recovery-audit-protocol.md). A
    mechanism a weaker control identifies as well as the model under test is a
    shortcut, and no composition claim follows from it.
 
 ## What the results support
 
-The control ladder detects when a benchmark's held-out mechanism is
+The capability ladder detects when a benchmark's held-out mechanism is
 identifiable without the capability the benchmark claims to test. Run on three
 benchmarks with an identical rung set, it reports a shortcut on one and none on
 the other two, so it discriminates rather than firing everywhere.

@@ -38,7 +38,7 @@ It should be. When we checked our own benchmark, a model seeing a single past
 frame, with no memory and no sequence encoder, identified the held-out mechanism
 as accurately as the recurrent model did.
 
-## The control ladder
+## The capability ladder
 
 The audit scores a benchmark's held-out mechanism against four controls of
 increasing capability, on identical inputs, splits and targets:
@@ -357,7 +357,7 @@ re-running its configuration rather than reading a checked-in artifact.
 Entry points worth knowing:
 
 - [`scripts/audit_shortcut_ladder.py`](scripts/audit_shortcut_ladder.py) — the
-  control ladder and its statistical criterion.
+  capability ladder and its statistical criterion.
 - [`scripts/plot_shortcut_ladder.py`](scripts/plot_shortcut_ladder.py) — renders
   the figure above from the audit's output records.
 - [`src/atr/policies/option_router.py`](src/atr/policies/option_router.py) — the
@@ -394,6 +394,39 @@ the same token for different things. A counter is not a quality ordering — a
 higher number is a later attempt, not a better one, and most were rejected.
 [`docs/31-naming-and-identifier-key.md`](docs/31-naming-and-identifier-key.md)
 maps every counter to what it refers to.
+
+## Citing this work
+
+The audit, the two-sided precondition, and the findings reported here are
+described in:
+
+> Bijay Gaudel. *Auditing Failure-Mechanism Benchmarks for Robot Recovery.*
+> Preprint, 2026.
+
+```bibtex
+@misc{gaudel2026auditing,
+  title  = {Auditing Failure-Mechanism Benchmarks for Robot Recovery},
+  author = {Gaudel, Bijay},
+  year   = {2026},
+  note   = {Preprint. arXiv identifier to be added once posted.}
+}
+```
+
+The arXiv identifier is not in this entry because the preprint has not been
+posted yet. Once it is, replace the `note` line with the real identifier:
+
+```bibtex
+  eprint        = {ARXIV-ID},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.RO},
+```
+
+If you use a specific result rather than the method, the numbers in the paper
+are reproduced by the scripts in [`scripts/`](scripts/) against the frozen
+configurations described under [Getting started](#getting-started). The
+recorded trajectories used as external controls were collected and released by
+other groups, and should be cited directly: REBOOT for the bimanual corpus and
+DROID for the in-the-wild corpus.
 
 ## License
 
