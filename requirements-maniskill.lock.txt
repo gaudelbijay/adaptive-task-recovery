@@ -1,6 +1,6 @@
 absl-py==2.4.0
 annotated-doc==0.0.4
-anyio==4.12.1
+anyio==4.14.2
 arm_pytorch_utilities==0.4.3
 asttokens==3.0.1
 -e git+ssh://git@github.com/gaudelbijay/adaptive-task-recovery.git@ac0e91252a8da896ecb58a530460d76e95a23be4#egg=atr_spikes
