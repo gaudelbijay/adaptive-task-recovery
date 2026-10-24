@@ -94,7 +94,7 @@ safetensors==0.8.0
 sapien==3.0.3
 scikit-learn==1.9.0
 scipy==1.17.0
-setuptools==83.0.0
+setuptools==84.1.0
 shellingham==1.5.4
 six==1.17.0
 smmap==5.0.2
